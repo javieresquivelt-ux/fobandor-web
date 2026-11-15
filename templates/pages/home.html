@@ -1,0 +1,112 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+
+<!-- HERO -->
+<section id="inicio" class="relative overflow-hidden">
+  <div class="absolute inset-0 bg-gradient-to-br from-fobandor-orange/10 via-transparent to-fobandor-blue/10"></div>
+  <div class="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32 text-center">
+    <div class="flex flex-wrap justify-center gap-2 mb-6">
+      <span class="inline-flex items-center rounded-full border border-fobandor-orange/40 bg-fobandor-orange/10 px-3 py-1 text-xs font-semibold text-fobandor-orange">AI-Powered</span>
+      <span class="inline-flex items-center rounded-full border border-fobandor-blue/40 bg-fobandor-blue/10 px-3 py-1 text-xs font-semibold text-fobandor-blue">{% trans "Español & English" %}</span>
+    </div>
+    <h1 class="text-4xl md:text-6xl font-extrabold tracking-tight leading-tight">
+      {% trans "Ideas, código y creatividad impulsados por IA" %}
+    </h1>
+    <p class="mt-6 text-lg md:text-2xl font-semibold bg-gradient-to-r from-fobandor-orange via-fobandor-cyan to-fobandor-blue bg-clip-text text-transparent">
+      BUILD. ADVERTISE. ENTERTAIN. WITH AI.
+    </p>
+    <p class="mt-4 text-base md:text-lg text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
+      {% trans "Tu visión. Nuestra tecnología. Sin límites." %}
+    </p>
+    <div class="mt-10 flex flex-wrap justify-center gap-4">
+      <a href="#servicios" class="inline-flex items-center rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-3 text-base font-semibold transition-colors shadow-lg shadow-fobandor-orange/20">
+        {% trans "Comencemos" %}
+      </a>
+      <a href="#proyectos" class="inline-flex items-center rounded-xl border border-gray-300 dark:border-white/20 px-6 py-3 text-base font-semibold hover:border-fobandor-blue transition-colors">
+        {% trans "Ver proyectos" %}
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- SERVICIOS: 4 LÍNEAS DE NEGOCIO -->
+<section id="servicios" class="py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">{% trans "Nuestros Servicios" %}</h2>
+      <p class="mt-3 text-gray-600 dark:text-gray-400">{% trans "Cuatro líneas de negocio impulsadas por inteligencia artificial." %}</p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-orange/60 transition-colors">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-blue text-white flex items-center justify-center text-2xl mb-4">🌐</div>
+        <h3 class="text-xl font-bold mb-2">{% trans "Desarrollo Web con IA" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {% trans "Sitios corporativos, e-commerce, landing pages, chatbots y asistentes IA, y automatización de procesos." %}
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-blue/60 transition-colors">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-blue to-fobandor-cyan text-white flex items-center justify-center text-2xl mb-4">📱</div>
+        <h3 class="text-xl font-bold mb-2">{% trans "Desarrollo de Apps con IA" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {% trans "Apps iOS y Android, aplicaciones web, sistemas a medida e integración de APIs y automatizaciones." %}
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-cyan/60 transition-colors">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-cyan to-fobandor-orange text-white flex items-center justify-center text-2xl mb-4">📣</div>
+        <h3 class="text-xl font-bold mb-2">{% trans "Publicidad con IA" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {% trans "Campañas publicitarias, videos para redes, creatividades con IA, avatares, copywriting y automatización de marketing." %}
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-orange/60 transition-colors">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-cyan text-white flex items-center justify-center text-2xl mb-4">🎬</div>
+        <h3 class="text-xl font-bold mb-2">{% trans "Fobandor Studios" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          {% trans "Producción audiovisual con IA: series, películas, podcasts, trailers, cortometrajes, videoclips y contenido para YouTube." %}
+        </p>
+      </article>
+
+    </div>
+  </div>
+</section>
+
+<!-- PROYECTOS (placeholder) -->
+<section id="proyectos" class="py-20 bg-gray-50 dark:bg-white/5">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Proyectos" %}</h2>
+    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Casos de éxito próximamente." %}</p>
+  </div>
+</section>
+
+<!-- PRECIOS (placeholder) -->
+<section id="precios" class="py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Precios" %}</h2>
+    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Planes de suscripción próximamente." %}</p>
+  </div>
+</section>
+
+<!-- NOSOTROS (placeholder) -->
+<section id="nosotros" class="py-20 bg-gray-50 dark:bg-white/5">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Nosotros" %}</h2>
+    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Conoce a FOBANDOR, Orlando, Florida." %}</p>
+  </div>
+</section>
+
+<!-- CONTACTO (placeholder) -->
+<section id="contacto" class="py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Contacto" %}</h2>
+    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Formulario de contacto próximamente." %}</p>
+  </div>
+</section>
+
+{% endblock %}

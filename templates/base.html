@@ -1,0 +1,38 @@
+{% load static %}
+{% load i18n %}
+<!DOCTYPE html>
+<html lang="{{ LANGUAGE_CODE }}"
+      x-data="{ dark: document.documentElement.classList.contains('dark'), mobileOpen: false }"
+      :class="{ 'dark': dark }">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}FOBANDOR — Build. Advertise. Entertain. With AI.{% endblock %}</title>
+
+  <link rel="icon" href="{% static 'images/favicons/favicon.ico' %}" sizes="any">
+  <link rel="icon" type="image/png" sizes="32x32" href="{% static 'images/favicons/favicon-32x32.png' %}">
+  <link rel="icon" type="image/png" sizes="16x16" href="{% static 'images/favicons/favicon-16x16.png' %}">
+  <link rel="apple-touch-icon" href="{% static 'images/favicons/apple-touch-icon.png' %}">
+  <link rel="manifest" href="{% static 'images/favicons/site.webmanifest' %}">
+
+  <link rel="stylesheet" href="{% static 'css/output.css' %}">
+
+  <script>
+    (function () {
+      var stored = localStorage.getItem('theme');
+      var dark = stored === null ? true : stored !== 'light';
+      document.documentElement.classList.toggle('dark', dark);
+    })();
+  </script>
+
+  <script defer src="{% static 'js/vendor/alpine.min.js' %}"></script>
+  <script defer src="{% static 'js/vendor/htmx.min.js' %}"></script>
+</head>
+<body class="min-h-screen flex flex-col antialiased font-montserrat bg-fobandor-light dark:bg-fobandor-dark text-gray-900 dark:text-gray-100">
+  {% include 'partials/navbar.html' %}
+  <main class="flex-1">
+    {% block content %}{% endblock %}
+  </main>
+  {% include 'partials/footer.html' %}
+</body>
+</html>

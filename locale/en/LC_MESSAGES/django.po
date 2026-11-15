@@ -1,0 +1,116 @@
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: FOBANDOR 1.0\n"
+"Language: en\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Inicio"
+msgstr "Home"
+
+msgid "Servicios"
+msgstr "Services"
+
+msgid "Proyectos"
+msgstr "Projects"
+
+msgid "Precios"
+msgstr "Pricing"
+
+msgid "Nosotros"
+msgstr "About Us"
+
+msgid "Contacto"
+msgstr "Contact"
+
+msgid "Comenzar"
+msgstr "Get Started"
+
+msgid "Cambiar tema"
+msgstr "Toggle theme"
+
+msgid "Abrir menú"
+msgstr "Open menu"
+
+msgid "Síguenos"
+msgstr "Follow Us"
+
+msgid "Ubicación"
+msgstr "Location"
+
+msgid "Todos los derechos reservados."
+msgstr "All rights reserved."
+
+msgid "Tu visión. Nuestra tecnología. Sin límites."
+msgstr "Your vision. Our technology. No limits."
+
+msgid "Español & English"
+msgstr "Spanish & English"
+
+msgid "Ideas, código y creatividad impulsados por IA"
+msgstr "Ideas, code and creativity powered by AI"
+
+msgid "Comencemos"
+msgstr "Let's Start"
+
+msgid "Ver proyectos"
+msgstr "View projects"
+
+msgid "Nuestros Servicios"
+msgstr "Our Services"
+
+msgid "Cuatro líneas de negocio impulsadas por inteligencia artificial."
+msgstr "Four business lines powered by artificial intelligence."
+
+msgid "Desarrollo Web con IA"
+msgstr "AI Web Development"
+
+msgid ""
+"Sitios corporativos, e-commerce, landing pages, chatbots y asistentes IA, y "
+"automatización de procesos."
+msgstr ""
+"Corporate sites, e-commerce, landing pages, AI chatbots and assistants, and "
+"process automation."
+
+msgid "Desarrollo de Apps con IA"
+msgstr "AI App Development"
+
+msgid ""
+"Apps iOS y Android, aplicaciones web, sistemas a medida e integración de "
+"APIs y automatizaciones."
+msgstr ""
+"iOS and Android apps, web apps, custom systems, and API integrations and "
+"automations."
+
+msgid "Publicidad con IA"
+msgstr "AI Advertising"
+
+msgid ""
+"Campañas publicitarias, videos para redes, creatividades con IA, avatares, "
+"copywriting y automatización de marketing."
+msgstr ""
+"Ad campaigns, social media videos, AI creatives, avatars, copywriting, and "
+"marketing automation."
+
+msgid "Fobandor Studios"
+msgstr "Fobandor Studios"
+
+msgid ""
+"Producción audiovisual con IA: series, películas, podcasts, trailers, "
+"cortometrajes, videoclips y contenido para YouTube."
+msgstr ""
+"AI audiovisual production: series, films, podcasts, trailers, short films, "
+"music videos, and YouTube content."
+
+msgid "Casos de éxito próximamente."
+msgstr "Success stories coming soon."
+
+msgid "Planes de suscripción próximamente."
+msgstr "Subscription plans coming soon."
+
+msgid "Conoce a FOBANDOR, Orlando, Florida."
+msgstr "Meet FOBANDOR, Orlando, Florida."
+
+msgid "Formulario de contacto próximamente."
+msgstr "Contact form coming soon."

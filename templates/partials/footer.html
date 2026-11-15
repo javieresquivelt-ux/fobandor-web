@@ -1,0 +1,48 @@
+{% load i18n %}
+<footer class="border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-fobandor-dark">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-10">
+
+      <!-- Marca -->
+      <div>
+        <div class="flex items-center gap-2 mb-4">
+          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-blue text-white font-extrabold text-xl">F</span>
+          <span class="font-extrabold tracking-tight text-lg">FOBANDOR</span>
+        </div>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          BUILD. ADVERTISE. ENTERTAIN. WITH AI.
+        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          {% trans "Tu visión. Nuestra tecnología. Sin límites." %}
+        </p>
+      </div>
+
+      <!-- Redes sociales -->
+      <div>
+        <h3 class="font-semibold mb-4">{% trans "Síguenos" %}</h3>
+        <ul class="space-y-2 text-sm">
+          <li><a href="https://www.instagram.com/fobandor.ai" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">Instagram — @fobandor.ai</a></li>
+          <li><a href="https://www.tiktok.com/@fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">TikTok — @fobandor</a></li>
+          <li><a href="https://x.com/fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">X (Twitter) — @fobandor</a></li>
+          <li><a href="https://www.youtube.com/@fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">YouTube — @fobandor</a></li>
+          <li><a href="https://www.facebook.com/share/1EAAc7Qw6x/?mibextid=wwXIfr" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">Facebook</a></li>
+        </ul>
+      </div>
+
+      <!-- Ubicación -->
+      <div>
+        <h3 class="font-semibold mb-4">{% trans "Ubicación" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400">
+          Orlando, Florida, EE.UU.
+        </p>
+        <p class="text-sm text-gray-600 dark:text-gray-400 mt-2">
+          <a href="https://www.fobandor.com" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">www.fobandor.com</a>
+        </p>
+      </div>
+    </div>
+
+    <div class="mt-10 pt-6 border-t border-gray-200 dark:border-white/10 text-center text-xs text-gray-500 dark:text-gray-500">
+      © {% now "Y" %} FOBANDOR. {% trans "Todos los derechos reservados." %}
+    </div>
+  </div>
+</footer>
