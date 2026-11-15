@@ -299,9 +299,11 @@ npm run build:css
 ```
 *(Para desarrollo con recarga en vivo de estilos, ejecuta en otra terminal `npm run watch:css`).*
 
-### Paso 6: Aplicar Migraciones y Crear Superusuario
+### Paso 6: Aplicar Migraciones, Sembrar Contenido y Crear Superusuario
 ```bash
 python manage.py migrate
+python manage.py seed_initial_content
+python manage.py create_rbac_groups
 python manage.py createsuperuser
 ```
 
@@ -310,7 +312,10 @@ python manage.py createsuperuser
 pytest
 python manage.py runserver 0.0.0.0:8000
 ```
-Visita en tu navegador: **`http://localhost:8000/`** (redirige automáticamente a `http://localhost:8000/es/`).
+Visita en tu navegador:
+* **Web Pública:** `http://localhost:8000/` (redirige automáticamente a `http://localhost:8000/es/`).
+* **Backoffice Staff:** `http://localhost:8000/es/backoffice/` (requiere login con `is_staff=True`).
+* **Django Admin:** `http://localhost:8000/es/admin/`.
 
 ---
 
@@ -335,7 +340,7 @@ flowchart LR
 ## 9. Hoja de Ruta Macro (Roadmap)
 
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
-* [ ] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas, proyectos, seeder con datos reales de Orlando, FL, grupos de permisos y panel `/backoffice/` con HTMX.
+* [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
 * [ ] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0), formulario de facturación AVS, 3 planes de suscripción, Webhooks firmados y motor de órdenes `FulfillmentOrder`.
 * [ ] **Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción:** Sitemap dinámico, Open Graph, suite completa de pruebas, auditoría `check --deploy` y despliegue agnóstico en VPS.
 

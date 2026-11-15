@@ -174,11 +174,11 @@
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
 | **1. ANALIZAR** | **COMPLETADA** | Análisis del prompt oficial, imágenes de marca, catálogo de 4 líneas y redacción de `agent.md`, `spec.md` e `informe_entendimiento.md`. Requisitos de Etapa 2 analizados. |
-| **2. PLANIFICAR** | **COMPLETADA** | Plan atómico de la Etapa 1 completado. Plan atómico de la **Etapa 2 (Tareas 2.0 a 2.11)** completamente desglosado en `task.md` con especificación técnica exacta de modelos, vistas, tests y comandos para OpenCode (DeepSeek V4 Pro). |
-| **3. APROBAR** | **APROBADO** | Etapa 1 aprobada y validada. Plan de la **Etapa 2 revisado, estructurado y APROBADO** por Antigravity-IDE (Arquitecto de Software Senior). Listo para ejecución. |
-| **4. EJECUTAR** | **EJECUTADA (Etapa 2)** | Tareas 2.0 a 2.11 ejecutadas por OpenCode (DeepSeek V4 Pro): app `fobandor.cms`, RBAC, `fobandor.backoffice`, integración Home y tests. Pendiente validación por Antigravity-IDE. |
-| **5. REGISTRAR** | **EN PROCESO (Etapa 2)** | Bitácora `memory.md` actualizada con ADR-012, ADR-013, ADR-014 y estado del sistema. Sincronización continua de `task.md`. |
-| **6. APRENDER** | **COMPLETADA (Etapa 1)** | Consolidación del `README.md` exhaustivo y sincronización exitosa del repositorio remoto en GitHub (`javieresquivelt-ux/fobandor-web`). |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de tareas para Etapa 1 y Etapa 2 (Tareas 2.0 a 2.11) en `task.md`. |
+| **3. APROBAR** | **APROBADO** | Planes de Etapa 1 y Etapa 2 revisados, auditados y aprobados formalmente por Antigravity-IDE. |
+| **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Etapa 1 y Etapa 2 ejecutadas por OpenCode (commit `5e3a51e`). Validación técnica al 100% por Antigravity-IDE: 10/10 tests pytest pasando, flake8 limpio, dynamic rendering verificado. |
+| **5. REGISTRAR** | **COMPLETADA (Etapa 2)** | Bitácora `memory.md` y `task.md` sincronizadas con los hallazgos y validación de la Etapa 2. |
+| **6. APRENDER** | **COMPLETADA (Etapa 2)** | Consolidación y actualización de `README.md` con las nuevas apps `fobandor.cms` y `fobandor.backoffice`, URLs y estado del roadmap. |
 
 ---
 
@@ -257,4 +257,25 @@ Correcciones aplicadas al plan de la Etapa 2 tras revisión técnica, antes de l
 9. Uso directo de `{{ LANGUAGE_CODE }}` (del context processor i18n) en lugar de `{% get_current_language %}`.
 10. Tests del backoffice: `client.force_login(user)` y `client.get(url, follow=False)` (sin prefijo `/es` hardcodeado).
 11. `StaffRequiredMixin`: redirección vía `reverse('core:home')` en lugar de `redirect('/')`.
+
+---
+
+## 7. Hallazgos y Validación de la Ejecución de la Etapa 2
+
+* **Commit Oficial:** `5e3a51e` en `origin/main` (`feat(etapa-2): identidad, rbac y backoffice cms`).
+* **Suite de Pruebas Automatizadas:** 10/10 tests pasando en `pytest` (3 de `users`, 4 de `cms`, 3 de `backoffice`).
+* **Calidad de Código:** `flake8 config fobandor scripts` con 0 advertencias o errores.
+* **Integridad de Migraciones:** `python manage.py makemigrations --check --dry-run` reporta 0 cambios pendientes.
+* **Siembra Inicial de Datos:**
+  * 4 categorías de servicio principales (`desarrollo-web`, `desarrollo-apps`, `publicidad`, `fobandor-studios`).
+  * 23 sub-servicios bilingües sembrados (`ServiceItem`).
+  * 5 redes sociales oficiales (`Instagram`, `TikTok`, `X`, `YouTube`, `Facebook`).
+  * Perfil corporativo singleton inicializado en Orlando, Florida.
+* **Verificación HTTP Real:**
+  * `/es/` → HTTP 200 con servicios y redes dinámicas desde PostgreSQL.
+  * `/en/` → HTTP 200 con títulos y descripciones en inglés.
+  * `/es/backoffice/` (anónimo) → Redirección 302 hacia `/es/admin/login/?next=/es/backoffice/`.
+  * `/es/backoffice/` (staff autenticado) → HTTP 200 dashboard con métricas reales.
+* **Criterio de Aceptación:** CUMPLIDO AL 100%. Etapa 2 cerrada exitosamente.
+
 
