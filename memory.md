@@ -146,7 +146,7 @@
 | **3. APROBAR** | **APROBADO** | Dictamen APROBADO emitido por Antigravity-IDE tras revisar los 6 puntos de corrección (ADRs 009-011, Django 5.2 LTS, `UserManager`, Docker, i18n, fallback BD). |
 | **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Etapa 1 ejecutada por OpenCode y validada técnicamente por Antigravity-IDE. Criterios de aceptación 100% cumplidos (Postgres 16 en Docker, CustomUser con test suite pytest pasando al 100%, Zero-CDN, DTL/Tailwind/Alpine/i18n). |
 | **5. REGISTRAR** | **COMPLETADA (Etapa 1)** | Bitácora `memory.md` y `task.md` sincronizadas con los hallazgos y validación de la Etapa 1. |
-| **6. APRENDER** | *Próximo Paso* | Creación del `README.md` fundacional e inicio de la FASE 1 (ANALIZAR) de la **Etapa 2**. |
+| **6. APRENDER** | **COMPLETADA (Etapa 1)** | Consolidación del `README.md` exhaustivo y sincronización exitosa del repositorio remoto en GitHub (`javieresquivelt-ux/fobandor-web`). |
 
 ---
 
