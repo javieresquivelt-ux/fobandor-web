@@ -173,12 +173,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis del prompt oficial, imágenes de marca, catálogo de 4 líneas y redacción de `agent.md`, `spec.md` e `informe_entendimiento.md`. Requisitos de Etapa 2 analizados. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de tareas para Etapa 1 y Etapa 2 (Tareas 2.0 a 2.11) en `task.md`. |
-| **3. APROBAR** | **APROBADO** | Planes de Etapa 1 y Etapa 2 revisados, auditados y aprobados formalmente por Antigravity-IDE. |
-| **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Etapa 1 y Etapa 2 ejecutadas por OpenCode (commit `5e3a51e`). Validación técnica al 100% por Antigravity-IDE: 10/10 tests pytest pasando, flake8 limpio, dynamic rendering verificado. |
-| **5. REGISTRAR** | **COMPLETADA (Etapa 2)** | Bitácora `memory.md` y `task.md` sincronizadas con los hallazgos y validación de la Etapa 2. |
-| **6. APRENDER** | **COMPLETADA (Etapa 2)** | Consolidación y actualización de `README.md` con las nuevas apps `fobandor.cms` y `fobandor.backoffice`, URLs y estado del roadmap. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis integral del flujo de pagos Stripe (SLA 7 días), Social Login Gmail (Google OAuth 2.0 / `django-allauth`), Onboarding AVS y modelo de órdenes `FulfillmentOrder`. |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 3 (Tareas 3.0 a 3.11)** en `task.md` con rutas de archivo exactas, modelos, servicios, adapters y tests. |
+| **3. APROBAR** | **PAUSA OBLIGATORIA (Etapa 3)** | **En espera de aprobación formal del Desarrollador Líder** sobre el plan de ejecución de la Etapa 3 antes de escribir código. |
+| **4. EJECUTAR** | **PENDIENTE (Etapa 3)** | Ejecución atómica por OpenCode (DeepSeek V4 Pro) una vez otorgada la aprobación en Fase 3. |
+| **5. REGISTRAR** | **EN PROCESO (Etapa 3)** | Bitácora técnica y ADRs sincronizados con el alcance de pagos y entregas. |
+| **6. APRENDER** | **COMPLETADA (Etapa 2)** | Documentación viva actualizada en `README.md`. |
 
 ---
 
@@ -277,5 +277,18 @@ Correcciones aplicadas al plan de la Etapa 2 tras revisión técnica, antes de l
   * `/es/backoffice/` (anónimo) → Redirección 302 hacia `/es/admin/login/?next=/es/backoffice/`.
   * `/es/backoffice/` (staff autenticado) → HTTP 200 dashboard con métricas reales.
 * **Criterio de Aceptación:** CUMPLIDO AL 100%. Etapa 2 cerrada exitosamente.
+
+---
+
+## 8. Arquitectura y Planificación de la Etapa 3 (FASE 1 y FASE 2)
+
+* **Objetivo:** Registro de Clientes, Social Login con Gmail, Onboarding AVS, Stripe Checkout, Webhooks y Motor SLA 7 Días.
+* **Componentes Principales:**
+  1. **Autenticación:** `django-allauth[socialaccount]` con `CustomSocialAccountAdapter` que marca `is_email_verified = True` para Google OAuth 2.0 (ADR-008). Gate previo a checkout `EmailVerifiedRequiredMixin` (ADR-006).
+  2. **Facturación (`fobandor.billing`):** 3 planes mensuales base con soporte de cupones (`allow_promotion_codes=True`), Stripe Customer Portal y Webhook listener criptográfico firmado (`/stripe/webhook/`).
+  3. **Entregas SLA (`fobandor.fulfillment`):** Modelo `FulfillmentOrder` con cálculo automático de fecha límite (`due_date = paid_at + 7 días`). Detección automática de órdenes `VENCIDA` vía management command `check_overdue_orders` (ADR-009).
+  4. **Portal Cliente (`fobandor.portal`):** Dashboard de autoservicio en `/mi-cuenta/` con barra de progreso de días de entrega restantes y descarga de entregables.
+* **Estado:** FASE 3: APROBAR (Pausa obligatoria para revisión del desarrollador líder).
+
 
 
