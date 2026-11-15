@@ -1,0 +1,66 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <h1 class="text-2xl font-extrabold mb-6">{% trans "Perfil de la Empresa" %}</h1>
+
+  <form method="post" class="space-y-5" x-data="{ tab: 'es' }">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="text-fobandor-orange text-sm">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="flex gap-2">
+      <button type="button" @click="tab = 'es'" :class="tab === 'es' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "Español" %}</button>
+      <button type="button" @click="tab = 'en'" :class="tab === 'en' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "English" %}</button>
+    </div>
+
+    <div x-show="tab === 'es'" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.mission_es.label }}</label>
+        {{ form.mission_es }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.vision_es.label }}</label>
+        {{ form.vision_es }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.values_es.label }}</label>
+        {{ form.values_es }}
+      </div>
+    </div>
+    <div x-show="tab === 'en'" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.mission_en.label }}</label>
+        {{ form.mission_en }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.vision_en.label }}</label>
+        {{ form.vision_en }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.values_en.label }}</label>
+        {{ form.values_en }}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.founded_year.label }}</label>
+        {{ form.founded_year }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.location.label }}</label>
+        {{ form.location }}
+      </div>
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-1">{{ form.website_url.label }}</label>
+      {{ form.website_url }}
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-2.5 text-sm font-semibold">{% trans "Guardar" %}</button>
+    </div>
+  </form>
+</div>
+{% endblock %}

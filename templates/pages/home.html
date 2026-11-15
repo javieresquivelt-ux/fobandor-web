@@ -41,37 +41,22 @@
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
 
+      {% for service in services %}
       <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-orange/60 transition-colors">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-blue text-white flex items-center justify-center text-2xl mb-4">🌐</div>
-        <h3 class="text-xl font-bold mb-2">{% trans "Desarrollo Web con IA" %}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {% trans "Sitios corporativos, e-commerce, landing pages, chatbots y asistentes IA, y automatización de procesos." %}
-        </p>
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br {% cycle 'from-fobandor-orange to-fobandor-blue' 'from-fobandor-blue to-fobandor-cyan' 'from-fobandor-cyan to-fobandor-orange' 'from-fobandor-orange to-fobandor-cyan' %} text-white flex items-center justify-center text-2xl mb-4">{{ service.icon }}</div>
+        <h3 class="text-xl font-bold mb-2">{% if LANGUAGE_CODE == 'es' %}{{ service.title_es }}{% else %}{{ service.title_en }}{% endif %}</h3>
+        <ul class="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+          {% for item in service.items.all %}
+          <li class="flex items-center gap-2">
+            <span class="w-1 h-1 rounded-full bg-fobandor-orange"></span>
+            {% if LANGUAGE_CODE == 'es' %}{{ item.title_es }}{% else %}{{ item.title_en }}{% endif %}
+          </li>
+          {% endfor %}
+        </ul>
       </article>
-
-      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-blue/60 transition-colors">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-blue to-fobandor-cyan text-white flex items-center justify-center text-2xl mb-4">📱</div>
-        <h3 class="text-xl font-bold mb-2">{% trans "Desarrollo de Apps con IA" %}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {% trans "Apps iOS y Android, aplicaciones web, sistemas a medida e integración de APIs y automatizaciones." %}
-        </p>
-      </article>
-
-      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-cyan/60 transition-colors">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-cyan to-fobandor-orange text-white flex items-center justify-center text-2xl mb-4">📣</div>
-        <h3 class="text-xl font-bold mb-2">{% trans "Publicidad con IA" %}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {% trans "Campañas publicitarias, videos para redes, creatividades con IA, avatares, copywriting y automatización de marketing." %}
-        </p>
-      </article>
-
-      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-orange/60 transition-colors">
-        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-cyan text-white flex items-center justify-center text-2xl mb-4">🎬</div>
-        <h3 class="text-xl font-bold mb-2">{% trans "Fobandor Studios" %}</h3>
-        <p class="text-sm text-gray-600 dark:text-gray-400">
-          {% trans "Producción audiovisual con IA: series, películas, podcasts, trailers, cortometrajes, videoclips y contenido para YouTube." %}
-        </p>
-      </article>
+      {% empty %}
+      <p class="col-span-full text-center text-gray-600 dark:text-gray-400">{% trans "Servicios próximamente." %}</p>
+      {% endfor %}
 
     </div>
   </div>

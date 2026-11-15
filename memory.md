@@ -146,6 +146,7 @@
     * `Content_Editors`: Permisos `add`, `change` y `view` sobre todos los modelos de `fobandor.cms` (sin permiso `delete` destructivo directo).
     * `Fulfillment_Operators`: Reservado para la gestión de órdenes de entrega en Etapa 3.
   * Acceso al Backoffice (`/backoffice/`) restringido a usuarios con `is_staff=True` mediante `StaffRequiredMixin`.
+* **Nota de Alcance (Etapa 2):** La granularidad por grupos (`Content_Editors` / `Fulfillment_Operators`) surte efecto únicamente en el Django Admin (`/admin/`) durante la Etapa 2. En `/backoffice/` el gate es solo `is_staff=True`; la aplicación de permisos granulares por grupo en el backoffice queda diferida a la Etapa 3 (junto con `FulfillmentOrder`).
 * **Justificación / Razonamiento:** Aprovecha el motor nativo de permisos y grupos de Django (`django.contrib.auth.models.Group`), facilitando la auditoría y sin requerir bibliotecas externas de RBAC.
 
 ---
@@ -175,7 +176,7 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis del prompt oficial, imágenes de marca, catálogo de 4 líneas y redacción de `agent.md`, `spec.md` e `informe_entendimiento.md`. Requisitos de Etapa 2 analizados. |
 | **2. PLANIFICAR** | **COMPLETADA** | Plan atómico de la Etapa 1 completado. Plan atómico de la **Etapa 2 (Tareas 2.0 a 2.11)** completamente desglosado en `task.md` con especificación técnica exacta de modelos, vistas, tests y comandos para OpenCode (DeepSeek V4 Pro). |
 | **3. APROBAR** | **APROBADO** | Etapa 1 aprobada y validada. Plan de la **Etapa 2 revisado, estructurado y APROBADO** por Antigravity-IDE (Arquitecto de Software Senior). Listo para ejecución. |
-| **4. EJECUTAR** | **LISTO PARA EJECUCIÓN** | Etapa 1 ejecutada y validada. **Etapa 2 lista para ser ejecutada por OpenCode (DeepSeek V4 Pro)** siguiendo el desglose paso a paso de `task.md`. |
+| **4. EJECUTAR** | **EJECUTADA (Etapa 2)** | Tareas 2.0 a 2.11 ejecutadas por OpenCode (DeepSeek V4 Pro): app `fobandor.cms`, RBAC, `fobandor.backoffice`, integración Home y tests. Pendiente validación por Antigravity-IDE. |
 | **5. REGISTRAR** | **EN PROCESO (Etapa 2)** | Bitácora `memory.md` actualizada con ADR-012, ADR-013, ADR-014 y estado del sistema. Sincronización continua de `task.md`. |
 | **6. APRENDER** | **COMPLETADA (Etapa 1)** | Consolidación del `README.md` exhaustivo y sincronización exitosa del repositorio remoto en GitHub (`javieresquivelt-ux/fobandor-web`). |
 
@@ -230,4 +231,30 @@
   * Runtime Python 3.14.4 + Django 5.2.19 LTS en `.venv/`.
   * Repositorio remoto sincronizado en rama `main`.
 * **Próxima Acción (FASE 4):** Ejecución atómica de las tareas 2.0 a 2.11 por parte de OpenCode (DeepSeek V4 Pro) en el entorno de desarrollo local.
+
+---
+
+## 6. Correcciones al Plan de la Etapa 2 (revisión técnica OpenCode)
+
+Correcciones aplicadas al plan de la Etapa 2 tras revisión técnica, antes de la validación final por Antigravity-IDE:
+
+### Decisiones confirmadas por el desarrollador líder
+1. **RBAC:** En Etapa 2 el backoffice valida únicamente `is_staff=True`; la granularidad por grupos aplica solo en `/admin/` y se difiere a Etapa 3 (documentado en ADR-013).
+2. **`ServiceItem`:** Se **siembran** los sub-servicios por categoría (gestión vía Django Admin, sin CRUD propio en backoffice en Etapa 2).
+3. **Login anónimo:** `LOGIN_URL = "admin:login"` como solución temporal hasta Etapa 3.
+
+### Bugs corregidos en el plan (`task.md`) y en configuración
+1. `test_seed_initial_content_idempotent`: eliminado el fixture inexistente `django_db_setup`.
+2. `config/settings/base.py`: añadido `LOGIN_URL = "admin:login"` y `LOGIN_REDIRECT_URL = "core:home"`.
+3. `config/urls.py`: añadido `static(settings.MEDIA_URL, ...)` bajo `DEBUG` para servir `Project.image` en desarrollo.
+4. `seed_initial_content`: ahora siembra `ServiceItem` (sub-servicios) por cada categoría.
+5. `create_rbac_groups`: se especificó la creación de `fobandor/users/management/__init__.py` y `management/commands/__init__.py`.
+
+### Coherencia / alcance
+6. Eliminado el título `### Etapa 3` duplicado en `task.md`.
+7. Añadidos `service_confirm_delete.html` y `project_confirm_delete.html` al árbol de archivos de la Etapa 2.
+8. `social_links` ahora proviene exclusivamente de un **context processor global** (`fobandor.core.context_processors.social_links`); `home_view` solo inyecta `services`.
+9. Uso directo de `{{ LANGUAGE_CODE }}` (del context processor i18n) en lugar de `{% get_current_language %}`.
+10. Tests del backoffice: `client.force_login(user)` y `client.get(url, follow=False)` (sin prefijo `/es` hardcodeado).
+11. `StaffRequiredMixin`: redirección vía `reverse('core:home')` en lugar de `redirect('/')`.
 

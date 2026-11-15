@@ -1,0 +1,35 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+
+{% block content %}
+<h1 class="text-2xl font-extrabold mb-6">{% trans "Redes Sociales" %}</h1>
+
+<div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-white/5">
+      <tr class="text-left">
+        <th class="px-4 py-3">{% trans "Plataforma" %}</th>
+        <th class="px-4 py-3">{% trans "Handle" %}</th>
+        <th class="px-4 py-3">{% trans "URL" %}</th>
+        <th class="px-4 py-3">{% trans "Activo" %}</th>
+        <th class="px-4 py-3 text-right">{% trans "Acciones" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+      {% for link in social_links %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+        <td class="px-4 py-3 font-medium">{{ link.get_platform_display }}</td>
+        <td class="px-4 py-3">{{ link.handle|default:'—' }}</td>
+        <td class="px-4 py-3 truncate max-w-xs">{{ link.url }}</td>
+        <td class="px-4 py-3">{% if link.is_active %}<span class="text-green-600">●</span>{% else %}<span class="text-gray-400">○</span>{% endif %}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'backoffice:social-update' link.pk %}" class="text-fobandor-blue hover:underline">{% trans "Editar" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">{% trans "Sin redes sociales." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

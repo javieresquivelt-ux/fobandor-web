@@ -1,0 +1,122 @@
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.urls import reverse_lazy
+from django.views.generic import (
+    ListView, CreateView, UpdateView, DeleteView, TemplateView,
+)
+
+from fobandor.cms.models import (
+    ServiceCategory, Project, OfficialSocialLink, CompanyProfile,
+)
+
+from .mixins import StaffRequiredMixin
+
+
+class BackofficeMixin(LoginRequiredMixin, StaffRequiredMixin):
+    """Mixin base para todas las vistas del backoffice."""
+    pass
+
+
+# --- Dashboard ---
+
+class DashboardView(BackofficeMixin, TemplateView):
+    template_name = 'backoffice/dashboard.html'
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        ctx['total_users'] = User.objects.count()
+        ctx['total_services'] = ServiceCategory.objects.filter(is_active=True).count()
+        ctx['total_projects'] = Project.objects.count()
+        return ctx
+
+
+# --- Servicios ---
+
+class ServiceCategoryListView(BackofficeMixin, ListView):
+    model = ServiceCategory
+    template_name = 'backoffice/cms/service_list.html'
+    context_object_name = 'services'
+    ordering = ['order']
+
+
+class ServiceCategoryCreateView(BackofficeMixin, CreateView):
+    model = ServiceCategory
+    template_name = 'backoffice/cms/service_form.html'
+    fields = ['slug', 'title_es', 'title_en', 'icon', 'order', 'is_active']
+    success_url = reverse_lazy('backoffice:service-list')
+
+
+class ServiceCategoryUpdateView(BackofficeMixin, UpdateView):
+    model = ServiceCategory
+    template_name = 'backoffice/cms/service_form.html'
+    fields = ['slug', 'title_es', 'title_en', 'icon', 'order', 'is_active']
+    success_url = reverse_lazy('backoffice:service-list')
+
+
+class ServiceCategoryDeleteView(BackofficeMixin, DeleteView):
+    model = ServiceCategory
+    template_name = 'backoffice/cms/service_confirm_delete.html'
+    success_url = reverse_lazy('backoffice:service-list')
+
+
+# --- Proyectos ---
+
+class ProjectListView(BackofficeMixin, ListView):
+    model = Project
+    template_name = 'backoffice/cms/project_list.html'
+    context_object_name = 'projects'
+    ordering = ['order', '-created_at']
+
+
+class ProjectCreateView(BackofficeMixin, CreateView):
+    model = Project
+    template_name = 'backoffice/cms/project_form.html'
+    fields = ['title_es', 'title_en', 'desc_es', 'desc_en',
+              'client_name', 'category', 'image', 'url',
+              'is_featured', 'order', 'tags']
+    success_url = reverse_lazy('backoffice:project-list')
+
+
+class ProjectUpdateView(BackofficeMixin, UpdateView):
+    model = Project
+    template_name = 'backoffice/cms/project_form.html'
+    fields = ['title_es', 'title_en', 'desc_es', 'desc_en',
+              'client_name', 'category', 'image', 'url',
+              'is_featured', 'order', 'tags']
+    success_url = reverse_lazy('backoffice:project-list')
+
+
+class ProjectDeleteView(BackofficeMixin, DeleteView):
+    model = Project
+    template_name = 'backoffice/cms/project_confirm_delete.html'
+    success_url = reverse_lazy('backoffice:project-list')
+
+
+# --- Redes Sociales ---
+
+class OfficialSocialLinkListView(BackofficeMixin, ListView):
+    model = OfficialSocialLink
+    template_name = 'backoffice/cms/social_link_list.html'
+    context_object_name = 'social_links'
+
+
+class OfficialSocialLinkUpdateView(BackofficeMixin, UpdateView):
+    model = OfficialSocialLink
+    template_name = 'backoffice/cms/social_link_form.html'
+    fields = ['url', 'handle', 'is_active', 'order']
+    success_url = reverse_lazy('backoffice:social-list')
+
+
+# --- Perfil Corporativo (Singleton) ---
+
+class CompanyProfileUpdateView(BackofficeMixin, UpdateView):
+    model = CompanyProfile
+    template_name = 'backoffice/cms/company_profile_form.html'
+    fields = ['mission_es', 'mission_en', 'vision_es', 'vision_en',
+              'values_es', 'values_en', 'founded_year', 'location', 'website_url']
+    success_url = reverse_lazy('backoffice:company-profile')
+
+    def get_object(self, queryset=None):
+        """Siempre retorna el singleton (pk=1), creándolo si no existe."""
+        return CompanyProfile.load()

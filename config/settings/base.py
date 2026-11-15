@@ -25,6 +25,8 @@ INSTALLED_APPS = [
     # Aplicaciones locales
     "fobandor.users.apps.UsersConfig",
     "fobandor.core.apps.CoreConfig",
+    "fobandor.cms.apps.CmsConfig",
+    "fobandor.backoffice.apps.BackofficeConfig",
 ]
 
 MIDDLEWARE = [
@@ -51,6 +53,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "django.template.context_processors.i18n",
+                "fobandor.core.context_processors.social_links",
             ],
         },
     },
@@ -61,6 +64,10 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # Autenticación
 AUTH_USER_MODEL = "users.User"
+# Temporal (Etapa 2): redirige anónimos al login del admin hasta implementar
+# el sistema de autenticación propio en Etapa 3.
+LOGIN_URL = "admin:login"
+LOGIN_REDIRECT_URL = "core:home"
 
 # Validadores de contraseña
 AUTH_PASSWORD_VALIDATORS = [

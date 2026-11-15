@@ -367,7 +367,7 @@ fobandor/
 > **Gobernanza Multi-Agente:**
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
-> * **Estado Actual:** FASE 3: APROBAR — Pendiente validación por desarrollador líder antes de ejecutar
+> * **Estado Actual:** FASE 4: EJECUTADA por OpenCode — pendiente validación por Antigravity-IDE.
 
 ---
 
@@ -415,8 +415,10 @@ fobandor/
         └── cms/
             ├── service_list.html
             ├── service_form.html
+            ├── service_confirm_delete.html
             ├── project_list.html
             ├── project_form.html
+            ├── project_confirm_delete.html
             ├── social_link_list.html
             ├── social_link_form.html
             └── company_profile_form.html
@@ -426,8 +428,8 @@ fobandor/
 
 ### Tarea 2.0: Nueva Aplicación `fobandor.cms`
 
-- [ ] Crear `fobandor/cms/__init__.py` (vacío).
-- [ ] Crear `fobandor/cms/apps.py`:
+- [x] Crear `fobandor/cms/__init__.py` (vacío).
+- [x] Crear `fobandor/cms/apps.py`:
   ```python
   from django.apps import AppConfig
 
@@ -437,7 +439,7 @@ fobandor/
       label = 'cms'
       verbose_name = 'CMS'
   ```
-- [ ] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
+- [x] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
   ```python
   'fobandor.cms.apps.CmsConfig',
   ```
@@ -446,7 +448,7 @@ fobandor/
 
 ### Tarea 2.1: Modelos CMS Bilingües (`fobandor/cms/models.py`)
 
-- [ ] Implementar los siguientes modelos (todos con `created_at = auto_now_add`, `updated_at = auto_now`):
+- [x] Implementar los siguientes modelos (todos con `created_at = auto_now_add`, `updated_at = auto_now`):
 
   ```python
   from django.db import models
@@ -614,7 +616,7 @@ fobandor/
 
 ### Tarea 2.2: Admin CMS (`fobandor/cms/admin.py`)
 
-- [ ] Registrar todos los modelos con la API `ModelAdmin`:
+- [x] Registrar todos los modelos con la API `ModelAdmin`:
 
   ```python
   from django.contrib import admin
@@ -695,12 +697,14 @@ fobandor/
 
 ### Tarea 2.3: Management Command `seed_initial_content`
 
-- [ ] Crear `fobandor/cms/management/__init__.py` y `fobandor/cms/management/commands/__init__.py` (vacíos).
-- [ ] Crear `fobandor/cms/management/commands/seed_initial_content.py`:
+- [x] Crear `fobandor/cms/management/__init__.py` y `fobandor/cms/management/commands/__init__.py` (vacíos).
+- [x] Crear `fobandor/cms/management/commands/seed_initial_content.py`:
 
   ```python
   from django.core.management.base import BaseCommand
-  from fobandor.cms.models import ServiceCategory, OfficialSocialLink, CompanyProfile
+  from fobandor.cms.models import (
+      ServiceCategory, ServiceItem, OfficialSocialLink, CompanyProfile,
+  )
 
 
   CATEGORIES = [
@@ -747,6 +751,39 @@ fobandor/
        'handle': 'fobandor', 'order': 5},
   ]
 
+  SERVICE_ITEMS = {
+      'desarrollo-web': [
+          ('Sitios web corporativos', 'Corporate websites'),
+          ('E-commerce', 'E-commerce'),
+          ('Landing pages', 'Landing pages'),
+          ('Chatbots y asistentes IA', 'AI chatbots and assistants'),
+          ('Automatización de procesos', 'Process automation'),
+      ],
+      'desarrollo-apps': [
+          ('Apps iOS / Android', 'iOS / Android apps'),
+          ('Aplicaciones web', 'Web applications'),
+          ('Apps con asistentes IA', 'Apps with AI assistants'),
+          ('Sistemas personalizados', 'Custom systems'),
+          ('Integración de APIs y automatizaciones', 'API integrations and automations'),
+      ],
+      'publicidad': [
+          ('Campañas publicitarias', 'Advertising campaigns'),
+          ('Videos para redes sociales', 'Social media videos'),
+          ('Creatividades con IA', 'AI creatives'),
+          ('Avatares y personajes', 'Avatars and characters'),
+          ('Copywriting y conceptos', 'Copywriting and concepts'),
+          ('Automatización de marketing', 'Marketing automation'),
+      ],
+      'fobandor-studios': [
+          ('Series', 'Series'),
+          ('Películas', 'Films'),
+          ('Podcasts', 'Podcasts'),
+          ('Trailers', 'Trailers'),
+          ('Cortometrajes', 'Short films'),
+          ('Videoclips', 'Music videos'),
+          ('Contenido para YouTube y redes', 'YouTube and social content'),
+      ],
+  }
 
   class Command(BaseCommand):
       help = 'Siembra el contenido inicial del CMS (idempotente — usa get_or_create).'
@@ -758,6 +795,20 @@ fobandor/
                   slug=data['slug'], defaults=data)
               status = 'CREADA' if created else 'YA EXISTE'
               self.stdout.write(f'  [{status}] {obj.title_es}')
+
+          self.stdout.write('Sembrando ítems de servicio...')
+          for slug, items in SERVICE_ITEMS.items():
+              category = ServiceCategory.objects.filter(slug=slug).first()
+              if not category:
+                  self.stdout.write(f'  [OMITIDA] Categoría no encontrada: {slug}')
+                  continue
+              for order, (title_es, title_en) in enumerate(items, start=1):
+                  obj, created = ServiceItem.objects.get_or_create(
+                      category=category,
+                      title_es=title_es,
+                      defaults={'title_en': title_en, 'order': order})
+                  status = 'CREADO' if created else 'YA EXISTE'
+                  self.stdout.write(f'  [{status}] {category.title_es} → {obj.title_es}')
 
           self.stdout.write('Sembrando redes sociales oficiales...')
           for data in SOCIAL_LINKS:
@@ -783,19 +834,19 @@ fobandor/
 
 ### Tarea 2.4: Migraciones y Seed
 
-- [ ] Generar migración inicial del CMS:
+- [x] Generar migración inicial del CMS:
   ```bash
   python manage.py makemigrations cms
   ```
-- [ ] Aplicar todas las migraciones:
+- [x] Aplicar todas las migraciones:
   ```bash
   python manage.py migrate
   ```
-- [ ] Ejecutar el seed de contenido inicial:
+- [x] Ejecutar el seed de contenido inicial:
   ```bash
   python manage.py seed_initial_content
   ```
-- [ ] Verificar que no queden migraciones pendientes:
+- [x] Verificar que no queden migraciones pendientes:
   ```bash
   python manage.py makemigrations --check --dry-run
   ```
@@ -804,7 +855,8 @@ fobandor/
 
 ### Tarea 2.5: Sistema RBAC — Grupos Django
 
-- [ ] Crear management command `fobandor/users/management/commands/create_rbac_groups.py`:
+- [x] Crear `fobandor/users/management/__init__.py` y `fobandor/users/management/commands/__init__.py` (vacíos).
+- [x] Crear management command `fobandor/users/management/commands/create_rbac_groups.py`:
 
   ```python
   from django.contrib.auth.models import Group, Permission
@@ -844,7 +896,7 @@ fobandor/
           self.stdout.write(self.style.SUCCESS('✅ Grupos RBAC configurados.'))
   ```
 
-- [ ] Ejecutar el command:
+- [x] Ejecutar el command:
   ```bash
   python manage.py create_rbac_groups
   ```
@@ -853,8 +905,8 @@ fobandor/
 
 ### Tarea 2.6: Aplicación `fobandor.backoffice`
 
-- [ ] Crear `fobandor/backoffice/__init__.py` (vacío).
-- [ ] Crear `fobandor/backoffice/apps.py`:
+- [x] Crear `fobandor/backoffice/__init__.py` (vacío).
+- [x] Crear `fobandor/backoffice/apps.py`:
   ```python
   from django.apps import AppConfig
 
@@ -864,14 +916,15 @@ fobandor/
       label = 'backoffice'
       verbose_name = 'Backoffice'
   ```
-- [ ] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
+- [x] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
   ```python
   'fobandor.backoffice.apps.BackofficeConfig',
   ```
-- [ ] Crear `fobandor/backoffice/mixins.py`:
+- [x] Crear `fobandor/backoffice/mixins.py`:
   ```python
   from django.contrib.auth.mixins import AccessMixin
   from django.shortcuts import redirect
+  from django.urls import reverse
 
 
   class StaffRequiredMixin(AccessMixin):
@@ -881,10 +934,10 @@ fobandor/
           if not request.user.is_authenticated:
               return self.handle_no_permission()
           if not request.user.is_staff:
-              return redirect('/')
+              return redirect(reverse('core:home'))
           return super().dispatch(request, *args, **kwargs)
   ```
-- [ ] Crear `fobandor/backoffice/urls.py`:
+- [x] Crear `fobandor/backoffice/urls.py`:
   ```python
   from django.urls import path
   from . import views
@@ -910,7 +963,7 @@ fobandor/
       path('empresa/', views.CompanyProfileUpdateView.as_view(), name='company-profile'),
   ]
   ```
-- [ ] Registrar en `config/urls.py` bajo `i18n_patterns`, **antes** de `fobandor.core.urls`:
+- [x] Registrar en `config/urls.py` bajo `i18n_patterns`, **antes** de `fobandor.core.urls`:
   ```python
   urlpatterns += i18n_patterns(
       path("admin/", admin.site.urls),
@@ -923,7 +976,7 @@ fobandor/
 
 ### Tarea 2.7: Vistas del Backoffice (`fobandor/backoffice/views.py`)
 
-- [ ] Implementar todas las vistas usando `StaffRequiredMixin` + `LoginRequiredMixin` + CBVs genéricas:
+- [x] Implementar todas las vistas usando `StaffRequiredMixin` + `LoginRequiredMixin` + CBVs genéricas:
 
   ```python
   from django.contrib.auth.mixins import LoginRequiredMixin
@@ -1054,7 +1107,7 @@ fobandor/
 
 #### `templates/backoffice/base_backoffice.html`
 
-- [ ] Layout base con sidebar Tailwind + HTMX:
+- [x] Layout base con sidebar Tailwind + HTMX:
   - Sidebar izquierdo con enlaces: Dashboard, Servicios, Proyectos, Redes Sociales, Empresa.
   - Header con nombre de usuario y botón de logout.
   - Área de contenido principal con `{% block content %}`.
@@ -1063,43 +1116,54 @@ fobandor/
 
 #### `templates/backoffice/dashboard.html`
 
-- [ ] Extiende `base_backoffice.html`.
-- [ ] Tarjetas de resumen:
+- [x] Extiende `base_backoffice.html`.
+- [x] Tarjetas de resumen:
   - **Total Usuarios** → `{{ total_users }}`
   - **Servicios Activos** → `{{ total_services }}`
   - **Proyectos** → `{{ total_projects }}`
   - **Órdenes Pendientes** → "Disponible en Etapa 3" (placeholder visual)
-- [ ] Accesos rápidos a secciones del CMS.
+- [x] Accesos rápidos a secciones del CMS.
 
 #### Plantillas CMS (mínimas funcionales)
 
-- [ ] `templates/backoffice/cms/service_list.html` — tabla con columnas: Título ES, Título EN, Orden, Activo, Acciones (Editar / Eliminar). Botón "Nuevo Servicio".
-- [ ] `templates/backoffice/cms/service_form.html` — formulario bilingüe con pestañas Alpine.js (tab ES / tab EN). Botones Guardar / Cancelar.
-- [ ] `templates/backoffice/cms/service_confirm_delete.html` — confirmación de eliminación con nombre del servicio.
-- [ ] `templates/backoffice/cms/project_list.html` — tabla: Título, Categoría, Destacado, Orden, Acciones.
-- [ ] `templates/backoffice/cms/project_form.html` — formulario con pestañas Alpine.js ES/EN + campos de metadata.
-- [ ] `templates/backoffice/cms/project_confirm_delete.html` — confirmación de eliminación.
-- [ ] `templates/backoffice/cms/social_link_list.html` — lista de plataformas con URL, handle y toggle activo.
-- [ ] `templates/backoffice/cms/social_link_form.html` — formulario de edición de red social.
-- [ ] `templates/backoffice/cms/company_profile_form.html` — formulario singleton con pestañas ES/EN.
+- [x] `templates/backoffice/cms/service_list.html` — tabla con columnas: Título ES, Título EN, Orden, Activo, Acciones (Editar / Eliminar). Botón "Nuevo Servicio".
+- [x] `templates/backoffice/cms/service_form.html` — formulario bilingüe con pestañas Alpine.js (tab ES / tab EN). Botones Guardar / Cancelar.
+- [x] `templates/backoffice/cms/service_confirm_delete.html` — confirmación de eliminación con nombre del servicio.
+- [x] `templates/backoffice/cms/project_list.html` — tabla: Título, Categoría, Destacado, Orden, Acciones.
+- [x] `templates/backoffice/cms/project_form.html` — formulario con pestañas Alpine.js ES/EN + campos de metadata.
+- [x] `templates/backoffice/cms/project_confirm_delete.html` — confirmación de eliminación.
+- [x] `templates/backoffice/cms/social_link_list.html` — lista de plataformas con URL, handle y toggle activo.
+- [x] `templates/backoffice/cms/social_link_form.html` — formulario de edición de red social.
+- [x] `templates/backoffice/cms/company_profile_form.html` — formulario singleton con pestañas ES/EN.
 
 ---
 
 ### Tarea 2.9: Integración CMS en la Home Pública
 
-- [ ] Actualizar `fobandor/core/views.py` → `home_view` para pasar contexto dinámico:
+- [x] Crear `fobandor/core/context_processors.py` con el context processor global de redes sociales:
   ```python
-  from fobandor.cms.models import ServiceCategory, OfficialSocialLink
+  from fobandor.cms.models import OfficialSocialLink
+
+
+  def social_links(request):
+      """Inyecta las redes sociales oficiales activas en todas las plantillas."""
+      return {
+          'social_links': OfficialSocialLink.objects.filter(is_active=True).order_by('order'),
+      }
+  ```
+- [x] Registrar el context processor en `config/settings/base.py` → `TEMPLATES[...]['OPTIONS']['context_processors']`:
+  ```python
+  'fobandor.core.context_processors.social_links',
+  ```
+- [x] Actualizar `fobandor/core/views.py` → `home_view` para pasar solo `services`:
+  ```python
+  from fobandor.cms.models import ServiceCategory
 
   def home_view(request):
       services = ServiceCategory.objects.filter(is_active=True).order_by('order')
-      social_links = OfficialSocialLink.objects.filter(is_active=True).order_by('order')
-      return render(request, 'pages/home.html', {
-          'services': services,
-          'social_links': social_links,
-      })
+      return render(request, 'pages/home.html', {'services': services})
   ```
-- [ ] Actualizar `templates/pages/home.html` — sección "4 Líneas de Negocio":
+- [x] Actualizar `templates/pages/home.html` — sección "4 Líneas de Negocio" (usar `LANGUAGE_CODE` del context processor i18n, ya disponible):
   ```html
   {% for service in services %}
   <div class="...">
@@ -1108,8 +1172,7 @@ fobandor/
   </div>
   {% endfor %}
   ```
-  > **Nota para OpenCode:** usar `{% get_current_language as LANGUAGE_CODE %}` con `{% load i18n %}` para detectar el idioma activo.
-- [ ] Actualizar `templates/partials/footer.html` — redes sociales dinámicas:
+- [x] Actualizar `templates/partials/footer.html` — redes sociales dinámicas (desde el context processor global):
   ```html
   {% for link in social_links %}
   <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
@@ -1117,14 +1180,13 @@ fobandor/
   </a>
   {% endfor %}
   ```
-  > **Nota para OpenCode:** `social_links` debe pasarse desde un **context processor** o desde cada vista que herede de `home_view`. Crear `fobandor/core/context_processors.py` con función `social_links(request)` y registrarla en `TEMPLATES[...]['OPTIONS']['context_processors']` en `base.py`.
 
 ---
 
 ### Tarea 2.10: Pruebas Automatizadas
 
-- [ ] Crear `fobandor/cms/tests/__init__.py` (vacío).
-- [ ] Crear `fobandor/cms/tests/test_models.py`:
+- [x] Crear `fobandor/cms/tests/__init__.py` (vacío).
+- [x] Crear `fobandor/cms/tests/test_models.py`:
 
   ```python
   import pytest
@@ -1157,7 +1219,7 @@ fobandor/
 
 
   @pytest.mark.django_db
-  def test_seed_initial_content_idempotent(django_db_setup):
+  def test_seed_initial_content_idempotent():
       from django.core.management import call_command
       call_command('seed_initial_content', verbosity=0)
       count_before = ServiceCategory.objects.count()
@@ -1166,8 +1228,8 @@ fobandor/
       assert count_before == count_after == 4
   ```
 
-- [ ] Crear `fobandor/backoffice/tests/__init__.py` (vacío).
-- [ ] Crear `fobandor/backoffice/tests/test_views.py`:
+- [x] Crear `fobandor/backoffice/tests/__init__.py` (vacío).
+- [x] Crear `fobandor/backoffice/tests/test_views.py`:
 
   ```python
   import pytest
@@ -1177,7 +1239,7 @@ fobandor/
   @pytest.mark.django_db
   def test_dashboard_anonymous_redirects(client):
       url = reverse('backoffice:dashboard')
-      response = client.get(f'/es{url}')
+      response = client.get(url, follow=False)
       assert response.status_code in (302, 301)
 
 
@@ -1185,9 +1247,9 @@ fobandor/
   def test_dashboard_staff_access(client, django_user_model):
       user = django_user_model.objects.create_user(
           email='staff@fobandor.com', password='Test1234!', is_staff=True)
-      client.login(username='staff@fobandor.com', password='Test1234!')
+      client.force_login(user)
       url = reverse('backoffice:dashboard')
-      response = client.get(f'/es{url}')
+      response = client.get(url)
       assert response.status_code == 200
 
 
@@ -1195,9 +1257,9 @@ fobandor/
   def test_dashboard_non_staff_redirects(client, django_user_model):
       user = django_user_model.objects.create_user(
           email='client@example.com', password='Test1234!', is_staff=False)
-      client.login(username='client@example.com', password='Test1234!')
+      client.force_login(user)
       url = reverse('backoffice:dashboard')
-      response = client.get(f'/es{url}')
+      response = client.get(url, follow=False)
       assert response.status_code in (302, 301)
   ```
 
@@ -1205,12 +1267,12 @@ fobandor/
 
 ### Tarea 2.11: Verificación de Aceptación Técnica (Etapa 2)
 
-- [ ] `python manage.py check` → 0 issues.
-- [ ] `python manage.py makemigrations --check --dry-run` → sin cambios pendientes.
-- [ ] `pytest` → todos los tests pasando (mínimo: 3 de Etapa 1 + 4 de CMS + 3 de Backoffice).
-- [ ] `flake8 config/ fobandor/ scripts/` → limpio (0 errores).
-- [ ] `python manage.py runserver 0.0.0.0:8000` → sin errores en consola.
-- [ ] Verificar en navegador:
+- [x] `python manage.py check` → 0 issues.
+- [x] `python manage.py makemigrations --check --dry-run` → sin cambios pendientes.
+- [x] `pytest` → todos los tests pasando (mínimo: 3 de Etapa 1 + 4 de CMS + 3 de Backoffice).
+- [x] `flake8 config/ fobandor/ scripts/` → limpio (0 errores).
+- [x] `python manage.py runserver 0.0.0.0:8000` → sin errores en consola.
+- [x] Verificar en navegador:
   - `http://localhost:8000/es/backoffice/` → redirige a login (anónimo).
   - Login como `admin@fobandor.com` / `ChangeMe123!` → accede a dashboard.
   - Dashboard muestra tarjetas de resumen con datos reales de la BD.
@@ -1218,11 +1280,11 @@ fobandor/
   - `http://localhost:8000/es/` → Home muestra servicios dinámicos desde la BD.
   - Footer muestra las 5 redes sociales dinámicas.
   - Cambio ES/EN funciona correctamente.
-- [ ] Compilar CSS con nuevas clases Tailwind del backoffice:
+- [x] Compilar CSS con nuevas clases Tailwind del backoffice:
   ```bash
   npm run build:css
   ```
-- [ ] Commit y push al repositorio:
+- [x] Commit y push al repositorio:
   ```bash
   git add .
   git commit -m "feat(etapa-2): identidad, rbac y backoffice cms"
@@ -1232,8 +1294,6 @@ fobandor/
 ---
 
 ## 5. Planificación de Próximas Etapas (Roadmap Anticipado)
-
-### Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días
 
 ### Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días
 - Flujo de registro de clientes con autenticación híbrida:

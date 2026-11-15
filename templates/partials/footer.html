@@ -21,11 +21,15 @@
       <div>
         <h3 class="font-semibold mb-4">{% trans "Síguenos" %}</h3>
         <ul class="space-y-2 text-sm">
-          <li><a href="https://www.instagram.com/fobandor.ai" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">Instagram — @fobandor.ai</a></li>
-          <li><a href="https://www.tiktok.com/@fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">TikTok — @fobandor</a></li>
-          <li><a href="https://x.com/fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">X (Twitter) — @fobandor</a></li>
-          <li><a href="https://www.youtube.com/@fobandor" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">YouTube — @fobandor</a></li>
-          <li><a href="https://www.facebook.com/share/1EAAc7Qw6x/?mibextid=wwXIfr" target="_blank" rel="noopener" class="hover:text-fobandor-orange transition-colors">Facebook</a></li>
+          {% for link in social_links %}
+          <li>
+            <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer" class="hover:text-fobandor-orange transition-colors">
+              {{ link.get_platform_display }}{% if link.handle %} — {{ link.handle }}{% endif %}
+            </a>
+          </li>
+          {% empty %}
+          <li class="text-gray-500 dark:text-gray-500">—</li>
+          {% endfor %}
         </ul>
       </div>
 

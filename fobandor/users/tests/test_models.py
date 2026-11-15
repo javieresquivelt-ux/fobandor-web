@@ -38,4 +38,3 @@ def test_create_user_without_email_raises_error():
     """Valida que intentar crear un usuario sin email arroja ValueError."""
     with pytest.raises(ValueError, match="El correo electrónico es obligatorio."):
         User.objects.create_user(email="", password="Password123!")
-

@@ -1,0 +1,43 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-extrabold">{% trans "Servicios" %}</h1>
+  <a href="{% url 'backoffice:service-create' %}" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2 text-sm font-semibold">
+    + {% trans "Nuevo Servicio" %}
+  </a>
+</div>
+
+<div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-white/5">
+      <tr class="text-left">
+        <th class="px-4 py-3">{% trans "Título ES" %}</th>
+        <th class="px-4 py-3">{% trans "Título EN" %}</th>
+        <th class="px-4 py-3">{% trans "Orden" %}</th>
+        <th class="px-4 py-3">{% trans "Activo" %}</th>
+        <th class="px-4 py-3 text-right">{% trans "Acciones" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+      {% for service in services %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+        <td class="px-4 py-3 font-medium">{{ service.title_es }}</td>
+        <td class="px-4 py-3">{{ service.title_en }}</td>
+        <td class="px-4 py-3">{{ service.order }}</td>
+        <td class="px-4 py-3">
+          {% if service.is_active %}<span class="text-green-600">●</span>{% else %}<span class="text-gray-400">○</span>{% endif %}
+        </td>
+        <td class="px-4 py-3 text-right space-x-2">
+          <a href="{% url 'backoffice:service-update' service.pk %}" class="text-fobandor-blue hover:underline">{% trans "Editar" %}</a>
+          <a href="{% url 'backoffice:service-delete' service.pk %}" class="text-fobandor-orange hover:underline">{% trans "Eliminar" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-6 text-center text-gray-500">{% trans "Sin servicios." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

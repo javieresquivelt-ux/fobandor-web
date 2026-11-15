@@ -1,0 +1,59 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-2xl">
+  <h1 class="text-2xl font-extrabold mb-6">{% if object %}{% trans "Editar Servicio" %}{% else %}{% trans "Nuevo Servicio" %}{% endif %}</h1>
+
+  <form method="post" class="space-y-5" x-data="{ tab: 'es' }">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="text-fobandor-orange text-sm">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="flex gap-2">
+      <button type="button" @click="tab = 'es'" :class="tab === 'es' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "Español" %}</button>
+      <button type="button" @click="tab = 'en'" :class="tab === 'en' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "English" %}</button>
+    </div>
+
+    <div x-show="tab === 'es'" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.title_es.label }}</label>
+        {{ form.title_es }}
+        {% if form.title_es.errors %}<p class="text-fobandor-orange text-xs mt-1">{{ form.title_es.errors }}</p>{% endif %}
+      </div>
+    </div>
+    <div x-show="tab === 'en'" class="space-y-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.title_en.label }}</label>
+        {{ form.title_en }}
+        {% if form.title_en.errors %}<p class="text-fobandor-orange text-xs mt-1">{{ form.title_en.errors }}</p>{% endif %}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.slug.label }}</label>
+        {{ form.slug }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.icon.label }}</label>
+        {{ form.icon }}
+      </div>
+    </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.order.label }}</label>
+        {{ form.order }}
+      </div>
+      <div class="flex items-end pb-1">
+        <label class="flex items-center gap-2 text-sm font-semibold">{{ form.is_active }} {{ form.is_active.label }}</label>
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-2.5 text-sm font-semibold">{% trans "Guardar" %}</button>
+      <a href="{% url 'backoffice:service-list' %}" class="rounded-xl border border-gray-300 dark:border-white/20 px-5 py-2.5 text-sm font-semibold">{% trans "Cancelar" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}
