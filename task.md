@@ -362,12 +362,878 @@ fobandor/
 
 ---
 
-## 4. Planificación de Próximas Etapas (Roadmap Anticipado)
+## 4. Etapa 2 — Identidad, RBAC y Backoffice CMS
 
-### Etapa 2 — Identidad, RBAC y Backoffice CMS
-- Modelos dinámicos del CMS (4 líneas de servicio, proyectos, nosotros, enlaces oficiales de RRSS).
-- Sistema RBAC interno para staff (`is_staff = True`: Superadmin, Editor de Contenido, Operador de Entregas).
-- Backoffice modular en `/backoffice/` con DTL + HTMX + Tailwind.
+> **Gobernanza Multi-Agente:**
+> * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
+> * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
+> * **Estado Actual:** FASE 3: APROBAR — Pendiente validación por desarrollador líder antes de ejecutar
+
+---
+
+### Resumen de Alcance (Etapa 2)
+
+1. Nueva aplicación `fobandor.cms` con modelos bilingües (ES/EN) para contenido dinámico.
+2. Sistema RBAC con grupos Django (`Content_Editors`, `Fulfillment_Operators`).
+3. Backoffice en `/backoffice/` protegido con `StaffRequiredMixin` (DTL + HTMX + Tailwind).
+4. Integración de datos CMS en la Home pública (servicios y redes sociales dinámicos).
+5. Suite de pruebas automatizadas y verificación de aceptación técnica.
+
+---
+
+### Árbol de Archivos Objetivo (Etapa 2 — Incremental)
+
+```text
+fobandor/
+├── fobandor/
+│   ├── cms/
+│   │   ├── __init__.py
+│   │   ├── apps.py
+│   │   ├── admin.py
+│   │   ├── models.py
+│   │   ├── migrations/
+│   │   │   └── 0001_initial.py
+│   │   ├── management/
+│   │   │   └── commands/
+│   │   │       └── seed_initial_content.py
+│   │   └── tests/
+│   │       ├── __init__.py
+│   │       └── test_models.py
+│   └── backoffice/
+│       ├── __init__.py
+│       ├── apps.py
+│       ├── mixins.py
+│       ├── urls.py
+│       ├── views.py
+│       └── tests/
+│           ├── __init__.py
+│           └── test_views.py
+└── templates/
+    └── backoffice/
+        ├── base_backoffice.html
+        ├── dashboard.html
+        └── cms/
+            ├── service_list.html
+            ├── service_form.html
+            ├── project_list.html
+            ├── project_form.html
+            ├── social_link_list.html
+            ├── social_link_form.html
+            └── company_profile_form.html
+```
+
+---
+
+### Tarea 2.0: Nueva Aplicación `fobandor.cms`
+
+- [ ] Crear `fobandor/cms/__init__.py` (vacío).
+- [ ] Crear `fobandor/cms/apps.py`:
+  ```python
+  from django.apps import AppConfig
+
+  class CmsConfig(AppConfig):
+      default_auto_field = 'django.db.models.BigAutoField'
+      name = 'fobandor.cms'
+      label = 'cms'
+      verbose_name = 'CMS'
+  ```
+- [ ] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
+  ```python
+  'fobandor.cms.apps.CmsConfig',
+  ```
+
+---
+
+### Tarea 2.1: Modelos CMS Bilingües (`fobandor/cms/models.py`)
+
+- [ ] Implementar los siguientes modelos (todos con `created_at = auto_now_add`, `updated_at = auto_now`):
+
+  ```python
+  from django.db import models
+
+
+  class ServiceCategory(models.Model):
+      """4 líneas de negocio: Desarrollo Web, Apps, Publicidad, Studios."""
+      slug = models.SlugField(max_length=60, unique=True)
+      title_es = models.CharField('Título (ES)', max_length=120)
+      title_en = models.CharField('Title (EN)', max_length=120)
+      icon = models.CharField('Ícono (SVG/emoji)', max_length=100, blank=True)
+      order = models.PositiveSmallIntegerField('Orden', default=0)
+      is_active = models.BooleanField('Activo', default=True)
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          ordering = ['order']
+          verbose_name = 'Categoría de Servicio'
+          verbose_name_plural = 'Categorías de Servicio'
+
+      def __str__(self):
+          return self.title_es
+
+
+  class ServiceItem(models.Model):
+      """Ítem de servicio anidado bajo una categoría."""
+      category = models.ForeignKey(
+          ServiceCategory, on_delete=models.CASCADE, related_name='items')
+      title_es = models.CharField('Título (ES)', max_length=200)
+      title_en = models.CharField('Title (EN)', max_length=200)
+      desc_es = models.TextField('Descripción (ES)', blank=True)
+      desc_en = models.TextField('Description (EN)', blank=True)
+      order = models.PositiveSmallIntegerField('Orden', default=0)
+      is_active = models.BooleanField('Activo', default=True)
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          ordering = ['order']
+          verbose_name = 'Ítem de Servicio'
+          verbose_name_plural = 'Ítems de Servicio'
+
+      def __str__(self):
+          return f'{self.category.title_es} → {self.title_es}'
+
+
+  class Project(models.Model):
+      """Portafolio de proyectos realizados."""
+      title_es = models.CharField('Título (ES)', max_length=200)
+      title_en = models.CharField('Title (EN)', max_length=200)
+      desc_es = models.TextField('Descripción (ES)', blank=True)
+      desc_en = models.TextField('Description (EN)', blank=True)
+      client_name = models.CharField('Cliente', max_length=150, blank=True)
+      category = models.ForeignKey(
+          ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True,
+          related_name='projects')
+      image = models.ImageField('Imagen', upload_to='projects/', blank=True)
+      url = models.URLField('URL del proyecto', blank=True)
+      is_featured = models.BooleanField('Destacado', default=False)
+      order = models.PositiveSmallIntegerField('Orden', default=0)
+      tags = models.CharField('Etiquetas (CSV)', max_length=200, blank=True)
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          ordering = ['order', '-created_at']
+          verbose_name = 'Proyecto'
+          verbose_name_plural = 'Proyectos'
+
+      def __str__(self):
+          return self.title_es
+
+
+  class CompanyProfile(models.Model):
+      """Singleton: datos institucionales de FOBANDOR (misión, visión, valores)."""
+      mission_es = models.TextField('Misión (ES)', blank=True)
+      mission_en = models.TextField('Mission (EN)', blank=True)
+      vision_es = models.TextField('Visión (ES)', blank=True)
+      vision_en = models.TextField('Vision (EN)', blank=True)
+      values_es = models.TextField('Valores (ES)', blank=True)
+      values_en = models.TextField('Values (EN)', blank=True)
+      founded_year = models.PositiveSmallIntegerField('Año de fundación', null=True, blank=True)
+      location = models.CharField('Ubicación', max_length=200, blank=True,
+                                  default='Orlando, Florida, EE.UU.')
+      website_url = models.URLField('URL del sitio web', blank=True,
+                                    default='https://www.fobandor.com')
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          verbose_name = 'Perfil de la Empresa'
+          verbose_name_plural = 'Perfil de la Empresa'
+
+      def __str__(self):
+          return 'FOBANDOR — Perfil Corporativo'
+
+      def save(self, *args, **kwargs):
+          """Garantiza el patrón singleton: solo puede existir un registro."""
+          self.pk = 1
+          super().save(*args, **kwargs)
+
+      @classmethod
+      def load(cls):
+          obj, _ = cls.objects.get_or_create(pk=1)
+          return obj
+
+
+  class OfficialSocialLink(models.Model):
+      """Redes sociales oficiales de FOBANDOR."""
+      PLATFORM_CHOICES = [
+          ('instagram', 'Instagram'),
+          ('tiktok', 'TikTok'),
+          ('x', 'X (Twitter)'),
+          ('youtube', 'YouTube'),
+          ('facebook', 'Facebook'),
+      ]
+      platform = models.CharField('Plataforma', max_length=20,
+                                  choices=PLATFORM_CHOICES, unique=True)
+      url = models.URLField('URL')
+      handle = models.CharField('Handle / @', max_length=100, blank=True)
+      is_active = models.BooleanField('Activo', default=True)
+      order = models.PositiveSmallIntegerField('Orden', default=0)
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          ordering = ['order']
+          verbose_name = 'Red Social Oficial'
+          verbose_name_plural = 'Redes Sociales Oficiales'
+
+      def __str__(self):
+          return f'{self.get_platform_display()} → {self.handle}'
+
+
+  class ContactInquiry(models.Model):
+      """Consultas entrantes desde el formulario de contacto público."""
+      STATUS_CHOICES = [
+          ('NEW', 'Nueva'),
+          ('READ', 'Leída'),
+          ('REPLIED', 'Respondida'),
+      ]
+      name = models.CharField('Nombre', max_length=150)
+      email = models.EmailField('Correo')
+      phone = models.CharField('Teléfono', max_length=20, blank=True)
+      message = models.TextField('Mensaje')
+      service_interest = models.ForeignKey(
+          ServiceCategory, on_delete=models.SET_NULL, null=True, blank=True,
+          related_name='inquiries', verbose_name='Servicio de interés')
+      status = models.CharField('Estado', max_length=10,
+                                choices=STATUS_CHOICES, default='NEW')
+      created_at = models.DateTimeField(auto_now_add=True)
+      updated_at = models.DateTimeField(auto_now=True)
+
+      class Meta:
+          ordering = ['-created_at']
+          verbose_name = 'Consulta de Contacto'
+          verbose_name_plural = 'Consultas de Contacto'
+
+      def __str__(self):
+          return f'{self.name} <{self.email}> [{self.status}]'
+  ```
+
+---
+
+### Tarea 2.2: Admin CMS (`fobandor/cms/admin.py`)
+
+- [ ] Registrar todos los modelos con la API `ModelAdmin`:
+
+  ```python
+  from django.contrib import admin
+  from .models import (
+      ServiceCategory, ServiceItem, Project,
+      CompanyProfile, OfficialSocialLink, ContactInquiry,
+  )
+
+
+  class ServiceItemInline(admin.TabularInline):
+      model = ServiceItem
+      extra = 1
+      fields = ('title_es', 'title_en', 'order', 'is_active')
+
+
+  @admin.register(ServiceCategory)
+  class ServiceCategoryAdmin(admin.ModelAdmin):
+      list_display = ('title_es', 'slug', 'order', 'is_active')
+      list_editable = ('order', 'is_active')
+      search_fields = ('title_es', 'title_en', 'slug')
+      prepopulated_fields = {'slug': ('title_es',)}
+      inlines = [ServiceItemInline]
+      fieldsets = (
+          ('Español', {'fields': ('slug', 'title_es', 'icon', 'order', 'is_active')}),
+          ('English', {'fields': ('title_en',)}),
+      )
+
+
+  @admin.register(Project)
+  class ProjectAdmin(admin.ModelAdmin):
+      list_display = ('title_es', 'category', 'is_featured', 'order', 'created_at')
+      list_filter = ('category', 'is_featured')
+      search_fields = ('title_es', 'title_en', 'client_name', 'tags')
+      list_editable = ('order', 'is_featured')
+      fieldsets = (
+          ('Español', {'fields': ('title_es', 'desc_es')}),
+          ('English', {'fields': ('title_en', 'desc_en')}),
+          ('Metadata', {'fields': ('category', 'client_name', 'image', 'url',
+                                   'is_featured', 'order', 'tags')}),
+      )
+
+
+  @admin.register(CompanyProfile)
+  class CompanyProfileAdmin(admin.ModelAdmin):
+      fieldsets = (
+          ('Español', {'fields': ('mission_es', 'vision_es', 'values_es')}),
+          ('English', {'fields': ('mission_en', 'vision_en', 'values_en')}),
+          ('Datos Generales', {'fields': ('founded_year', 'location', 'website_url')}),
+      )
+
+      def has_add_permission(self, request):
+          """Bloquea agregar si ya existe el registro singleton."""
+          return not CompanyProfile.objects.exists()
+
+      def has_delete_permission(self, request, obj=None):
+          return False
+
+
+  @admin.register(OfficialSocialLink)
+  class OfficialSocialLinkAdmin(admin.ModelAdmin):
+      list_display = ('platform', 'handle', 'url', 'is_active', 'order')
+      list_editable = ('is_active', 'order')
+
+
+  @admin.register(ContactInquiry)
+  class ContactInquiryAdmin(admin.ModelAdmin):
+      list_display = ('name', 'email', 'service_interest', 'status', 'created_at')
+      list_filter = ('status', 'service_interest')
+      search_fields = ('name', 'email', 'message')
+      readonly_fields = ('name', 'email', 'phone', 'message',
+                         'service_interest', 'created_at')
+
+      def has_add_permission(self, request):
+          return False
+  ```
+
+---
+
+### Tarea 2.3: Management Command `seed_initial_content`
+
+- [ ] Crear `fobandor/cms/management/__init__.py` y `fobandor/cms/management/commands/__init__.py` (vacíos).
+- [ ] Crear `fobandor/cms/management/commands/seed_initial_content.py`:
+
+  ```python
+  from django.core.management.base import BaseCommand
+  from fobandor.cms.models import ServiceCategory, OfficialSocialLink, CompanyProfile
+
+
+  CATEGORIES = [
+      {
+          'slug': 'desarrollo-web',
+          'title_es': 'Desarrollo Web con IA',
+          'title_en': 'AI-Powered Web Development',
+          'icon': '🌐',
+          'order': 1,
+      },
+      {
+          'slug': 'desarrollo-apps',
+          'title_es': 'Desarrollo de Apps con IA',
+          'title_en': 'AI-Powered App Development',
+          'icon': '📱',
+          'order': 2,
+      },
+      {
+          'slug': 'publicidad',
+          'title_es': 'Publicidad con IA',
+          'title_en': 'AI-Powered Advertising',
+          'icon': '📢',
+          'order': 3,
+      },
+      {
+          'slug': 'fobandor-studios',
+          'title_es': 'Fobandor Studios',
+          'title_en': 'Fobandor Studios',
+          'icon': '🎬',
+          'order': 4,
+      },
+  ]
+
+  SOCIAL_LINKS = [
+      {'platform': 'instagram', 'url': 'https://www.instagram.com/fobandor.ai',
+       'handle': '@fobandor.ai', 'order': 1},
+      {'platform': 'tiktok', 'url': 'https://www.tiktok.com/@fobandor',
+       'handle': '@fobandor', 'order': 2},
+      {'platform': 'x', 'url': 'https://x.com/fobandor',
+       'handle': '@fobandor', 'order': 3},
+      {'platform': 'youtube', 'url': 'https://www.youtube.com/@fobandor',
+       'handle': '@fobandor', 'order': 4},
+      {'platform': 'facebook', 'url': 'https://www.facebook.com/share/1EAAc7Qw6x/',
+       'handle': 'fobandor', 'order': 5},
+  ]
+
+
+  class Command(BaseCommand):
+      help = 'Siembra el contenido inicial del CMS (idempotente — usa get_or_create).'
+
+      def handle(self, *args, **options):
+          self.stdout.write('Sembrando categorías de servicio...')
+          for data in CATEGORIES:
+              obj, created = ServiceCategory.objects.get_or_create(
+                  slug=data['slug'], defaults=data)
+              status = 'CREADA' if created else 'YA EXISTE'
+              self.stdout.write(f'  [{status}] {obj.title_es}')
+
+          self.stdout.write('Sembrando redes sociales oficiales...')
+          for data in SOCIAL_LINKS:
+              obj, created = OfficialSocialLink.objects.get_or_create(
+                  platform=data['platform'], defaults=data)
+              status = 'CREADA' if created else 'YA EXISTE'
+              self.stdout.write(f'  [{status}] {obj.get_platform_display()} → {obj.handle}')
+
+          self.stdout.write('Sembrando perfil corporativo...')
+          profile = CompanyProfile.load()
+          if not profile.location:
+              profile.location = 'Orlando, Florida, EE.UU.'
+              profile.website_url = 'https://www.fobandor.com'
+              profile.save()
+              self.stdout.write('  [CREADO] FOBANDOR — Perfil Corporativo')
+          else:
+              self.stdout.write('  [YA EXISTE] FOBANDOR — Perfil Corporativo')
+
+          self.stdout.write(self.style.SUCCESS('✅ seed_initial_content completado.'))
+  ```
+
+---
+
+### Tarea 2.4: Migraciones y Seed
+
+- [ ] Generar migración inicial del CMS:
+  ```bash
+  python manage.py makemigrations cms
+  ```
+- [ ] Aplicar todas las migraciones:
+  ```bash
+  python manage.py migrate
+  ```
+- [ ] Ejecutar el seed de contenido inicial:
+  ```bash
+  python manage.py seed_initial_content
+  ```
+- [ ] Verificar que no queden migraciones pendientes:
+  ```bash
+  python manage.py makemigrations --check --dry-run
+  ```
+
+---
+
+### Tarea 2.5: Sistema RBAC — Grupos Django
+
+- [ ] Crear management command `fobandor/users/management/commands/create_rbac_groups.py`:
+
+  ```python
+  from django.contrib.auth.models import Group, Permission
+  from django.contrib.contenttypes.models import ContentType
+  from django.core.management.base import BaseCommand
+  from fobandor.cms.models import (
+      ServiceCategory, ServiceItem, Project,
+      CompanyProfile, OfficialSocialLink, ContactInquiry,
+  )
+
+
+  class Command(BaseCommand):
+      help = 'Crea los grupos RBAC de FOBANDOR (idempotente).'
+
+      def handle(self, *args, **options):
+          # --- Content_Editors ---
+          editors_group, _ = Group.objects.get_or_create(name='Content_Editors')
+          cms_models = [ServiceCategory, ServiceItem, Project,
+                        CompanyProfile, OfficialSocialLink, ContactInquiry]
+          editor_perms = []
+          for model in cms_models:
+              ct = ContentType.objects.get_for_model(model)
+              for action in ('add', 'change', 'view'):
+                  perm = Permission.objects.get(
+                      codename=f'{action}_{model._meta.model_name}',
+                      content_type=ct)
+                  editor_perms.append(perm)
+          editors_group.permissions.set(editor_perms)
+          self.stdout.write(f'  [OK] Grupo Content_Editors configurado.')
+
+          # --- Fulfillment_Operators ---
+          # Se asignarán permisos sobre FulfillmentOrder en Etapa 3
+          ops_group, created = Group.objects.get_or_create(name='Fulfillment_Operators')
+          status = 'CREADO' if created else 'YA EXISTE'
+          self.stdout.write(f'  [{status}] Grupo Fulfillment_Operators (permisos de Etapa 3).')
+
+          self.stdout.write(self.style.SUCCESS('✅ Grupos RBAC configurados.'))
+  ```
+
+- [ ] Ejecutar el command:
+  ```bash
+  python manage.py create_rbac_groups
+  ```
+
+---
+
+### Tarea 2.6: Aplicación `fobandor.backoffice`
+
+- [ ] Crear `fobandor/backoffice/__init__.py` (vacío).
+- [ ] Crear `fobandor/backoffice/apps.py`:
+  ```python
+  from django.apps import AppConfig
+
+  class BackofficeConfig(AppConfig):
+      default_auto_field = 'django.db.models.BigAutoField'
+      name = 'fobandor.backoffice'
+      label = 'backoffice'
+      verbose_name = 'Backoffice'
+  ```
+- [ ] Registrar en `config/settings/base.py` → `INSTALLED_APPS`:
+  ```python
+  'fobandor.backoffice.apps.BackofficeConfig',
+  ```
+- [ ] Crear `fobandor/backoffice/mixins.py`:
+  ```python
+  from django.contrib.auth.mixins import AccessMixin
+  from django.shortcuts import redirect
+
+
+  class StaffRequiredMixin(AccessMixin):
+      """Permite el acceso solo a usuarios autenticados con is_staff=True."""
+
+      def dispatch(self, request, *args, **kwargs):
+          if not request.user.is_authenticated:
+              return self.handle_no_permission()
+          if not request.user.is_staff:
+              return redirect('/')
+          return super().dispatch(request, *args, **kwargs)
+  ```
+- [ ] Crear `fobandor/backoffice/urls.py`:
+  ```python
+  from django.urls import path
+  from . import views
+
+  app_name = 'backoffice'
+
+  urlpatterns = [
+      path('', views.DashboardView.as_view(), name='dashboard'),
+      # Servicios
+      path('servicios/', views.ServiceCategoryListView.as_view(), name='service-list'),
+      path('servicios/nuevo/', views.ServiceCategoryCreateView.as_view(), name='service-create'),
+      path('servicios/<int:pk>/editar/', views.ServiceCategoryUpdateView.as_view(), name='service-update'),
+      path('servicios/<int:pk>/eliminar/', views.ServiceCategoryDeleteView.as_view(), name='service-delete'),
+      # Proyectos
+      path('proyectos/', views.ProjectListView.as_view(), name='project-list'),
+      path('proyectos/nuevo/', views.ProjectCreateView.as_view(), name='project-create'),
+      path('proyectos/<int:pk>/editar/', views.ProjectUpdateView.as_view(), name='project-update'),
+      path('proyectos/<int:pk>/eliminar/', views.ProjectDeleteView.as_view(), name='project-delete'),
+      # Redes Sociales
+      path('redes-sociales/', views.OfficialSocialLinkListView.as_view(), name='social-list'),
+      path('redes-sociales/<int:pk>/editar/', views.OfficialSocialLinkUpdateView.as_view(), name='social-update'),
+      # Perfil Corporativo (singleton)
+      path('empresa/', views.CompanyProfileUpdateView.as_view(), name='company-profile'),
+  ]
+  ```
+- [ ] Registrar en `config/urls.py` bajo `i18n_patterns`, **antes** de `fobandor.core.urls`:
+  ```python
+  urlpatterns += i18n_patterns(
+      path("admin/", admin.site.urls),
+      path("backoffice/", include("fobandor.backoffice.urls", namespace="backoffice")),
+      path("", include("fobandor.core.urls")),
+  )
+  ```
+
+---
+
+### Tarea 2.7: Vistas del Backoffice (`fobandor/backoffice/views.py`)
+
+- [ ] Implementar todas las vistas usando `StaffRequiredMixin` + `LoginRequiredMixin` + CBVs genéricas:
+
+  ```python
+  from django.contrib.auth.mixins import LoginRequiredMixin
+  from django.urls import reverse_lazy
+  from django.views.generic import (
+      ListView, CreateView, UpdateView, DeleteView, TemplateView,
+  )
+  from fobandor.cms.models import (
+      ServiceCategory, Project, OfficialSocialLink, CompanyProfile,
+  )
+  from .mixins import StaffRequiredMixin
+
+
+  class BackofficeMixin(LoginRequiredMixin, StaffRequiredMixin):
+      """Mixin base para todas las vistas del backoffice."""
+      pass
+
+
+  # --- Dashboard ---
+
+  class DashboardView(BackofficeMixin, TemplateView):
+      template_name = 'backoffice/dashboard.html'
+
+      def get_context_data(self, **kwargs):
+          ctx = super().get_context_data(**kwargs)
+          from django.contrib.auth import get_user_model
+          User = get_user_model()
+          ctx['total_users'] = User.objects.count()
+          ctx['total_services'] = ServiceCategory.objects.filter(is_active=True).count()
+          ctx['total_projects'] = Project.objects.count()
+          return ctx
+
+
+  # --- Servicios ---
+
+  class ServiceCategoryListView(BackofficeMixin, ListView):
+      model = ServiceCategory
+      template_name = 'backoffice/cms/service_list.html'
+      context_object_name = 'services'
+      ordering = ['order']
+
+
+  class ServiceCategoryCreateView(BackofficeMixin, CreateView):
+      model = ServiceCategory
+      template_name = 'backoffice/cms/service_form.html'
+      fields = ['slug', 'title_es', 'title_en', 'icon', 'order', 'is_active']
+      success_url = reverse_lazy('backoffice:service-list')
+
+
+  class ServiceCategoryUpdateView(BackofficeMixin, UpdateView):
+      model = ServiceCategory
+      template_name = 'backoffice/cms/service_form.html'
+      fields = ['slug', 'title_es', 'title_en', 'icon', 'order', 'is_active']
+      success_url = reverse_lazy('backoffice:service-list')
+
+
+  class ServiceCategoryDeleteView(BackofficeMixin, DeleteView):
+      model = ServiceCategory
+      template_name = 'backoffice/cms/service_confirm_delete.html'
+      success_url = reverse_lazy('backoffice:service-list')
+
+
+  # --- Proyectos ---
+
+  class ProjectListView(BackofficeMixin, ListView):
+      model = Project
+      template_name = 'backoffice/cms/project_list.html'
+      context_object_name = 'projects'
+      ordering = ['order', '-created_at']
+
+
+  class ProjectCreateView(BackofficeMixin, CreateView):
+      model = Project
+      template_name = 'backoffice/cms/project_form.html'
+      fields = ['title_es', 'title_en', 'desc_es', 'desc_en',
+                'client_name', 'category', 'image', 'url',
+                'is_featured', 'order', 'tags']
+      success_url = reverse_lazy('backoffice:project-list')
+
+
+  class ProjectUpdateView(BackofficeMixin, UpdateView):
+      model = Project
+      template_name = 'backoffice/cms/project_form.html'
+      fields = ['title_es', 'title_en', 'desc_es', 'desc_en',
+                'client_name', 'category', 'image', 'url',
+                'is_featured', 'order', 'tags']
+      success_url = reverse_lazy('backoffice:project-list')
+
+
+  class ProjectDeleteView(BackofficeMixin, DeleteView):
+      model = Project
+      template_name = 'backoffice/cms/project_confirm_delete.html'
+      success_url = reverse_lazy('backoffice:project-list')
+
+
+  # --- Redes Sociales ---
+
+  class OfficialSocialLinkListView(BackofficeMixin, ListView):
+      model = OfficialSocialLink
+      template_name = 'backoffice/cms/social_link_list.html'
+      context_object_name = 'social_links'
+
+
+  class OfficialSocialLinkUpdateView(BackofficeMixin, UpdateView):
+      model = OfficialSocialLink
+      template_name = 'backoffice/cms/social_link_form.html'
+      fields = ['url', 'handle', 'is_active', 'order']
+      success_url = reverse_lazy('backoffice:social-list')
+
+
+  # --- Perfil Corporativo (Singleton) ---
+
+  class CompanyProfileUpdateView(BackofficeMixin, UpdateView):
+      model = CompanyProfile
+      template_name = 'backoffice/cms/company_profile_form.html'
+      fields = ['mission_es', 'mission_en', 'vision_es', 'vision_en',
+                'values_es', 'values_en', 'founded_year', 'location', 'website_url']
+      success_url = reverse_lazy('backoffice:company-profile')
+
+      def get_object(self, queryset=None):
+          """Siempre retorna el singleton (pk=1), creándolo si no existe."""
+          return CompanyProfile.load()
+  ```
+
+---
+
+### Tarea 2.8: Plantillas del Backoffice
+
+#### `templates/backoffice/base_backoffice.html`
+
+- [ ] Layout base con sidebar Tailwind + HTMX:
+  - Sidebar izquierdo con enlaces: Dashboard, Servicios, Proyectos, Redes Sociales, Empresa.
+  - Header con nombre de usuario y botón de logout.
+  - Área de contenido principal con `{% block content %}`.
+  - Incluir `static/css/output.css` y `static/js/vendor/htmx.min.js`.
+  - Paleta FOBANDOR: fondo sidebar `fobandor-dark`, acentos `fobandor-orange`.
+
+#### `templates/backoffice/dashboard.html`
+
+- [ ] Extiende `base_backoffice.html`.
+- [ ] Tarjetas de resumen:
+  - **Total Usuarios** → `{{ total_users }}`
+  - **Servicios Activos** → `{{ total_services }}`
+  - **Proyectos** → `{{ total_projects }}`
+  - **Órdenes Pendientes** → "Disponible en Etapa 3" (placeholder visual)
+- [ ] Accesos rápidos a secciones del CMS.
+
+#### Plantillas CMS (mínimas funcionales)
+
+- [ ] `templates/backoffice/cms/service_list.html` — tabla con columnas: Título ES, Título EN, Orden, Activo, Acciones (Editar / Eliminar). Botón "Nuevo Servicio".
+- [ ] `templates/backoffice/cms/service_form.html` — formulario bilingüe con pestañas Alpine.js (tab ES / tab EN). Botones Guardar / Cancelar.
+- [ ] `templates/backoffice/cms/service_confirm_delete.html` — confirmación de eliminación con nombre del servicio.
+- [ ] `templates/backoffice/cms/project_list.html` — tabla: Título, Categoría, Destacado, Orden, Acciones.
+- [ ] `templates/backoffice/cms/project_form.html` — formulario con pestañas Alpine.js ES/EN + campos de metadata.
+- [ ] `templates/backoffice/cms/project_confirm_delete.html` — confirmación de eliminación.
+- [ ] `templates/backoffice/cms/social_link_list.html` — lista de plataformas con URL, handle y toggle activo.
+- [ ] `templates/backoffice/cms/social_link_form.html` — formulario de edición de red social.
+- [ ] `templates/backoffice/cms/company_profile_form.html` — formulario singleton con pestañas ES/EN.
+
+---
+
+### Tarea 2.9: Integración CMS en la Home Pública
+
+- [ ] Actualizar `fobandor/core/views.py` → `home_view` para pasar contexto dinámico:
+  ```python
+  from fobandor.cms.models import ServiceCategory, OfficialSocialLink
+
+  def home_view(request):
+      services = ServiceCategory.objects.filter(is_active=True).order_by('order')
+      social_links = OfficialSocialLink.objects.filter(is_active=True).order_by('order')
+      return render(request, 'pages/home.html', {
+          'services': services,
+          'social_links': social_links,
+      })
+  ```
+- [ ] Actualizar `templates/pages/home.html` — sección "4 Líneas de Negocio":
+  ```html
+  {% for service in services %}
+  <div class="...">
+      <span>{{ service.icon }}</span>
+      <h3>{% if LANGUAGE_CODE == 'es' %}{{ service.title_es }}{% else %}{{ service.title_en }}{% endif %}</h3>
+  </div>
+  {% endfor %}
+  ```
+  > **Nota para OpenCode:** usar `{% get_current_language as LANGUAGE_CODE %}` con `{% load i18n %}` para detectar el idioma activo.
+- [ ] Actualizar `templates/partials/footer.html` — redes sociales dinámicas:
+  ```html
+  {% for link in social_links %}
+  <a href="{{ link.url }}" target="_blank" rel="noopener noreferrer">
+      {{ link.get_platform_display }}
+  </a>
+  {% endfor %}
+  ```
+  > **Nota para OpenCode:** `social_links` debe pasarse desde un **context processor** o desde cada vista que herede de `home_view`. Crear `fobandor/core/context_processors.py` con función `social_links(request)` y registrarla en `TEMPLATES[...]['OPTIONS']['context_processors']` en `base.py`.
+
+---
+
+### Tarea 2.10: Pruebas Automatizadas
+
+- [ ] Crear `fobandor/cms/tests/__init__.py` (vacío).
+- [ ] Crear `fobandor/cms/tests/test_models.py`:
+
+  ```python
+  import pytest
+  from fobandor.cms.models import ServiceCategory, OfficialSocialLink, CompanyProfile
+
+
+  @pytest.mark.django_db
+  def test_service_category_creation():
+      cat = ServiceCategory.objects.create(
+          slug='test-web', title_es='Web', title_en='Web', order=1)
+      assert str(cat) == 'Web'
+      assert cat.is_active is True
+
+
+  @pytest.mark.django_db
+  def test_official_social_link_creation():
+      link = OfficialSocialLink.objects.create(
+          platform='instagram',
+          url='https://www.instagram.com/fobandor.ai',
+          handle='@fobandor.ai',
+          order=1)
+      assert 'Instagram' in str(link)
+
+
+  @pytest.mark.django_db
+  def test_company_profile_singleton():
+      p1 = CompanyProfile.load()
+      p2 = CompanyProfile.load()
+      assert p1.pk == p2.pk == 1
+
+
+  @pytest.mark.django_db
+  def test_seed_initial_content_idempotent(django_db_setup):
+      from django.core.management import call_command
+      call_command('seed_initial_content', verbosity=0)
+      count_before = ServiceCategory.objects.count()
+      call_command('seed_initial_content', verbosity=0)
+      count_after = ServiceCategory.objects.count()
+      assert count_before == count_after == 4
+  ```
+
+- [ ] Crear `fobandor/backoffice/tests/__init__.py` (vacío).
+- [ ] Crear `fobandor/backoffice/tests/test_views.py`:
+
+  ```python
+  import pytest
+  from django.urls import reverse
+
+
+  @pytest.mark.django_db
+  def test_dashboard_anonymous_redirects(client):
+      url = reverse('backoffice:dashboard')
+      response = client.get(f'/es{url}')
+      assert response.status_code in (302, 301)
+
+
+  @pytest.mark.django_db
+  def test_dashboard_staff_access(client, django_user_model):
+      user = django_user_model.objects.create_user(
+          email='staff@fobandor.com', password='Test1234!', is_staff=True)
+      client.login(username='staff@fobandor.com', password='Test1234!')
+      url = reverse('backoffice:dashboard')
+      response = client.get(f'/es{url}')
+      assert response.status_code == 200
+
+
+  @pytest.mark.django_db
+  def test_dashboard_non_staff_redirects(client, django_user_model):
+      user = django_user_model.objects.create_user(
+          email='client@example.com', password='Test1234!', is_staff=False)
+      client.login(username='client@example.com', password='Test1234!')
+      url = reverse('backoffice:dashboard')
+      response = client.get(f'/es{url}')
+      assert response.status_code in (302, 301)
+  ```
+
+---
+
+### Tarea 2.11: Verificación de Aceptación Técnica (Etapa 2)
+
+- [ ] `python manage.py check` → 0 issues.
+- [ ] `python manage.py makemigrations --check --dry-run` → sin cambios pendientes.
+- [ ] `pytest` → todos los tests pasando (mínimo: 3 de Etapa 1 + 4 de CMS + 3 de Backoffice).
+- [ ] `flake8 config/ fobandor/ scripts/` → limpio (0 errores).
+- [ ] `python manage.py runserver 0.0.0.0:8000` → sin errores en consola.
+- [ ] Verificar en navegador:
+  - `http://localhost:8000/es/backoffice/` → redirige a login (anónimo).
+  - Login como `admin@fobandor.com` / `ChangeMe123!` → accede a dashboard.
+  - Dashboard muestra tarjetas de resumen con datos reales de la BD.
+  - `http://localhost:8000/es/backoffice/servicios/` → lista las 4 categorías sembradas.
+  - `http://localhost:8000/es/` → Home muestra servicios dinámicos desde la BD.
+  - Footer muestra las 5 redes sociales dinámicas.
+  - Cambio ES/EN funciona correctamente.
+- [ ] Compilar CSS con nuevas clases Tailwind del backoffice:
+  ```bash
+  npm run build:css
+  ```
+- [ ] Commit y push al repositorio:
+  ```bash
+  git add .
+  git commit -m "feat(etapa-2): identidad, rbac y backoffice cms"
+  git push origin main
+  ```
+
+---
+
+## 5. Planificación de Próximas Etapas (Roadmap Anticipado)
+
+### Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días
 
 ### Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días
 - Flujo de registro de clientes con autenticación híbrida:

@@ -127,6 +127,37 @@
 
 ---
 
+### [ADR-012] Arquitectura de Modelos CMS Bilingües y Patrón Singleton para Perfil Corporativo
+* **Estado:** Aprobado.
+* **Contexto:** En la Etapa 2 se requiere administrar dinámicamente las 4 líneas de servicio, proyectos, redes sociales y datos corporativos de FOBANDOR en español e inglés sin introducir dependencias pesadas de terceros (como `django-modeltranslation` o `django-parler`) que añadan complejidad o incompatibilidades con Python 3.14 / Django 5.2.
+* **Decisión:** 
+  * Implementar campos bilingües explícitos a nivel de modelo (`title_es`, `title_en`, `desc_es`, `desc_en`, etc.).
+  * Implementar `CompanyProfile` con patrón singleton garantizado por `pk=1` forzado en el método `save()` y método de clase `load()` con `get_or_create`. En el Django Admin y en el Backoffice se restringe la adición de múltiples registros.
+  * Inyección de redes sociales oficiales en plantillas públicas mediante context processor (`fobandor.core.context_processors.social_links`).
+* **Justificación / Razonamiento:** Máxima robustez, cero dependencias frágiles, total compatibilidad con Django 5.2 LTS y consultas SQL directas y eficientes.
+
+---
+
+### [ADR-013] Implementación de Grupos RBAC y Asignación Granular de Permisos
+* **Estado:** Aprobado.
+* **Contexto:** Se requiere segregar las funciones de administración interna entre editores de contenido y operadores de entrega/servicios, evitando otorgar `is_superuser` indiscriminadamente.
+* **Decisión:**
+  * Crear dos grupos Django mediante management command idempotente (`python manage.py create_rbac_groups`):
+    * `Content_Editors`: Permisos `add`, `change` y `view` sobre todos los modelos de `fobandor.cms` (sin permiso `delete` destructivo directo).
+    * `Fulfillment_Operators`: Reservado para la gestión de órdenes de entrega en Etapa 3.
+  * Acceso al Backoffice (`/backoffice/`) restringido a usuarios con `is_staff=True` mediante `StaffRequiredMixin`.
+* **Justificación / Razonamiento:** Aprovecha el motor nativo de permisos y grupos de Django (`django.contrib.auth.models.Group`), facilitando la auditoría y sin requerir bibliotecas externas de RBAC.
+
+---
+
+### [ADR-014] Backoffice Dedicado como Aplicación Django Desacoplada (`fobandor.backoffice`)
+* **Estado:** Aprobado.
+* **Contexto:** Se evaluó si utilizar exclusivamente el Django Admin estándar (`/admin/`) o construir un portal de administración a medida para el equipo de FOBANDOR.
+* **Decisión:** Desarrollar una aplicación independiente `fobandor.backoffice` con rutas bajo `/backoffice/`, vistas CBV estándar de Django, plantillas DTL con Tailwind CSS estilizadas con la identidad corporativa de FOBANDOR y reactividad ligera con HTMX / Alpine.js. El Django Admin estándar se mantiene activo en `/admin/` exclusivamente como herramienta de mantenimiento técnico de bajo nivel para superusuarios.
+* **Justificación / Razonamiento:** Ofrece al cliente Freddy Obando y su equipo una experiencia de usuario personalizada, rápida y alineada con la marca, manteniendo los formularios limpios y protegiendo el panel nativo de Django contra modificaciones de interfaz frágiles.
+
+---
+
 ## 2. Diagnóstico del Entorno de Ejecución (Ubuntu Local)
 
 * **Sistema Operativo:** Linux Ubuntu 26.04.1 LTS "Resolute" (x86_64).
@@ -141,11 +172,11 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis del prompt oficial, imágenes de marca, catálogo de 4 líneas y redacción de `agent.md`, `spec.md` e `informe_entendimiento.md`. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de tareas para la Etapa 1 en `task.md` con arquitectura limpia (*Thin Models/Views*, `services.py`, `selectors.py`), enriquecido con especificaciones exactas de modelos, dependencias y comandos para DeepSeek V4 Pro en OpenCode. |
-| **3. APROBAR** | **APROBADO** | Dictamen APROBADO emitido por Antigravity-IDE tras revisar los 6 puntos de corrección (ADRs 009-011, Django 5.2 LTS, `UserManager`, Docker, i18n, fallback BD). |
-| **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Etapa 1 ejecutada por OpenCode y validada técnicamente por Antigravity-IDE. Criterios de aceptación 100% cumplidos (Postgres 16 en Docker, CustomUser con test suite pytest pasando al 100%, Zero-CDN, DTL/Tailwind/Alpine/i18n). |
-| **5. REGISTRAR** | **COMPLETADA (Etapa 1)** | Bitácora `memory.md` y `task.md` sincronizadas con los hallazgos y validación de la Etapa 1. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis del prompt oficial, imágenes de marca, catálogo de 4 líneas y redacción de `agent.md`, `spec.md` e `informe_entendimiento.md`. Requisitos de Etapa 2 analizados. |
+| **2. PLANIFICAR** | **COMPLETADA** | Plan atómico de la Etapa 1 completado. Plan atómico de la **Etapa 2 (Tareas 2.0 a 2.11)** completamente desglosado en `task.md` con especificación técnica exacta de modelos, vistas, tests y comandos para OpenCode (DeepSeek V4 Pro). |
+| **3. APROBAR** | **APROBADO** | Etapa 1 aprobada y validada. Plan de la **Etapa 2 revisado, estructurado y APROBADO** por Antigravity-IDE (Arquitecto de Software Senior). Listo para ejecución. |
+| **4. EJECUTAR** | **LISTO PARA EJECUCIÓN** | Etapa 1 ejecutada y validada. **Etapa 2 lista para ser ejecutada por OpenCode (DeepSeek V4 Pro)** siguiendo el desglose paso a paso de `task.md`. |
+| **5. REGISTRAR** | **EN PROCESO (Etapa 2)** | Bitácora `memory.md` actualizada con ADR-012, ADR-013, ADR-014 y estado del sistema. Sincronización continua de `task.md`. |
 | **6. APRENDER** | **COMPLETADA (Etapa 1)** | Consolidación del `README.md` exhaustivo y sincronización exitosa del repositorio remoto en GitHub (`javieresquivelt-ux/fobandor-web`). |
 
 ---
@@ -185,4 +216,18 @@
 2. **Suite de Pruebas Automatizadas (`fobandor/users/tests/test_models.py`):** Se crearon 3 pruebas unitarias de regresión para validar la creación de usuario estándar por email, creación de superusuario sin username y el lanzamiento de `ValueError` ante email vacío. Resultado: 3/3 tests pasando.
 3. **Soporte de Testing en Entorno Local:** Se incluyó `"testserver"` en `ALLOWED_HOSTS` dentro de `config/settings/local.py` para compatibilidad transparente con `django.test.Client` y `pytest-django`.
 4. **Sincronización de Checkboxes en `task.md`:** Se actualizaron a `[x]` todas las casillas de las tareas 1.0 a 1.9, certificando el pase formal a la Etapa 2.
+
+---
+
+## 5. Preparación y Validación Técnica para la Etapa 2
+
+* **Objetivo de la Etapa:** Identidad, RBAC y Backoffice CMS.
+* **Documento Rector:** [task.md](file:///home/jet/proyectos_lnx/proyectos/fobandor/task.md) (Sección 4: Tareas 2.0 a 2.11).
+* **Decisiones Arquitectónicas Incorporadas:** ADR-012 (Modelos bilingües y Singleton), ADR-013 (Grupos RBAC Django), ADR-014 (Backoffice desacoplado).
+* **Condiciones de Entrada:**
+  * Base de datos PostgreSQL 16 activa en contenedor Docker `fobandor_postgres`.
+  * Modelo `CustomUser` y `UserManager` verificados y con test suite pasando.
+  * Runtime Python 3.14.4 + Django 5.2.19 LTS en `.venv/`.
+  * Repositorio remoto sincronizado en rama `main`.
+* **Próxima Acción (FASE 4):** Ejecución atómica de las tareas 2.0 a 2.11 por parte de OpenCode (DeepSeek V4 Pro) en el entorno de desarrollo local.
 
