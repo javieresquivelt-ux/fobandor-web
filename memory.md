@@ -176,9 +176,9 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis integral del flujo de pagos Stripe (SLA 7 días), Social Login Gmail (Google OAuth 2.0 / `django-allauth`), Onboarding AVS y modelo de órdenes `FulfillmentOrder`. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 3 (Tareas 3.0 a 3.11)** en `task.md` con rutas de archivo exactas, modelos, servicios, adapters y tests. |
 | **3. APROBAR** | **APROBADO** | Etapa 3 aprobada por el desarrollador líder con correcciones de revisión técnica (webhook `invoice.paid` como fuente única, 1 orden por suscripción). |
-| **4. EJECUTAR** | **EJECUTADA (Etapa 3)** | Tareas 3.0 a 3.11 ejecutadas por OpenCode: allauth + Google, billing Stripe, fulfillment SLA, portal `/mi-cuenta/` y webhook. Pendiente validación por Antigravity-IDE. |
-| **5. REGISTRAR** | **EN PROCESO (Etapa 3)** | Bitácora y ADRs sincronizados con el alcance de pagos y entregas. |
-| **6. APRENDER** | **COMPLETADA (Etapa 2)** | Documentación viva actualizada en `README.md`. |
+| **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Tareas 3.0 a 3.11 ejecutadas por OpenCode (commit `da484dd`) y validadas al 100% por Antigravity-IDE: 24/24 tests pytest pasando, flake8 limpio, webhooks, auth y SLA verificados. |
+| **5. REGISTRAR** | **COMPLETADA (Etapa 3)** | Bitácora y ADRs sincronizados con el alcance de pagos, entregas y hallazgos en `memory.md`. |
+| **6. APRENDER** | **COMPLETADA (Etapa 3)** | Documentación viva actualizada en `README.md` con el estado del roadmap y catálogo de precios. |
 
 ---
 

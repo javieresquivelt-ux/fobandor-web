@@ -303,6 +303,7 @@ npm run build:css
 ```bash
 python manage.py migrate
 python manage.py seed_initial_content
+python manage.py seed_subscription_plans
 python manage.py create_rbac_groups
 python manage.py createsuperuser
 ```
@@ -314,6 +315,8 @@ python manage.py runserver 0.0.0.0:8000
 ```
 Visita en tu navegador:
 * **Web Pública:** `http://localhost:8000/` (redirige automáticamente a `http://localhost:8000/es/`).
+* **Catálogo de Planes y Precios:** `http://localhost:8000/es/precios/`.
+* **Portal de Autoservicio del Cliente:** `http://localhost:8000/es/mi-cuenta/` (requiere login o Google Social Account).
 * **Backoffice Staff:** `http://localhost:8000/es/backoffice/` (requiere login con `is_staff=True`).
 * **Django Admin:** `http://localhost:8000/es/admin/`.
 
@@ -341,7 +344,7 @@ flowchart LR
 
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
 * [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
-* [ ] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0), formulario de facturación AVS, 3 planes de suscripción, Webhooks firmados y motor de órdenes `FulfillmentOrder`.
+* [x] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0 / `django-allauth`), formulario de facturación AVS, 3 planes de suscripción mensual ($199, $499, $999), Webhooks firmados criptográficamente y motor de órdenes `FulfillmentOrder` (SLA 7 días).
 * [ ] **Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción:** Sitemap dinámico, Open Graph, suite completa de pruebas, auditoría `check --deploy` y despliegue agnóstico en VPS.
 
 ---
