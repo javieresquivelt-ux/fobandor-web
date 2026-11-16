@@ -159,6 +159,21 @@
 
 ---
 
+### [ADR-015] Gestión Dinámica de Planes de Acompañamiento y Catálogo Comercial en Backoffice
+* **Estado:** Aprobado por el Desarrollador Líder.
+* **Contexto:** Freddy Obando entregó la definición oficial de los 3 paquetes de servicios reales ("Planes de Acompañamiento: Marketing Digital & Ventas para negocios locales"):
+  * **Plan 1 • Impulso:** $697 USD/mes, compromiso mínimo 2 meses, enfocado en generar demanda con Meta Ads.
+  * **Plan 2 • Conversión (Recomendado):** $1,297 USD/mes, compromiso mínimo 3 meses, enfocado en embudos, CRM y citas.
+  * **Plan 3 • Crecimiento:** $1,997 USD/mes, compromiso mínimo 3 meses, enfocado en fidelización, recompra y LTV.
+  Se exige como requisito crítico del negocio que ningún plan ni precio quede hardcodeado, y que el administrador o encargado pueda gestionar los planes, textos y claves de precio de Stripe directamente desde `/backoffice/planes/`. Además, el CTA de diagnóstico comercial se integrará provisionalmente con Formspree.io.
+* **Decisión:**
+  1. **Enriquecimiento del Modelo `SubscriptionPlan`:** Incorporar campos bilingües de subtítulo (`subtitle_es/en`), meses de compromiso mínimo (`min_commitment_months`), público objetivo (`target_audience_es/en`), texto legal (`disclaimer_es/en`) y endpoint de Formspree (`formspree_endpoint`).
+  2. **Módulo CRUD en Backoffice (`/backoffice/planes/`):** Vistas CBV para listar y editar planes con pestañas Alpine.js, permitiendo actualizar textos y el `stripe_price_id` sin tocar código fuente ni desplegar.
+  3. **Catálogo de Alta Fidelidad (`/precios/`):** Rediseño visual fiel a la infografía oficial con badges de compromiso mínimo, badge "RECOMENDADO" y modal/sección de diagnóstico conectado a Formspree.
+* **Justificación / Razonamiento:** Garantiza soberanía operativa a Freddy Obando y su equipo administrativo para ajustar su oferta comercial y precios de Stripe en tiempo real, manteniendo la pasarela de pagos desacoplada de cambios de código.
+
+---
+
 ## 2. Diagnóstico del Entorno de Ejecución (Ubuntu Local)
 
 * **Sistema Operativo:** Linux Ubuntu 26.04.1 LTS "Resolute" (x86_64).
@@ -336,6 +351,18 @@ Correcciones técnicas aplicadas al plan (ver `task.md` §5 "Notas de Correcció
 ### Prerrequisitos externos pendientes (fuera de código)
 * **Stripe test mode:** crear 3 Products/Prices y cargar `stripe_price_id` reales en los planes; configurar webhook endpoint `/stripe/webhook/`.
 * **Google Cloud:** crear proyecto OAuth, credenciales y autorizar callback `http://localhost:8000/accounts/google/login/callback/`.
+
+---
+
+## 11. Refinamiento Comercial: Planes de Acompañamiento y CMS de Facturación
+
+* **Origen:** Definición comercial entregada por Freddy Obando (`instructions/planes.jpeg`).
+* **Alcance Aprobado:**
+  1. Modelo `SubscriptionPlan` enriquecido con subtítulos, compromiso mínimo (2 y 3 meses), público objetivo, disclaimers y Formspree.
+  2. Gestión de planes desde `/backoffice/planes/` para autonomía total del staff en actualización de ofertas y `stripe_price_id`.
+  3. Integración con Formspree.io para captación de leads de diagnóstico ("Hablemos hoy").
+  4. Rediseño de alta fidelidad en `/precios/`.
+
 
 
 

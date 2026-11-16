@@ -1717,6 +1717,150 @@ fobandor/
 
 ---
 
+## 5.1 Refinamiento Comercial: Planes de Acompañamiento y Gestión CMS en Backoffice
+
+> **Gobernanza Multi-Agente:**
+> * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
+> * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
+> * **Estado Actual:** FASE 3: APROBAR — Plan atómico aprobado por el desarrollador líder. Listo para ejecución (FASE 4).
+
+---
+
+### Resumen del Refinamiento Comercial
+Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Planes de Acompañamiento: Marketing Digital & Ventas para negocios locales**). Es requisito crítico que los planes, precios y claves de Stripe puedan ser administrados y actualizados dinámicamente por el staff desde el Backoffice sin tocar código fuente ni desplegar, con integración a Formspree para el diagnóstico de clientes.
+
+---
+
+### Tarea 3.12: Enriquecimiento del Modelo `SubscriptionPlan` (`fobandor/billing/models.py`)
+
+- [ ] Incorporar los siguientes campos al modelo `SubscriptionPlan`:
+  ```python
+  subtitle_es = models.CharField('Subtítulo (ES)', max_length=150, blank=True)
+  subtitle_en = models.CharField('Subtitle (EN)', max_length=150, blank=True)
+  min_commitment_months = models.PositiveSmallIntegerField(
+      'Compromiso Mínimo (Meses)', default=1,
+      help_text='Acompañamiento mínimo exigido (ej. 2 o 3 meses).'
+  )
+  target_audience_es = models.TextField(
+      'Público Objetivo (ES)', blank=True,
+      help_text='Ideal para negocios que...'
+  )
+  target_audience_en = models.TextField(
+      'Target Audience (EN)', blank=True
+  )
+  disclaimer_es = models.TextField('Aviso Legal (ES)', blank=True)
+  disclaimer_en = models.TextField('Legal Disclaimer (EN)', blank=True)
+  formspree_endpoint = models.CharField(
+      'Formspree Form ID o URL', max_length=255, blank=True,
+      default='https://formspree.io/f/placeholder'
+  )
+  ```
+- [ ] Ejecutar migraciones:
+  ```bash
+  python manage.py makemigrations billing
+  python manage.py migrate
+  ```
+
+---
+
+### Tarea 3.13: Módulo de Gestión de Planes en Backoffice (`fobandor/backoffice/`)
+
+- [ ] Crear vistas CBV en `fobandor/backoffice/views.py`:
+  - `SubscriptionPlanListView(BackofficeMixin, ListView)`: listado de planes con orden, precio en USD, `stripe_price_id`, estado activo/destacado y botón de edición.
+  - `SubscriptionPlanUpdateView(BackofficeMixin, UpdateView)`: formulario bilingüe con pestañas Alpine.js (Español / Inglés) para editar textos, precios, meses de compromiso y `stripe_price_id`.
+- [ ] Registrar rutas en `fobandor/backoffice/urls.py`:
+  ```python
+  path('planes/', views.SubscriptionPlanListView.as_view(), name='plan-list'),
+  path('planes/<int:pk>/editar/', views.SubscriptionPlanUpdateView.as_view(), name='plan-update'),
+  ```
+- [ ] Crear plantillas:
+  - `templates/backoffice/billing/plan_list.html`
+  - `templates/backoffice/billing/plan_form.html`
+- [ ] Añadir enlace al sidebar en `templates/backoffice/base_backoffice.html`:
+  ```html
+  <a href="{% url 'backoffice:plan-list' %}" class="...">
+      <span>💳</span> {% trans "Planes & Precios" %}
+  </a>
+  ```
+
+---
+
+### Tarea 3.14: Seeder con los Datos Comerciales Reales de Freddy Obando
+
+- [ ] Actualizar `fobandor/billing/management/commands/seed_subscription_plans.py` con los datos exactos de la infografía:
+  1. **Plan 1 • Impulso:**
+     - `slug`: `impulso`
+     - `name_es`: `Plan 1 • Impulso`, `name_en`: `Plan 1 • Momentum`
+     - `subtitle_es`: `Genera demanda`, `subtitle_en`: `Generate demand`
+     - `price_usd`: `Decimal('697.00')`
+     - `min_commitment_months`: `2`
+     - `target_audience_es`: `Ideal para negocios que necesitan atraer interesados.`
+     - `order_type`: `ADS_AI`
+     - 7 bullets reales: Diagnóstico comercial inicial, Definición de oferta, buyer y canal, Revisión de Meta Business Suite, Configuración y lanzamiento de Meta Ads, Testeo de anuncios y creativos, Análisis de resultados y optimización, Recomendación del mejor destino: web, booking, formulario o WhatsApp.
+  2. **Plan 2 • Conversión (Recomendado):**
+     - `slug`: `conversion`
+     - `name_es`: `Plan 2 • Conversión`, `name_en`: `Plan 2 • Conversion`
+     - `subtitle_es`: `Convierte oportunidades`, `subtitle_en`: `Convert opportunities`
+     - `price_usd`: `Decimal('1297.00')`
+     - `min_commitment_months`: `3`
+     - `is_highlighted`: `True`
+     - `target_audience_es`: `Ideal para negocios que reciben consultas, pero pierden oportunidades.`
+     - `order_type`: `ADS_AI`
+     - 7 bullets reales: Todo lo del Plan Impulso, Diseño del embudo de conversión, CRM / pipeline comercial básico, Automatización de respuestas y seguimiento, Agenda, confirmaciones y recordatorios, Guión comercial de atención y cierre, Métricas de conversión: citas, show rate, close rate y CAC.
+  3. **Plan 3 • Crecimiento:**
+     - `slug`: `crecimiento`
+     - `name_es`: `Plan 3 • Crecimiento`, `name_en`: `Plan 3 • Growth`
+     - `subtitle_es`: `Vende más y fideliza`, `subtitle_en`: `Sell more and retain`
+     - `price_usd`: `Decimal('1997.00')`
+     - `min_commitment_months`: `3`
+     - `target_audience_es`: `Ideal para negocios que ya venden y quieren crecer con su base de clientes.`
+     - `order_type`: `STUDIOS`
+     - 7 bullets reales: Todo lo del Plan Conversión, Estrategias de recompra y postventa, Reactivación de clientes antiguos, Solicitud de reseñas y referidos, Upsell y cross-sell, Segmentación de base de clientes, Métricas de crecimiento: recompra, LTV y escalamiento.
+  - Disclaimer legal común:
+    - `disclaimer_es`: `*La inversión publicitaria en Meta Ads y las herramientas de terceros no están incluidas. Los valores base consideran 1 negocio, 1 ubicación y 1 oferta principal.`
+- [ ] Ejecutar el seeder para actualizar la base de datos:
+  ```bash
+  python manage.py seed_subscription_plans
+  ```
+
+---
+
+### Tarea 3.15: Rediseño de Alta Fidelidad del Catálogo `/precios/` con Formspree
+
+- [ ] Actualizar `templates/billing/pricing.html`:
+  - Cabecera: *"Planes de Acompañamiento"* / *"Marketing Digital & Ventas para negocios locales"*.
+  - Renderizado bilingüe de subtítulos, badges de compromiso (`Acompañamiento mínimo: X meses`) y público objetivo (`Ideal para...`).
+  - Badge neón destacado en el Plan 2: *"RECOMENDADO"*.
+  - Disclaimer legal al pie de los 3 planes.
+  - Banner inferior de diagnóstico:
+    - Titular: *"Agenda un diagnóstico y descubre cuál plan necesita tu negocio"*.
+    - Botón CTA *"Hablemos hoy"* que abre un modal con formulario conectado a **Formspree.io** (`https://formspree.io/f/...`) o ancla a un formulario limpio.
+    - Badges de valor: *Innovación • Creatividad • Resultados • Sin límites*.
+
+---
+
+### Tarea 3.16: Pruebas Automatizadas y Verificación de Aceptación
+
+- [ ] Actualizar suite de pruebas en `fobandor/billing/tests/`:
+  - Test de creación de `SubscriptionPlan` con campos extendidos.
+  - Test de listado y edición de planes en `/backoffice/planes/` para usuarios staff.
+  - Test de bloqueo para usuarios anónimos o no-staff.
+- [ ] Ejecutar suite completa:
+  ```bash
+  python manage.py check
+  pytest
+  flake8 config fobandor scripts
+  npm run build:css
+  ```
+- [ ] Commit y push:
+  ```bash
+  git add .
+  git commit -m "feat(billing): planes de acompanamiento reales, cms en backoffice y formspree"
+  git push origin main
+  ```
+
+---
+
 ## 6. Planificación de Próximas Etapas (Roadmap Anticipado)
 
 ### Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción
