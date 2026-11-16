@@ -1,5 +1,7 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.shortcuts import redirect
 from django.urls import reverse_lazy
+from django.utils import timezone
 from django.views.generic import (
     ListView, CreateView, UpdateView, DeleteView, TemplateView,
 )
@@ -7,6 +9,7 @@ from django.views.generic import (
 from fobandor.cms.models import (
     ServiceCategory, Project, OfficialSocialLink, CompanyProfile,
 )
+from fobandor.fulfillment.models import FulfillmentOrder
 
 from .mixins import StaffRequiredMixin
 
@@ -120,3 +123,38 @@ class CompanyProfileUpdateView(BackofficeMixin, UpdateView):
     def get_object(self, queryset=None):
         """Siempre retorna el singleton (pk=1), creándolo si no existe."""
         return CompanyProfile.load()
+
+
+# --- Órdenes SLA (Fulfillment) ---
+
+class FulfillmentOrderListView(BackofficeMixin, ListView):
+    model = FulfillmentOrder
+    template_name = 'backoffice/fulfillment/order_list.html'
+    context_object_name = 'orders'
+
+    def get_queryset(self):
+        qs = FulfillmentOrder.objects.select_related('user', 'subscription').order_by('due_date')
+        status = self.request.GET.get('status')
+        if status:
+            qs = qs.filter(status=status)
+        return qs
+
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx['status_choices'] = FulfillmentOrder.STATUS_CHOICES
+        ctx['current_status'] = self.request.GET.get('status', '')
+        return ctx
+
+
+class FulfillmentOrderDeliverView(BackofficeMixin, UpdateView):
+    model = FulfillmentOrder
+    template_name = 'backoffice/fulfillment/order_detail.html'
+    fields = ['deliverable_file', 'deliverable_url', 'internal_notes']
+    success_url = reverse_lazy('backoffice:fulfillment-list')
+
+    def form_valid(self, form):
+        order = form.save(commit=False)
+        order.status = 'ENTREGADA'
+        order.delivered_at = timezone.now()
+        order.save()
+        return redirect(self.success_url)

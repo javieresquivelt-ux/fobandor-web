@@ -21,4 +21,7 @@ urlpatterns = [
     path('redes-sociales/<int:pk>/editar/', views.OfficialSocialLinkUpdateView.as_view(), name='social-update'),
     # Perfil Corporativo (singleton)
     path('empresa/', views.CompanyProfileUpdateView.as_view(), name='company-profile'),
+    # Órdenes SLA (Fulfillment)
+    path('entregas/', views.FulfillmentOrderListView.as_view(), name='fulfillment-list'),
+    path('entregas/<int:pk>/entregar/', views.FulfillmentOrderDeliverView.as_view(), name='fulfillment-deliver'),
 ]

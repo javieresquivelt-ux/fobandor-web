@@ -175,9 +175,9 @@
 | :--- | :---: | :--- |
 | **1. ANALIZAR** | **COMPLETADA** | Análisis integral del flujo de pagos Stripe (SLA 7 días), Social Login Gmail (Google OAuth 2.0 / `django-allauth`), Onboarding AVS y modelo de órdenes `FulfillmentOrder`. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 3 (Tareas 3.0 a 3.11)** en `task.md` con rutas de archivo exactas, modelos, servicios, adapters y tests. |
-| **3. APROBAR** | **PAUSA OBLIGATORIA (Etapa 3)** | **En espera de aprobación formal del Desarrollador Líder** sobre el plan de ejecución de la Etapa 3 antes de escribir código. |
-| **4. EJECUTAR** | **PENDIENTE (Etapa 3)** | Ejecución atómica por OpenCode (DeepSeek V4 Pro) una vez otorgada la aprobación en Fase 3. |
-| **5. REGISTRAR** | **EN PROCESO (Etapa 3)** | Bitácora técnica y ADRs sincronizados con el alcance de pagos y entregas. |
+| **3. APROBAR** | **APROBADO** | Etapa 3 aprobada por el desarrollador líder con correcciones de revisión técnica (webhook `invoice.paid` como fuente única, 1 orden por suscripción). |
+| **4. EJECUTAR** | **EJECUTADA (Etapa 3)** | Tareas 3.0 a 3.11 ejecutadas por OpenCode: allauth + Google, billing Stripe, fulfillment SLA, portal `/mi-cuenta/` y webhook. Pendiente validación por Antigravity-IDE. |
+| **5. REGISTRAR** | **EN PROCESO (Etapa 3)** | Bitácora y ADRs sincronizados con el alcance de pagos y entregas. |
 | **6. APRENDER** | **COMPLETADA (Etapa 2)** | Documentación viva actualizada en `README.md`. |
 
 ---
@@ -289,6 +289,53 @@ Correcciones aplicadas al plan de la Etapa 2 tras revisión técnica, antes de l
   3. **Entregas SLA (`fobandor.fulfillment`):** Modelo `FulfillmentOrder` con cálculo automático de fecha límite (`due_date = paid_at + 7 días`). Detección automática de órdenes `VENCIDA` vía management command `check_overdue_orders` (ADR-009).
   4. **Portal Cliente (`fobandor.portal`):** Dashboard de autoservicio en `/mi-cuenta/` con barra de progreso de días de entrega restantes y descarga de entregables.
 * **Estado:** FASE 3: APROBAR (Pausa obligatoria para revisión del desarrollador líder).
+
+---
+
+## 9. Decisiones y Correcciones de la Etapa 3 (revisión técnica OpenCode)
+
+Decisiones confirmadas por el desarrollador líder:
+
+1. **Mapeo plan → órdenes:** cada cobro genera **1 `FulfillmentOrder`** por suscripción; el `order_type` se deriva de `SubscriptionPlan.order_type`.
+2. **Webhooks:** `invoice.paid` como **única fuente** que crea/renueva órdenes (idempotente por `stripe_invoice_id` único); `checkout.session.completed` solo activa la suscripción y vincula `User.stripe_customer_id`.
+
+Correcciones técnicas aplicadas al plan (ver `task.md` §5 "Notas de Corrección"):
+
+1. `CustomSocialAccountAdapter.save_user` (persistencia de `is_email_verified`).
+2. `allauth.urls` fuera de `i18n_patterns`.
+3. `SubscriptionPlan.order_type` (fuente del `order_type` de la orden).
+4. `FulfillmentOrder.stripe_invoice_id` único.
+5. `LOGIN_URL = "account_login"`.
+6. `stripe_customer_id` como fuente única en `User`.
+7. URLs absolutas para Stripe Checkout/Portal.
+8. Señal `email_confirmed` para verificación Email/Password.
+
+---
+
+## 10. Hallazgos y Validación de la Ejecución de la Etapa 3
+
+### Versiones instaladas
+* **stripe 17.0.0** y **django-allauth 65.22.1** (compatibles con Python 3.14.4 / Django 5.2.19).
+
+### Ajustes durante la ejecución (desviaciones menores)
+1. **Middleware allauth:** `allauth.account.middleware.AccountMiddleware` añadido (requisito de allauth 65).
+2. **Settings deprecados:** reemplazados `ACCOUNT_AUTHENTICATION_METHOD`/`ACCOUNT_EMAIL_REQUIRED`/`ACCOUNT_USERNAME_REQUIRED` por `ACCOUNT_LOGIN_METHODS` y `ACCOUNT_SIGNUP_FIELDS`.
+3. **Excepción de firma:** se usa `stripe.SignatureVerificationError` (top-level) porque `stripe.error` ya no es importable en stripe 17.
+4. **Webhook → dict:** `event.to_dict()` antes de procesar (el `Event` de Stripe no soporta `.get()`).
+5. **Formato de precio:** `{{ plan.price_usd|unlocalize }}` con `{% load l10n %}` para evitar `$199,00` (localización es) y mostrar `$199.00`.
+6. **Vistas de entregas en `fobandor.backoffice`** (no en `fulfillment/views.py`), con semáforo de SLA (`sla_level`) en el modelo.
+7. **`Site`** de `django.contrib.sites` creado con dominio `localhost:8000`.
+
+### Verificación de aceptación (Tarea 3.11)
+* `python manage.py check` → 0 issues. `makemigrations --check --dry-run` → sin cambios.
+* `pytest` → **24/24 passing** (3 users + 1 gate + 2 señal/gate + 4 cms + 3 backoffice + 4 sla + 2 billing models + 3 webhooks + 2 portal).
+* `flake8 config fobandor scripts` → limpio.
+* Seeds: 3 planes (`Starter` $199, `Pro` $499, `Enterprise` $999) + grupos RBAC (Content_Editors + Fulfillment_Operators con permisos sobre `FulfillmentOrder`).
+* HTTP real: `/es/precios/` 200, `/accounts/login/` 200 (con botón Google), `/es/mi-cuenta/` 302 → `/accounts/login/`, `/stripe/webhook/` GET 405 (solo POST).
+
+### Prerrequisitos externos pendientes (fuera de código)
+* **Stripe test mode:** crear 3 Products/Prices y cargar `stripe_price_id` reales en los planes; configurar webhook endpoint `/stripe/webhook/`.
+* **Google Cloud:** crear proyecto OAuth, credenciales y autorizar callback `http://localhost:8000/accounts/google/login/callback/`.
 
 
 

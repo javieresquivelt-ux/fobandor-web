@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load l10n %}
+
+{% block content %}
+<section class="py-20">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+    <div class="text-center mb-14">
+      <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight">{% trans "Planes" %}</h2>
+      <p class="mt-3 text-gray-600 dark:text-gray-400">{% trans "Suscripción mensual con entrega garantizada en 7 días." %}</p>
+    </div>
+
+    {% if messages %}
+      <div class="max-w-2xl mx-auto mb-6 space-y-2">
+        {% for message in messages %}
+          <div class="rounded-lg px-4 py-2 text-sm {% if message.tags == 'error' %}bg-fobandor-orange/10 text-fobandor-orange{% else %}bg-green-100 text-green-800{% endif %}">
+            {{ message }}
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+      {% for plan in plans %}
+      <div class="rounded-2xl border p-8 flex flex-col {% if plan.is_highlighted %}border-fobandor-orange bg-fobandor-orange/5{% else %}border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5{% endif %}">
+        <h3 class="text-xl font-bold">{% if LANGUAGE_CODE == 'es' %}{{ plan.name_es }}{% else %}{{ plan.name_en }}{% endif %}</h3>
+        <p class="mt-2 text-4xl font-extrabold">${{ plan.price_usd|unlocalize }}<span class="text-base font-normal text-gray-500">/{% trans "mes" %}</span></p>
+        <p class="mt-3 text-sm text-gray-600 dark:text-gray-400">{% if LANGUAGE_CODE == 'es' %}{{ plan.desc_es }}{% else %}{{ plan.desc_en }}{% endif %}</p>
+        <ul class="mt-6 space-y-2 text-sm flex-1">
+          {% if LANGUAGE_CODE == 'es' %}
+            {% for feature in plan.features_es %}
+            <li class="flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-fobandor-orange"></span>{{ feature }}</li>
+            {% endfor %}
+          {% else %}
+            {% for feature in plan.features_en %}
+            <li class="flex items-center gap-2"><span class="w-1 h-1 rounded-full bg-fobandor-orange"></span>{{ feature }}</li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+        <form method="post" action="{% url 'billing:checkout' plan.slug %}" class="mt-8">
+          {% csrf_token %}
+          <button type="submit" class="w-full rounded-xl {% if plan.is_highlighted %}bg-fobandor-orange hover:bg-fobandor-orange/90 text-white{% else %}border border-gray-300 dark:border-white/20 hover:border-fobandor-orange{% endif %} px-4 py-2.5 font-semibold">
+            {% trans "Comenzar" %}
+          </button>
+        </form>
+      </div>
+      {% empty %}
+      <p class="col-span-full text-center text-gray-600 dark:text-gray-400">{% trans "Planes próximamente." %}</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+{% endblock %}

@@ -1,0 +1,98 @@
+import hashlib
+import hmac
+import json
+import time
+
+import pytest
+from django.urls import reverse
+
+from fobandor.billing.models import CustomerSubscription, SubscriptionPlan
+from fobandor.fulfillment.models import FulfillmentOrder
+
+
+def _sign(payload: bytes, secret: str) -> str:
+    t = int(time.time())
+    msg = f"{t}.".encode() + payload
+    sig = hmac.new(secret.encode(), msg, hashlib.sha256).hexdigest()
+    return f"t={t},v1={sig}"
+
+
+@pytest.mark.django_db
+def test_webhook_rejects_invalid_signature(client, settings):
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    response = client.post(
+        reverse("stripe-webhook"),
+        data=b"{}",
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE="t=1,v1=invalidsignature",
+    )
+    assert response.status_code == 400
+
+
+@pytest.mark.django_db
+def test_webhook_invoice_paid_creates_order(client, settings, django_user_model):
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    user = django_user_model.objects.create_user(
+        email="c@example.com", password="x", stripe_customer_id="cus_123")
+    plan = SubscriptionPlan.objects.create(
+        slug="starter", name_es="Starter", name_en="Starter",
+        price_usd="199.00", order_type="WEB_DEV")
+    CustomerSubscription.objects.create(
+        user=user, plan=plan, stripe_subscription_id="sub_123")
+
+    payload = json.dumps({
+        "type": "invoice.paid",
+        "data": {"object": {
+            "id": "in_123",
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "amount_paid": 19900,
+            "currency": "usd",
+            "invoice_pdf": "https://example.com/inv.pdf",
+        }},
+    }).encode()
+
+    response = client.post(
+        reverse("stripe-webhook"),
+        data=payload,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=_sign(payload, "whsec_test"),
+    )
+    assert response.status_code == 200
+    assert FulfillmentOrder.objects.filter(stripe_invoice_id="in_123").count() == 1
+
+    order = FulfillmentOrder.objects.get(stripe_invoice_id="in_123")
+    assert order.user == user
+    assert order.order_type == "WEB_DEV"
+
+
+@pytest.mark.django_db
+def test_webhook_invoice_paid_idempotent(client, settings, django_user_model):
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    user = django_user_model.objects.create_user(
+        email="c@example.com", password="x", stripe_customer_id="cus_123")
+    plan = SubscriptionPlan.objects.create(
+        slug="starter", name_es="Starter", name_en="Starter", price_usd="199.00")
+    CustomerSubscription.objects.create(
+        user=user, plan=plan, stripe_subscription_id="sub_123")
+
+    payload = json.dumps({
+        "type": "invoice.paid",
+        "data": {"object": {
+            "id": "in_123",
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "amount_paid": 19900,
+            "currency": "usd",
+        }},
+    }).encode()
+
+    for _ in range(2):
+        client.post(
+            reverse("stripe-webhook"),
+            data=payload,
+            content_type="application/json",
+            HTTP_STRIPE_SIGNATURE=_sign(payload, "whsec_test"),
+        )
+
+    assert FulfillmentOrder.objects.filter(stripe_invoice_id="in_123").count() == 1

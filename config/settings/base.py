@@ -22,11 +22,20 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "django.contrib.sites",
+    # Autenticación social (django-allauth)
+    "allauth",
+    "allauth.account",
+    "allauth.socialaccount",
+    "allauth.socialaccount.providers.google",
     # Aplicaciones locales
     "fobandor.users.apps.UsersConfig",
     "fobandor.core.apps.CoreConfig",
     "fobandor.cms.apps.CmsConfig",
     "fobandor.backoffice.apps.BackofficeConfig",
+    "fobandor.billing.apps.BillingConfig",
+    "fobandor.fulfillment.apps.FulfillmentConfig",
+    "fobandor.portal.apps.PortalConfig",
 ]
 
 MIDDLEWARE = [
@@ -36,6 +45,7 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
+    "allauth.account.middleware.AccountMiddleware",
     "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
@@ -64,10 +74,41 @@ ASGI_APPLICATION = "config.asgi.application"
 
 # Autenticación
 AUTH_USER_MODEL = "users.User"
-# Temporal (Etapa 2): redirige anónimos al login del admin hasta implementar
-# el sistema de autenticación propio en Etapa 3.
-LOGIN_URL = "admin:login"
-LOGIN_REDIRECT_URL = "core:home"
+LOGIN_URL = "account_login"
+LOGIN_REDIRECT_URL = "portal:dashboard"
+LOGOUT_REDIRECT_URL = "core:home"
+
+AUTHENTICATION_BACKENDS = [
+    "django.contrib.auth.backends.ModelBackend",
+    "allauth.account.auth_backends.AuthenticationBackend",
+]
+
+# django-allauth
+SITE_ID = 1
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None
+ACCOUNT_LOGIN_METHODS = {"email"}
+ACCOUNT_SIGNUP_FIELDS = ["email*", "password1*", "password2*"]
+ACCOUNT_EMAIL_VERIFICATION = "mandatory"
+ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
+ACCOUNT_ADAPTER = "fobandor.users.adapters.CustomAccountAdapter"
+SOCIALACCOUNT_ADAPTER = "fobandor.users.adapters.CustomSocialAccountAdapter"
+
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+    }
+}
+
+# Stripe
+STRIPE_PUBLIC_KEY = env("STRIPE_PUBLIC_KEY", default="")
+STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
+STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 
 # Validadores de contraseña
 AUTH_PASSWORD_VALIDATORS = [

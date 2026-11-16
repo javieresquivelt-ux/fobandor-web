@@ -14,12 +14,22 @@
         <a href="#inicio" class="hover:text-fobandor-orange transition-colors">{% trans "Inicio" %}</a>
         <a href="#servicios" class="hover:text-fobandor-orange transition-colors">{% trans "Servicios" %}</a>
         <a href="#proyectos" class="hover:text-fobandor-orange transition-colors">{% trans "Proyectos" %}</a>
-        <a href="#precios" class="hover:text-fobandor-orange transition-colors">{% trans "Precios" %}</a>
+        <a href="{% url 'billing:pricing' %}" class="hover:text-fobandor-orange transition-colors">{% trans "Precios" %}</a>
         <a href="#nosotros" class="hover:text-fobandor-orange transition-colors">{% trans "Nosotros" %}</a>
         <a href="#contacto" class="hover:text-fobandor-orange transition-colors">{% trans "Contacto" %}</a>
       </div>
 
       <div class="flex items-center gap-3">
+
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'portal:dashboard' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Mi Cuenta" %}</a>
+        <form action="{% url 'account_logout' %}" method="post" class="m-0">
+          {% csrf_token %}
+          <button type="submit" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Salir" %}</button>
+        </form>
+        {% else %}
+        <a href="{% url 'account_login' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Ingresar" %}</a>
+        {% endif %}
 
         <!-- Switcher de idioma -->
         <form action="{% url 'set_language' %}" method="post" class="flex items-center">
@@ -50,7 +60,7 @@
         </button>
 
         <!-- CTA -->
-        <a href="#servicios" class="hidden sm:inline-flex items-center rounded-lg bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2 text-sm font-semibold transition-colors">
+        <a href="{% url 'billing:pricing' %}" class="hidden sm:inline-flex items-center rounded-lg bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2 text-sm font-semibold transition-colors">
           {% trans "Comenzar" %}
         </a>
 
@@ -69,9 +79,14 @@
         <a href="#inicio" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Inicio" %}</a>
         <a href="#servicios" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Servicios" %}</a>
         <a href="#proyectos" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Proyectos" %}</a>
-        <a href="#precios" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Precios" %}</a>
+        <a href="{% url 'billing:pricing' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Precios" %}</a>
         <a href="#nosotros" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Nosotros" %}</a>
         <a href="#contacto" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Contacto" %}</a>
+        {% if request.user.is_authenticated %}
+        <a href="{% url 'portal:dashboard' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Mi Cuenta" %}</a>
+        {% else %}
+        <a href="{% url 'account_login' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Ingresar" %}</a>
+        {% endif %}
       </div>
     </div>
   </nav>

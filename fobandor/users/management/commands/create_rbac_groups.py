@@ -6,6 +6,7 @@ from fobandor.cms.models import (
     ServiceCategory, ServiceItem, Project,
     CompanyProfile, OfficialSocialLink, ContactInquiry,
 )
+from fobandor.fulfillment.models import FulfillmentOrder
 
 
 class Command(BaseCommand):
@@ -28,9 +29,14 @@ class Command(BaseCommand):
         self.stdout.write('  [OK] Grupo Content_Editors configurado.')
 
         # --- Fulfillment_Operators ---
-        # Se asignarán permisos sobre FulfillmentOrder en Etapa 3
-        ops_group, created = Group.objects.get_or_create(name='Fulfillment_Operators')
-        status = 'CREADO' if created else 'YA EXISTE'
-        self.stdout.write(f'  [{status}] Grupo Fulfillment_Operators (permisos de Etapa 3).')
+        ops_group, _ = Group.objects.get_or_create(name='Fulfillment_Operators')
+        ct = ContentType.objects.get_for_model(FulfillmentOrder)
+        ops_perms = []
+        for action in ('add', 'change', 'view'):
+            ops_perms.append(Permission.objects.get(
+                codename=f'{action}_{FulfillmentOrder._meta.model_name}',
+                content_type=ct))
+        ops_group.permissions.set(ops_perms)
+        self.stdout.write('  [OK] Grupo Fulfillment_Operators configurado (FulfillmentOrder).')
 
         self.stdout.write(self.style.SUCCESS('✅ Grupos RBAC configurados.'))

@@ -1,0 +1,95 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
+
+  <h1 class="text-3xl font-extrabold mb-8">{% trans "Mi Cuenta" %}</h1>
+
+  {% if needs_onboarding %}
+  <div class="mb-6 rounded-2xl border border-fobandor-orange/40 bg-fobandor-orange/10 p-4 text-sm">
+    {% trans "Completa tus datos de facturación para poder contratar un plan." %}
+    <a href="{% url 'portal:onboarding-avs' %}" class="ml-2 text-fobandor-orange font-semibold hover:underline">{% trans "Completar ahora" %}</a>
+  </div>
+  {% endif %}
+
+  {% if not request.user.is_email_verified %}
+  <div class="mb-6 rounded-2xl border border-fobandor-orange/40 bg-fobandor-orange/10 p-4 text-sm">
+    {% trans "Debes verificar tu correo antes de contratar un plan." %}
+  </div>
+  {% endif %}
+
+  <!-- Plan activo -->
+  <section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-6">
+      <h2 class="text-lg font-bold mb-2">{% trans "Plan activo" %}</h2>
+      {% if subscription and subscription.plan %}
+        <p class="text-2xl font-extrabold">{% if LANGUAGE_CODE == 'es' %}{{ subscription.plan.name_es }}{% else %}{{ subscription.plan.name_en }}{% endif %}</p>
+        <p class="text-sm text-gray-500 dark:text-gray-400">{{ subscription.get_status_display }}</p>
+      {% else %}
+        <p class="text-gray-600 dark:text-gray-400">{% trans "Sin suscripción activa." %}</p>
+        <a href="{% url 'billing:pricing' %}" class="inline-block mt-2 text-fobandor-orange font-semibold hover:underline">{% trans "Ver planes" %}</a>
+      {% endif %}
+    </div>
+
+    <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-6">
+      <h2 class="text-lg font-bold mb-2">{% trans "Facturación" %}</h2>
+      <form method="post" action="{% url 'billing:portal' %}">
+        {% csrf_token %}
+        <button type="submit" class="rounded-xl border border-gray-300 dark:border-white/20 px-4 py-2 text-sm font-semibold hover:border-fobandor-orange">
+          {% trans "Gestionar tarjeta y suscripción" %}
+        </button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Orden activa SLA -->
+  {% if active_order %}
+  <section class="mt-8 rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-6">
+    <h2 class="text-lg font-bold mb-4">{% trans "Entrega en curso" %}</h2>
+    <div class="flex items-center justify-between text-sm mb-2">
+      <span>{{ active_order.get_order_type_display }}</span>
+      <span>{{ active_order.get_status_display }}</span>
+    </div>
+    <div class="w-full bg-gray-200 dark:bg-white/10 rounded-full h-3 overflow-hidden">
+      {% widthratio active_order.days_remaining 7 100 as remaining_pct %}
+      <div class="h-3 rounded-full {% if active_order.sla_level == 'red' %}bg-fobandor-orange{% elif active_order.sla_level == 'yellow' %}bg-yellow-400{% else %}bg-green-500{% endif %}" style="width: {{ remaining_pct }}%;"></div>
+    </div>
+    <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">{% blocktrans with days=active_order.days_remaining %}{{ days }} días restantes de 7.{% endblocktrans %}</p>
+  </section>
+  {% endif %}
+
+  <!-- Historial -->
+  <section class="mt-8">
+    <h2 class="text-lg font-bold mb-4">{% trans "Historial de entregas" %}</h2>
+    <div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 dark:bg-white/5">
+          <tr class="text-left">
+            <th class="px-4 py-3">{% trans "Servicio" %}</th>
+            <th class="px-4 py-3">{% trans "Estado" %}</th>
+            <th class="px-4 py-3">{% trans "Entrega" %}</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+          {% for order in orders %}
+          <tr>
+            <td class="px-4 py-3">{{ order.get_order_type_display }}</td>
+            <td class="px-4 py-3">{{ order.get_status_display }}</td>
+            <td class="px-4 py-3">
+              {% if order.status == 'ENTREGADA' and order.deliverable_url %}
+                <a href="{{ order.deliverable_url }}" target="_blank" rel="noopener" class="text-fobandor-blue hover:underline">{% trans "Descargar" %}</a>
+              {% elif order.status == 'ENTREGADA' and order.deliverable_file %}
+                <a href="{{ order.deliverable_file.url }}" target="_blank" rel="noopener" class="text-fobandor-blue hover:underline">{% trans "Descargar" %}</a>
+              {% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="3" class="px-4 py-6 text-center text-gray-500">{% trans "Sin entregas." %}</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+</div>
+{% endblock %}

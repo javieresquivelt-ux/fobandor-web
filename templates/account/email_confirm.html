@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-16 px-4 text-center">
+  <h1 class="text-3xl font-extrabold mb-4">{% trans "Confirma tu correo" %}</h1>
+  <p class="text-gray-600 dark:text-gray-400">
+    {% blocktrans %}Hemos enviado un correo para verificar tu dirección de email.{% endblocktrans %}
+  </p>
+</div>
+{% endblock %}

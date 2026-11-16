@@ -1,0 +1,49 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+
+{% block content %}
+<h1 class="text-2xl font-extrabold mb-6">{% trans "Órdenes SLA" %}</h1>
+
+<div class="flex gap-2 mb-6">
+  <a href="{% url 'backoffice:fulfillment-list' %}" class="px-3 py-1.5 rounded-lg text-sm font-semibold {% if not current_status %}bg-fobandor-orange text-white{% else %}border border-gray-300 dark:border-white/20{% endif %}">{% trans "Todas" %}</a>
+  {% for value, label in status_choices %}
+  <a href="{% url 'backoffice:fulfillment-list' %}?status={{ value }}" class="px-3 py-1.5 rounded-lg text-sm font-semibold {% if current_status == value %}bg-fobandor-orange text-white{% else %}border border-gray-300 dark:border-white/20{% endif %}">{{ label }}</a>
+  {% endfor %}
+</div>
+
+<div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-white/5">
+      <tr class="text-left">
+        <th class="px-4 py-3">{% trans "SLA" %}</th>
+        <th class="px-4 py-3">{% trans "Cliente" %}</th>
+        <th class="px-4 py-3">{% trans "Servicio" %}</th>
+        <th class="px-4 py-3">{% trans "Estado" %}</th>
+        <th class="px-4 py-3">{% trans "Límite" %}</th>
+        <th class="px-4 py-3 text-right">{% trans "Acciones" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+      {% for order in orders %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+        <td class="px-4 py-3">
+          {% if order.sla_level == 'red' %}<span class="inline-block w-3 h-3 rounded-full bg-fobandor-orange"></span>
+          {% elif order.sla_level == 'yellow' %}<span class="inline-block w-3 h-3 rounded-full bg-yellow-400"></span>
+          {% elif order.sla_level == 'green' %}<span class="inline-block w-3 h-3 rounded-full bg-green-500"></span>
+          {% else %}<span class="inline-block w-3 h-3 rounded-full bg-gray-400"></span>{% endif %}
+        </td>
+        <td class="px-4 py-3 font-medium">{{ order.user.email }}</td>
+        <td class="px-4 py-3">{{ order.get_order_type_display }}</td>
+        <td class="px-4 py-3">{{ order.get_status_display }}</td>
+        <td class="px-4 py-3">{{ order.due_date|date:"Y-m-d H:i" }}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'backoffice:fulfillment-deliver' order.pk %}" class="text-fobandor-blue hover:underline">{% trans "Entregar" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="6" class="px-4 py-6 text-center text-gray-500">{% trans "Sin órdenes." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

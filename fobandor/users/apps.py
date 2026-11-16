@@ -6,3 +6,6 @@ class UsersConfig(AppConfig):
     name = "fobandor.users"
     label = "users"
     verbose_name = "Usuarios"
+
+    def ready(self):
+        from fobandor.users import signals  # noqa: F401

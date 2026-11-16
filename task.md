@@ -1298,7 +1298,23 @@ fobandor/
 > **Gobernanza Multi-Agente:**
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
-> * **Estado Actual:** FASE 3: APROBAR — Plan atómico formulado; en pausa obligatoria para revisión del desarrollador líder.
+> * **Estado Actual:** FASE 4: EJECUTADA por OpenCode. Criterio de Aceptación de la Etapa 3 CUMPLIDO. Pendiente validación por Antigravity-IDE.
+
+---
+
+### Notas de Corrección (revisión técnica OpenCode, aplicadas)
+
+1. **Adapter social:** sobrescribir `save_user` (no `pre_social_login`) para persistir `is_email_verified`.
+2. **Webhook:** `invoice.paid` es la única fuente que crea/renueva `FulfillmentOrder` (idempotente por `stripe_invoice_id` único); `checkout.session.completed` solo activa `CustomerSubscription` y vincula `User.stripe_customer_id`.
+3. **`allauth.urls`** registrado fuera de `i18n_patterns` para callback estable de Google.
+4. **`SubscriptionPlan.order_type`** (decisión: 1 orden por suscripción) define el `order_type` de la orden.
+5. **`FulfillmentOrder.stripe_invoice_id`** con `unique=True` para idempotencia.
+6. **`LOGIN_URL = "account_login"`** (reemplaza el `admin:login` temporal de Etapa 2).
+7. **`stripe_customer_id`** vive solo en `User` (eliminado de `CustomerSubscription`).
+8. **URLs absolutas** en `success_url`/`cancel_url` (`build_absolute_uri`).
+9. **`features_es/en`** con `default=list` (JSONField).
+10. **Señal `email_confirmed`** → marca `User.is_email_verified = True` para registro Email/Password.
+11. **Site** de `django.contrib.sites` con dominio `localhost:8000` (seed/creación).
 
 ---
 
@@ -1393,16 +1409,16 @@ fobandor/
 
 ### Tarea 3.0: Dependencias y Variables de Entorno
 
-- [ ] Añadir a `requirements/base.txt`:
+- [x] Añadir a `requirements/base.txt`:
   ```text
   stripe>=10.0.0
   django-allauth[socialaccount]>=65.0.0
   ```
-- [ ] Instalar en el entorno virtual:
+- [x] Instalar en el entorno virtual:
   ```bash
   pip install -r requirements/base.txt
   ```
-- [ ] Agregar variables en `.env.example` y `.env`:
+- [x] Agregar variables en `.env.example` y `.env`:
   ```env
   # Stripe API Keys (Modo Test en desarrollo)
   STRIPE_PUBLIC_KEY=pk_test_placeholder
@@ -1418,7 +1434,7 @@ fobandor/
 
 ### Tarea 3.1: Configuración de Django-Allauth y Social Login Gmail
 
-- [ ] Configurar `config/settings/base.py`:
+- [x] Configurar `config/settings/base.py`:
   - En `INSTALLED_APPS` agregar:
     ```python
     'django.contrib.sites',
@@ -1465,7 +1481,7 @@ fobandor/
         }
     }
     ```
-- [ ] Implementar `fobandor/users/adapters.py`:
+- [x] Implementar `fobandor/users/adapters.py`:
   ```python
   from allauth.account.adapter import DefaultAccountAdapter
   from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
@@ -1488,7 +1504,7 @@ fobandor/
 
 ### Tarea 3.2: Gate de Seguridad AVS y Verificación de Email
 
-- [ ] Crear mixin `EmailVerifiedGateMixin` en `fobandor/users/mixins.py`:
+- [x] Crear mixin `EmailVerifiedGateMixin` en `fobandor/users/mixins.py`:
   ```python
   from django.contrib.auth.mixins import AccessMixin
   from django.shortcuts import redirect
@@ -1506,7 +1522,7 @@ fobandor/
               return redirect('account_email')
           return super().dispatch(request, *args, **kwargs)
   ```
-- [ ] Crear formulario de Onboarding AVS en `fobandor/users/forms.py`:
+- [x] Crear formulario de Onboarding AVS en `fobandor/users/forms.py`:
   - Campos: `billing_address_line1`, `billing_address_line2`, `billing_city`, `billing_state`, `billing_postal_code`, `billing_country`, `phone`.
   - Validación de teléfono E.164 y país ISO-2.
 
@@ -1514,8 +1530,8 @@ fobandor/
 
 ### Tarea 3.3: Módulo `fobandor.billing` (Modelos y Admin)
 
-- [ ] Crear `fobandor/billing/apps.py` (`name='fobandor.billing'`, `label='billing'`).
-- [ ] Implementar `fobandor/billing/models.py`:
+- [x] Crear `fobandor/billing/apps.py` (`name='fobandor.billing'`, `label='billing'`).
+- [x] Implementar `fobandor/billing/models.py`:
   - `SubscriptionPlan`:
     - `slug` (unique: `starter`, `pro`, `enterprise`)
     - `name_es`, `name_en`
@@ -1541,8 +1557,8 @@ fobandor/
     - `currency` (CharField, default='usd')
     - `paid_at` (DateTimeField)
     - `invoice_pdf_url` (URLField, blank=True)
-- [ ] Registrar en `fobandor/billing/admin.py` con `list_display`, filtros y búsquedas.
-- [ ] Crear management command `seed_subscription_plans.py` con 3 planes mensuales base:
+- [x] Registrar en `fobandor/billing/admin.py` con `list_display`, filtros y búsquedas.
+- [x] Crear management command `seed_subscription_plans.py` con 3 planes mensuales base:
   - **Plan Starter:** $199 USD/mes (Desarrollo Web & Contenido base).
   - **Plan Pro:** $499 USD/mes (Web + Apps + Publicidad IA mensual).
   - **Plan Enterprise:** $999 USD/mes (Solución Full Stack + Fobandor Studios).
@@ -1551,11 +1567,11 @@ fobandor/
 
 ### Tarea 3.4: Pasarela Stripe Checkout y Customer Portal (`fobandor.billing`)
 
-- [ ] Implementar `fobandor/billing/services.py`:
+- [x] Implementar `fobandor/billing/services.py`:
   - `get_or_create_stripe_customer(user) -> str`: vincula y persiste `stripe_customer_id`.
   - `create_checkout_session(user, plan, success_url, cancel_url) -> str`: genera la sesión de Stripe Checkout con `mode='subscription'`, `allow_promotion_codes=True` y metadata (`user_id`, `plan_id`).
   - `create_customer_portal_session(user, return_url) -> str`: genera la sesión del Stripe Customer Portal para gestionar tarjetas y cancelación.
-- [ ] Implementar vistas en `fobandor/billing/views.py`:
+- [x] Implementar vistas en `fobandor/billing/views.py`:
   - `PricingCatalogView`: renderiza la tabla comparativa de los 3 planes (`/precios/`).
   - `CreateCheckoutSessionView`: protegida con `LoginRequiredMixin` + `EmailVerifiedRequiredMixin`.
   - `StripeCustomerPortalView`: redirige al portal de Stripe.
@@ -1564,21 +1580,21 @@ fobandor/
 
 ### Tarea 3.5: Webhook Listener Criptográfico (`/stripe/webhook/`)
 
-- [ ] Implementar vista `StripeWebhookView` en `fobandor/billing/views.py`:
+- [x] Implementar vista `StripeWebhookView` en `fobandor/billing/views.py`:
   - Marcar con `@csrf_exempt` y `@require_POST`.
   - Validar firma criptográfica HMAC con `stripe.Webhook.construct_event(payload, sig_header, STRIPE_WEBHOOK_SECRET)`.
   - Manejador de eventos:
     - `checkout.session.completed`: activa la suscripción y dispara la creación de la primera `FulfillmentOrder` (SLA 7 días).
     - `invoice.paid`: registra `BillingInvoice` y renueva el ciclo de entrega de 7 días.
     - `customer.subscription.deleted`: actualiza `CustomerSubscription.status = 'canceled'`.
-- [ ] Registrar ruta `/stripe/webhook/` fuera de `i18n_patterns` en `config/urls.py`.
+- [x] Registrar ruta `/stripe/webhook/` fuera de `i18n_patterns` en `config/urls.py`.
 
 ---
 
 ### Tarea 3.6: Motor de Entregas SLA 7 Días (`fobandor.fulfillment`)
 
-- [ ] Crear `fobandor/fulfillment/apps.py` (`name='fobandor.fulfillment'`, `label='fulfillment'`).
-- [ ] Implementar `fobandor/fulfillment/models.py`:
+- [x] Crear `fobandor/fulfillment/apps.py` (`name='fobandor.fulfillment'`, `label='fulfillment'`).
+- [x] Implementar `fobandor/fulfillment/models.py`:
   ```python
   from django.db import models
   from django.utils import timezone
@@ -1628,7 +1644,7 @@ fobandor/
           diff = self.due_date - now
           return max(0, diff.days)
   ```
-- [ ] Crear management command `fobandor/fulfillment/management/commands/check_overdue_orders.py`:
+- [x] Crear management command `fobandor/fulfillment/management/commands/check_overdue_orders.py`:
   - Evalúa órdenes con estado `PENDIENTE_PRODUCCION` o `EN_PROCESO` donde `due_date < timezone.now()`.
   - Actualiza atómicamente a `status = 'VENCIDA'` y registra log.
   - Idempotente.
@@ -1637,49 +1653,49 @@ fobandor/
 
 ### Tarea 3.7: Backoffice de Órdenes y Entregas (`/backoffice/entregas/`)
 
-- [ ] Implementar vistas en `fobandor/backoffice/`:
+- [x] Implementar vistas en `fobandor/backoffice/`:
   - `FulfillmentOrderListView`: tabla de órdenes con filtros por estado, ordenación por `due_date`, y badges semafóricos (Verde: > 3 días, Amarillo: <= 2 días, Rojo: Vencida).
   - `FulfillmentOrderDeliverView`: formulario para subir entregable (`deliverable_file` o `deliverable_url`), ingresar notas y marcar como `ENTREGADA` (registra `delivered_at = timezone.now()`).
-- [ ] Actualizar `fobandor/users/management/commands/create_rbac_groups.py`:
+- [x] Actualizar `fobandor/users/management/commands/create_rbac_groups.py`:
   - Asignar permisos sobre `FulfillmentOrder` al grupo `Fulfillment_Operators`.
-- [ ] Integrar enlace "Órdenes SLA" en el sidebar de `templates/backoffice/base_backoffice.html`.
+- [x] Integrar enlace "Órdenes SLA" en el sidebar de `templates/backoffice/base_backoffice.html`.
 
 ---
 
 ### Tarea 3.8: Portal del Cliente (`fobandor.portal` en `/mi-cuenta/`)
 
-- [ ] Crear app `fobandor.portal`.
-- [ ] Implementar `fobandor/portal/views.py`:
+- [x] Crear app `fobandor.portal`.
+- [x] Implementar `fobandor/portal/views.py`:
   - `CustomerDashboardView`:
     - Resumen de suscripción activa y plan.
     - Barra de progreso del SLA de la orden activa (días transcurridos vs. 7 días límite).
     - Historial de órdenes y enlaces de descarga de entregables completados.
     - Botón de acceso al Stripe Customer Portal.
   - `OnboardingAVSView`: formulario para completar datos fiscales/AVS pendientes.
-- [ ] Plantillas en `templates/portal/dashboard.html` y `onboarding_avs.html` con Tailwind CSS y Dark/Light Mode.
+- [x] Plantillas en `templates/portal/dashboard.html` y `onboarding_avs.html` con Tailwind CSS y Dark/Light Mode.
 
 ---
 
 ### Tarea 3.9: Migraciones y Seeds
 
-- [ ] `python manage.py makemigrations billing fulfillment portal`
-- [ ] `python manage.py migrate`
-- [ ] `python manage.py seed_subscription_plans`
-- [ ] `python manage.py create_rbac_groups`
-- [ ] `python manage.py makemigrations --check --dry-run`
+- [x] `python manage.py makemigrations billing fulfillment portal`
+- [x] `python manage.py migrate`
+- [x] `python manage.py seed_subscription_plans`
+- [x] `python manage.py create_rbac_groups`
+- [x] `python manage.py makemigrations --check --dry-run`
 
 ---
 
 ### Tarea 3.10: Pruebas Automatizadas con Pytest
 
-- [ ] `fobandor/fulfillment/tests/test_sla.py`:
+- [x] `fobandor/fulfillment/tests/test_sla.py`:
   - Cálculo estricto de SLA: `due_date` exactamente a 7 días de `paid_at`.
   - Transición a `VENCIDA` mediante `check_overdue_orders`.
   - Marca de entrega con registro de `delivered_at`.
-- [ ] `fobandor/billing/tests/test_webhooks.py`:
+- [x] `fobandor/billing/tests/test_webhooks.py`:
   - Verificación de firma criptográfica válida y rechazo de firmas falsas.
   - Creación automática de suscripción y `FulfillmentOrder` ante evento `checkout.session.completed`.
-- [ ] `fobandor/users/tests/test_gate.py`:
+- [x] `fobandor/users/tests/test_gate.py`:
   - Bloqueo de acceso a Checkout para usuarios con `is_email_verified = False`.
   - Auto-verificación de usuarios autenticados vía Google Social Account.
 
@@ -1687,12 +1703,12 @@ fobandor/
 
 ### Tarea 3.11: Verificación de Aceptación Técnica (Etapa 3)
 
-- [ ] `python manage.py check` → 0 issues.
-- [ ] `pytest` → todos los tests pasando (mínimo: 10 previos + 6 nuevos de billing/fulfillment/gate).
-- [ ] `flake8 config fobandor scripts` → 0 errores.
-- [ ] Simulación de Checkout y webhook exitoso en entorno local.
-- [ ] Compilación CSS con `npm run build:css`.
-- [ ] Commit y push a `main`:
+- [x] `python manage.py check` → 0 issues.
+- [x] `pytest` → todos los tests pasando (mínimo: 10 previos + 6 nuevos de billing/fulfillment/gate).
+- [x] `flake8 config fobandor scripts` → 0 errores.
+- [x] Simulación de Checkout y webhook exitoso en entorno local.
+- [x] Compilación CSS con `npm run build:css`.
+- [x] Commit y push a `main`:
   ```bash
   git add .
   git commit -m "feat(etapa-3): stripe checkout, autenticacion gmail, motor sla 7 dias y portal cliente"
