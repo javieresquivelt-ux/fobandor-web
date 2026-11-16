@@ -9,6 +9,8 @@ from django.views.generic import (
 from fobandor.cms.models import (
     ServiceCategory, Project, OfficialSocialLink, CompanyProfile,
 )
+from fobandor.billing.forms import SubscriptionPlanForm
+from fobandor.billing.models import SubscriptionPlan
 from fobandor.fulfillment.models import FulfillmentOrder
 
 from .mixins import StaffRequiredMixin
@@ -158,3 +160,19 @@ class FulfillmentOrderDeliverView(BackofficeMixin, UpdateView):
         order.delivered_at = timezone.now()
         order.save()
         return redirect(self.success_url)
+
+
+# --- Planes & Precios (Billing) ---
+
+class SubscriptionPlanListView(BackofficeMixin, ListView):
+    model = SubscriptionPlan
+    template_name = 'backoffice/billing/plan_list.html'
+    context_object_name = 'plans'
+    ordering = ['order']
+
+
+class SubscriptionPlanUpdateView(BackofficeMixin, UpdateView):
+    model = SubscriptionPlan
+    template_name = 'backoffice/billing/plan_form.html'
+    form_class = SubscriptionPlanForm
+    success_url = reverse_lazy('backoffice:plan-list')

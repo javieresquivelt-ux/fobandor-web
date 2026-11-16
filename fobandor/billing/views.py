@@ -24,6 +24,11 @@ class PricingCatalogView(ListView):
     def get_queryset(self):
         return SubscriptionPlan.objects.filter(is_active=True).order_by("order")
 
+    def get_context_data(self, **kwargs):
+        ctx = super().get_context_data(**kwargs)
+        ctx["formspree_endpoint"] = settings.FORMSPREE_ENDPOINT
+        return ctx
+
 
 class CreateCheckoutSessionView(LoginRequiredMixin, EmailVerifiedRequiredMixin, View):
     def post(self, request, slug):

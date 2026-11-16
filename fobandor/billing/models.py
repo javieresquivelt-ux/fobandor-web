@@ -11,19 +11,29 @@ class SubscriptionPlan(models.Model):
         ("APP_DEV", "Desarrollo de Apps con IA"),
         ("ADS_AI", "Publicidad con IA"),
         ("STUDIOS", "Fobandor Studios"),
+        ("MARKETING", "Acompañamiento de Marketing"),
     ]
 
     slug = models.SlugField(max_length=60, unique=True)
     name_es = models.CharField("Nombre (ES)", max_length=120)
     name_en = models.CharField("Name (EN)", max_length=120)
+    subtitle_es = models.CharField("Subtítulo (ES)", max_length=150, blank=True)
+    subtitle_en = models.CharField("Subtitle (EN)", max_length=150, blank=True)
     desc_es = models.TextField("Descripción (ES)", blank=True)
     desc_en = models.TextField("Description (EN)", blank=True)
     price_usd = models.DecimalField("Precio (USD)", max_digits=8, decimal_places=2)
     stripe_price_id = models.CharField("Stripe Price ID", max_length=100, blank=True)
     features_es = models.JSONField("Características (ES)", default=list, blank=True)
     features_en = models.JSONField("Features (EN)", default=list, blank=True)
+    min_commitment_months = models.PositiveSmallIntegerField(
+        "Compromiso mínimo (meses)", default=1,
+        help_text="Acompañamiento mínimo exigido (ej. 2 o 3 meses). Informativo.")
+    target_audience_es = models.TextField("Público objetivo (ES)", blank=True)
+    target_audience_en = models.TextField("Target audience (EN)", blank=True)
+    disclaimer_es = models.TextField("Aviso legal (ES)", blank=True)
+    disclaimer_en = models.TextField("Legal disclaimer (EN)", blank=True)
     order_type = models.CharField(
-        "Línea de servicio", max_length=20, choices=ORDER_TYPE_CHOICES, default="WEB_DEV")
+        "Línea de servicio", max_length=20, choices=ORDER_TYPE_CHOICES, default="MARKETING")
     order = models.PositiveSmallIntegerField("Orden", default=0)
     is_active = models.BooleanField("Activo", default=True)
     is_highlighted = models.BooleanField("Destacado", default=False)

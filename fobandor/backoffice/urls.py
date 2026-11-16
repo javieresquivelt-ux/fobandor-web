@@ -24,4 +24,7 @@ urlpatterns = [
     # Órdenes SLA (Fulfillment)
     path('entregas/', views.FulfillmentOrderListView.as_view(), name='fulfillment-list'),
     path('entregas/<int:pk>/entregar/', views.FulfillmentOrderDeliverView.as_view(), name='fulfillment-deliver'),
+    # Planes & Precios (Billing)
+    path('planes/', views.SubscriptionPlanListView.as_view(), name='plan-list'),
+    path('planes/<int:pk>/editar/', views.SubscriptionPlanUpdateView.as_view(), name='plan-update'),
 ]

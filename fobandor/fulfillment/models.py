@@ -15,6 +15,7 @@ class FulfillmentOrder(models.Model):
         ("APP_DEV", "Desarrollo de Apps con IA"),
         ("ADS_AI", "Publicidad con IA"),
         ("STUDIOS", "Fobandor Studios"),
+        ("MARKETING", "Acompañamiento de Marketing"),
     ]
 
     STATUS_CHOICES = [

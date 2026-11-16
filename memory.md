@@ -191,7 +191,7 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis integral del flujo de pagos Stripe (SLA 7 días), Social Login Gmail (Google OAuth 2.0 / `django-allauth`), Onboarding AVS y modelo de órdenes `FulfillmentOrder`. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 3 (Tareas 3.0 a 3.11)** en `task.md` con rutas de archivo exactas, modelos, servicios, adapters y tests. |
 | **3. APROBAR** | **APROBADO** | Etapa 3 aprobada por el desarrollador líder con correcciones de revisión técnica (webhook `invoice.paid` como fuente única, 1 orden por suscripción). |
-| **4. EJECUTAR** | **COMPLETADA Y VALIDADA** | Tareas 3.0 a 3.11 ejecutadas por OpenCode (commit `da484dd`) y validadas al 100% por Antigravity-IDE: 24/24 tests pytest pasando, flake8 limpio, webhooks, auth y SLA verificados. |
+| **4. EJECUTAR** | **EJECUTADA (Etapa 3 + Refinamiento)** | Tareas 3.0–3.11 (commit `da484dd`) y refinamiento comercial 3.12–3.16 ejecutados por OpenCode. Pendiente validación de Antigravity-IDE del refinamiento. |
 | **5. REGISTRAR** | **COMPLETADA (Etapa 3)** | Bitácora y ADRs sincronizados con el alcance de pagos, entregas y hallazgos en `memory.md`. |
 | **6. APRENDER** | **COMPLETADA (Etapa 3)** | Documentación viva actualizada en `README.md` con el estado del roadmap y catálogo de precios. |
 
@@ -362,6 +362,18 @@ Correcciones técnicas aplicadas al plan (ver `task.md` §5 "Notas de Correcció
   2. Gestión de planes desde `/backoffice/planes/` para autonomía total del staff en actualización de ofertas y `stripe_price_id`.
   3. Integración con Formspree.io para captación de leads de diagnóstico ("Hablemos hoy").
   4. Rediseño de alta fidelidad en `/precios/`.
+
+### Decisiones confirmadas (revisión técnica OpenCode)
+1. **Planes legacy:** el seeder **desactiva** (`is_active=False`) cualquier plan fuera de `{impulso, conversion, crecimiento}` (sin borrado destructivo).
+2. **Formspree global:** endpoint vía `FORMSPREE_ENDPOINT` (12-factor), fuera del modelo `SubscriptionPlan`.
+3. **Compromiso mínimo informativo:** `min_commitment_months` se muestra como badge en `/precios/`; no se fuerza en Stripe (suscripción mensual auto-renovable). Limitación documentada.
+
+### Ejecución (Tareas 3.12–3.16)
+* **Catálogo real:** `impulso` $697 (2 meses), `conversion` $1297 (3 meses, destacado), `crecimiento` $1997 (3 meses). Todo bilingüe (features y disclaimer ES/EN).
+* **`order_type`:** añadido choice `MARKETING` ("Acompañamiento de Marketing") a `SubscriptionPlan` y `FulfillmentOrder`; los 3 planes mapean a `MARKETING`.
+* **Backoffice `/backoffice/planes/`:** listado + edición con `SubscriptionPlanForm` (features editables como una-línea-por-bullet), pestañas ES/EN/«Precio y datos». `slug` no editable.
+* **`/precios/`:** subtítulos, badge "RECOMENDADO" (`is_highlighted`), badge de compromiso, público objetivo, disclaimer y modal de diagnóstico conectado a Formspree (`FORMSPREE_ENDPOINT`).
+* **Verificación:** `pytest` 28/28, `flake8` limpio, `check` 0 issues, migraciones limpias, CSS compilado. HTTP: `/es/precios/` y `/en/precios/` 200 con planes bilingües; `/es/backoffice/planes/` anónimo → 302.
 
 
 

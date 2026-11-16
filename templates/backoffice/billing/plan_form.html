@@ -1,0 +1,62 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+{% load l10n %}
+
+{% block content %}
+<div class="max-w-3xl">
+  <h1 class="text-2xl font-extrabold mb-6">{% trans "Editar Plan" %} — {{ object.name_es }}</h1>
+
+  <form method="post" class="space-y-5" x-data="{ tab: 'es' }">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="text-fobandor-orange text-sm">{{ form.non_field_errors }}</div>{% endif %}
+
+    <div class="flex gap-2">
+      <button type="button" @click="tab = 'es'" :class="tab === 'es' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "Español" %}</button>
+      <button type="button" @click="tab = 'en'" :class="tab === 'en' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "English" %}</button>
+      <button type="button" @click="tab = 'meta'" :class="tab === 'meta' ? 'bg-fobandor-orange text-white' : 'border border-gray-300 dark:border-white/20'" class="px-4 py-2 rounded-lg text-sm font-semibold">{% trans "Precio y datos" %}</button>
+    </div>
+
+    <div x-show="tab === 'es'" class="space-y-4">
+      <div><label class="block text-sm font-semibold mb-1">{{ form.name_es.label }}</label>{{ form.name_es }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.subtitle_es.label }}</label>{{ form.subtitle_es }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.desc_es.label }}</label>{{ form.desc_es }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.target_audience_es.label }}</label>{{ form.target_audience_es }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.features_es_text.label }}</label>{{ form.features_es_text }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.disclaimer_es.label }}</label>{{ form.disclaimer_es }}</div>
+    </div>
+
+    <div x-show="tab === 'en'" class="space-y-4">
+      <div><label class="block text-sm font-semibold mb-1">{{ form.name_en.label }}</label>{{ form.name_en }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.subtitle_en.label }}</label>{{ form.subtitle_en }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.desc_en.label }}</label>{{ form.desc_en }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.target_audience_en.label }}</label>{{ form.target_audience_en }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.features_en_text.label }}</label>{{ form.features_en_text }}</div>
+      <div><label class="block text-sm font-semibold mb-1">{{ form.disclaimer_en.label }}</label>{{ form.disclaimer_en }}</div>
+    </div>
+
+    <div x-show="tab === 'meta'" class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-semibold mb-1">{{ form.price_usd.label }}</label>{{ form.price_usd }}</div>
+        <div><label class="block text-sm font-semibold mb-1">{{ form.stripe_price_id.label }}</label>{{ form.stripe_price_id }}</div>
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="block text-sm font-semibold mb-1">{{ form.min_commitment_months.label }}</label>{{ form.min_commitment_months }}</div>
+        <div><label class="block text-sm font-semibold mb-1">{{ form.order.label }}</label>{{ form.order }}</div>
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.order_type.label }}</label>
+        {{ form.order_type }}
+      </div>
+      <div class="flex gap-6">
+        <label class="flex items-center gap-2 text-sm font-semibold">{{ form.is_active }} {{ form.is_active.label }}</label>
+        <label class="flex items-center gap-2 text-sm font-semibold">{{ form.is_highlighted }} {{ form.is_highlighted.label }}</label>
+      </div>
+    </div>
+
+    <div class="flex gap-3 pt-2">
+      <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-2.5 text-sm font-semibold">{% trans "Guardar" %}</button>
+      <a href="{% url 'backoffice:plan-list' %}" class="rounded-xl border border-gray-300 dark:border-white/20 px-5 py-2.5 text-sm font-semibold">{% trans "Cancelar" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

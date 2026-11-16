@@ -1722,7 +1722,7 @@ fobandor/
 > **Gobernanza Multi-Agente:**
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
-> * **Estado Actual:** FASE 3: APROBAR — Plan atómico aprobado por el desarrollador líder. Listo para ejecución (FASE 4).
+> * **Estado Actual:** FASE 4: EJECUTADA por OpenCode. Criterio de Aceptación del Refinamiento Comercial (3.12–3.16) CUMPLIDO. Pendiente validación por Antigravity-IDE.
 
 ---
 
@@ -1733,7 +1733,7 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ### Tarea 3.12: Enriquecimiento del Modelo `SubscriptionPlan` (`fobandor/billing/models.py`)
 
-- [ ] Incorporar los siguientes campos al modelo `SubscriptionPlan`:
+- [x] Incorporar los siguientes campos al modelo `SubscriptionPlan`:
   ```python
   subtitle_es = models.CharField('Subtítulo (ES)', max_length=150, blank=True)
   subtitle_en = models.CharField('Subtitle (EN)', max_length=150, blank=True)
@@ -1755,7 +1755,7 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
       default='https://formspree.io/f/placeholder'
   )
   ```
-- [ ] Ejecutar migraciones:
+- [x] Ejecutar migraciones:
   ```bash
   python manage.py makemigrations billing
   python manage.py migrate
@@ -1765,18 +1765,18 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ### Tarea 3.13: Módulo de Gestión de Planes en Backoffice (`fobandor/backoffice/`)
 
-- [ ] Crear vistas CBV en `fobandor/backoffice/views.py`:
+- [x] Crear vistas CBV en `fobandor/backoffice/views.py`:
   - `SubscriptionPlanListView(BackofficeMixin, ListView)`: listado de planes con orden, precio en USD, `stripe_price_id`, estado activo/destacado y botón de edición.
   - `SubscriptionPlanUpdateView(BackofficeMixin, UpdateView)`: formulario bilingüe con pestañas Alpine.js (Español / Inglés) para editar textos, precios, meses de compromiso y `stripe_price_id`.
-- [ ] Registrar rutas en `fobandor/backoffice/urls.py`:
+- [x] Registrar rutas en `fobandor/backoffice/urls.py`:
   ```python
   path('planes/', views.SubscriptionPlanListView.as_view(), name='plan-list'),
   path('planes/<int:pk>/editar/', views.SubscriptionPlanUpdateView.as_view(), name='plan-update'),
   ```
-- [ ] Crear plantillas:
+- [x] Crear plantillas:
   - `templates/backoffice/billing/plan_list.html`
   - `templates/backoffice/billing/plan_form.html`
-- [ ] Añadir enlace al sidebar en `templates/backoffice/base_backoffice.html`:
+- [x] Añadir enlace al sidebar en `templates/backoffice/base_backoffice.html`:
   ```html
   <a href="{% url 'backoffice:plan-list' %}" class="...">
       <span>💳</span> {% trans "Planes & Precios" %}
@@ -1787,7 +1787,7 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ### Tarea 3.14: Seeder con los Datos Comerciales Reales de Freddy Obando
 
-- [ ] Actualizar `fobandor/billing/management/commands/seed_subscription_plans.py` con los datos exactos de la infografía:
+- [x] Actualizar `fobandor/billing/management/commands/seed_subscription_plans.py` con los datos exactos de la infografía:
   1. **Plan 1 • Impulso:**
      - `slug`: `impulso`
      - `name_es`: `Plan 1 • Impulso`, `name_en`: `Plan 1 • Momentum`
@@ -1818,7 +1818,7 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
      - 7 bullets reales: Todo lo del Plan Conversión, Estrategias de recompra y postventa, Reactivación de clientes antiguos, Solicitud de reseñas y referidos, Upsell y cross-sell, Segmentación de base de clientes, Métricas de crecimiento: recompra, LTV y escalamiento.
   - Disclaimer legal común:
     - `disclaimer_es`: `*La inversión publicitaria en Meta Ads y las herramientas de terceros no están incluidas. Los valores base consideran 1 negocio, 1 ubicación y 1 oferta principal.`
-- [ ] Ejecutar el seeder para actualizar la base de datos:
+- [x] Ejecutar el seeder para actualizar la base de datos:
   ```bash
   python manage.py seed_subscription_plans
   ```
@@ -1827,7 +1827,7 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ### Tarea 3.15: Rediseño de Alta Fidelidad del Catálogo `/precios/` con Formspree
 
-- [ ] Actualizar `templates/billing/pricing.html`:
+- [x] Actualizar `templates/billing/pricing.html`:
   - Cabecera: *"Planes de Acompañamiento"* / *"Marketing Digital & Ventas para negocios locales"*.
   - Renderizado bilingüe de subtítulos, badges de compromiso (`Acompañamiento mínimo: X meses`) y público objetivo (`Ideal para...`).
   - Badge neón destacado en el Plan 2: *"RECOMENDADO"*.
@@ -1841,18 +1841,18 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ### Tarea 3.16: Pruebas Automatizadas y Verificación de Aceptación
 
-- [ ] Actualizar suite de pruebas en `fobandor/billing/tests/`:
+- [x] Actualizar suite de pruebas en `fobandor/billing/tests/`:
   - Test de creación de `SubscriptionPlan` con campos extendidos.
   - Test de listado y edición de planes en `/backoffice/planes/` para usuarios staff.
   - Test de bloqueo para usuarios anónimos o no-staff.
-- [ ] Ejecutar suite completa:
+- [x] Ejecutar suite completa:
   ```bash
   python manage.py check
   pytest
   flake8 config fobandor scripts
   npm run build:css
   ```
-- [ ] Commit y push:
+- [x] Commit y push:
   ```bash
   git add .
   git commit -m "feat(billing): planes de acompanamiento reales, cms en backoffice y formspree"

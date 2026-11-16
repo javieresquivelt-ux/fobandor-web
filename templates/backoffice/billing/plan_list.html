@@ -1,0 +1,42 @@
+{% extends 'backoffice/base_backoffice.html' %}
+{% load i18n %}
+{% load l10n %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-extrabold">{% trans "Planes & Precios" %}</h1>
+</div>
+
+<div class="overflow-x-auto rounded-2xl border border-gray-200 dark:border-white/10">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 dark:bg-white/5">
+      <tr class="text-left">
+        <th class="px-4 py-3">{% trans "Plan" %}</th>
+        <th class="px-4 py-3">{% trans "Precio (USD)" %}</th>
+        <th class="px-4 py-3">{% trans "Compromiso" %}</th>
+        <th class="px-4 py-3">{% trans "Stripe Price ID" %}</th>
+        <th class="px-4 py-3">{% trans "Activo" %}</th>
+        <th class="px-4 py-3">{% trans "Destacado" %}</th>
+        <th class="px-4 py-3 text-right">{% trans "Acciones" %}</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-200 dark:divide-white/10">
+      {% for plan in plans %}
+      <tr class="hover:bg-gray-50 dark:hover:bg-white/5">
+        <td class="px-4 py-3 font-medium">{{ plan.name_es }}</td>
+        <td class="px-4 py-3">${{ plan.price_usd|unlocalize }}</td>
+        <td class="px-4 py-3">{{ plan.min_commitment_months }} {% trans "meses" %}</td>
+        <td class="px-4 py-3 truncate max-w-xs">{{ plan.stripe_price_id|default:'—' }}</td>
+        <td class="px-4 py-3">{% if plan.is_active %}<span class="text-green-600">●</span>{% else %}<span class="text-gray-400">○</span>{% endif %}</td>
+        <td class="px-4 py-3">{% if plan.is_highlighted %}⭐{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url 'backoffice:plan-update' plan.pk %}" class="text-fobandor-blue hover:underline">{% trans "Editar" %}</a>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-6 text-center text-gray-500">{% trans "Sin planes." %}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

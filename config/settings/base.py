@@ -110,6 +110,9 @@ STRIPE_PUBLIC_KEY = env("STRIPE_PUBLIC_KEY", default="")
 STRIPE_SECRET_KEY = env("STRIPE_SECRET_KEY", default="")
 STRIPE_WEBHOOK_SECRET = env("STRIPE_WEBHOOK_SECRET", default="")
 
+# Formspree (captación de leads de diagnóstico)
+FORMSPREE_ENDPOINT = env("FORMSPREE_ENDPOINT", default="")
+
 # Validadores de contraseña
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
