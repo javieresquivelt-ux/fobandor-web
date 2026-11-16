@@ -214,9 +214,9 @@
 | **1. ANALIZAR** | **COMPLETADA** | Diagnóstico integral del VPS Hostinger (`89.117.32.46`), recursos libres (6.4GB RAM, 86GB SSD), servicios activos (Traefik, EasyPanel, n8n, barberbot), auditoría DNS en Nic.com/GoDaddy (`fobandor.com` -> `89.117.32.46`) y análisis de seguridad OWASP/WhiteNoise. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 4 (Tareas 4.0 a 4.5)** en `task.md` con Dockerfile multi-etapa, WhiteNoise, settings de producción, sitemaps XML bilingües, `robots.txt`, suite `test_seo.py` y checklist de despliegue en EasyPanel. |
 | **3. APROBAR** | **APROBADO** | Plan atómico de Etapa 4 aprobado por el desarrollador líder (luz verde para ejecución). |
-| **4. EJECUTAR** | **EN CURSO (Etapa 4)** | Tareas 4.0–4.4 ejecutadas por OpenCode (deps, SEO, producción, Docker). Tarea 4.5 (despliegue EasyPanel) pendiente de credenciales y acceso al panel. |
-| **5. REGISTRAR** | **EN PROCESO (Etapa 4)** | Bitácora y ADRs (ADR-001 al ADR-016) + Sección 13 con hallazgos de ejecución (fix `STORAGES` en Django 5.2). |
-| **6. APRENDER** | **PENDIENTE (Etapa 4)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` y tag `v1.0.0`. |
+| **4. EJECUTAR** | **COMPLETADA (Etapa 4)** | Tareas 4.0 a 4.5 100% ejecutadas y desplegadas en vivo en EasyPanel (Hostinger VPS). Servicio `fobandor_web` y `fobandor_postgres` saludables. |
+| **5. REGISTRAR** | **COMPLETADA (Etapas 1 a 4)** | Bitácora y ADRs (ADR-001 al ADR-016) + Secciones 12 y 13 con hallazgos de ejecución y verificación en producción. |
+| **6. APRENDER** | **COMPLETADA (Release v1.0.0)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` (HTTP/2 200, SSL válido, SEO, precios, backoffice) y tag de release oficial `v1.0.0` publicado. |
 
 ---
 
@@ -505,10 +505,27 @@ Tras la revisión técnica del Agente Ejecutor (OpenCode / DeepSeek V4 Pro), se 
   * Con `SECRET_KEY` real: solo **W021** (HSTS preload diferido hasta validar SSL en vivo).
   * En producción (clave real + `SECURE_HSTS_PRELOAD=true` tras validar SSL): **0 warnings**.
 
-### Prerrequisitos externos pendientes (Tarea 4.5 — despliegue)
-* **EasyPanel**: crear proyecto `fobandor` (Postgres 16 + servicio App desde GitHub `main`, Dockerfile, puerto 8000, dominios `fobandor.com`/`www.fobandor.com`, volumen `/app/media/`).
-* **Credenciales reales**: `SECRET_KEY` (50+), `STRIPE_*` (test mode), `GOOGLE_OAUTH_*`, `FORMSPREE_ENDPOINT` (ID real), `DJANGO_SUPERUSER_EMAIL/PASSWORD`, `ACCOUNT_EMAIL_VERIFICATION=optional`.
-* **Tag release** `v1.0.0` tras verificar el despliegue en vivo.
+### Despliegue en Vivo y Verificación Técnica de Aceptación (Tarea 4.5)
+* **Infraestructura:** Hostinger VPS (`89.117.32.46`), EasyPanel v2.31.0, Docker Swarm.
+* **Servicio `fobandor_postgres`:** PostgreSQL 16 activo con credencial generada `fsy7cv7fgi0kzedqetiu` y base `fobandor_db`.
+* **Servicio `fobandor_web`:**
+  - Build multi-stage exitoso desde GitHub `main` (`100ad3c`).
+  - Runtime Gunicorn en puerto 8000 (3 workers).
+  - Migraciones completadas en PostgreSQL y seeders automáticos ejecutados:
+    - `seed_initial_content` (servicios, redes sociales, perfil corporativo).
+    - `seed_subscription_plans` (Impulso $697, Conversión $1297, Crecimiento $1997).
+    - `create_rbac_groups` (`Content_Editors` y `Fulfillment_Operators`).
+    - Superusuario inicial `fobandorgcp@gmail.com` creado exitosamente.
+* **Verificación de Red y Protocolo HTTPS:**
+  - `https://fobandor.com/` → HTTP/2 302 -> `/es/` HTTP/2 200 con candado SSL válido emitido por Let's Encrypt / Traefik.
+  - `https://www.fobandor.com/` → HTTP/2 302 -> `/es/` HTTP/2 200.
+  - `https://fobandor.com/robots.txt` → HTTP/2 200 (directivas y sitemap presentes).
+  - `https://fobandor.com/sitemap.xml` → HTTP/2 200 con `<urlset>` y URLs bilingües con dominio `www.fobandor.com`.
+  - `https://fobandor.com/es/precios/` → HTTP/2 200 (catálogo comercial completo).
+  - `https://fobandor.com/static/css/output.css` → HTTP/2 200 servido directamente por WhiteNoise con Brotli/Gzip y cabeceras HSTS de 1 año.
+  - `https://fobandor.com/es/backoffice/` → HTTP/2 302 hacia `/accounts/login/` con cookies de sesión seguras (`SameSite=Lax`, `Secure`).
+* **Release Oficial:** Publicado tag de versión **`v1.0.0`** en GitHub:
+  `https://github.com/javieresquivelt-ux/fobandor-web/releases/tag/v1.0.0`.
 
 
 
