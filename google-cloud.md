@@ -95,18 +95,63 @@ La pantalla de consentimiento es la interfaz oficial de Google que ve el usuario
 
 ---
 
-## Paso 4: Configurar las Credenciales en FOBANDOR
+## Paso 4: Configurar las Credenciales en FOBANDOR (Archivo .env)
 
-1. En tu máquina local, abre el archivo `.env` ubicado en la raíz del proyecto FOBANDOR (`/home/jet/proyectos_lnx/proyectos/fobandor/.env`).
-2. Localiza o agrega las siguientes variables con los valores reales que acabas de copiar:
+### 1. ¿En qué archivo y en qué ruta exacta se configuran?
+El archivo se llama **`.env`** (con un punto al inicio, lo que indica que es un archivo de entorno) y se encuentra en la raíz del proyecto:
+* **Ruta absoluta en tu sistema operativo:**  
+  `/home/jet/proyectos_lnx/proyectos/fobandor/.env`
+* *(Nota sobre Linux Ubuntu: los archivos que comienzan con un punto son considerados ocultos por el sistema de archivos. Si navegas con el gestor visual de carpetas de Ubuntu, presiona la combinación de teclas `Ctrl + H` para hacerlos visibles. En tu IDE o terminal siempre es accesible).*
 
+---
+
+### 2. ¿En qué líneas exactas del archivo `.env` se pegan?
+Abre el archivo `.env` con tu editor de texto o IDE. Ve directamente a las **líneas 13 a 15**, donde encontrarás la sección dedicada a Google OAuth:
+
+#### ❌ Cómo está actualmente (valores de ejemplo / placeholders):
 ```env
 # Google OAuth 2.0 (Social Login Gmail)
-GOOGLE_OAUTH_CLIENT_ID=TU_CLIENT_ID_COPIADO.apps.googleusercontent.com
-GOOGLE_OAUTH_CLIENT_SECRET=TU_CLIENT_SECRET_COPIADO
+GOOGLE_OAUTH_CLIENT_ID=placeholder_client_id.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=placeholder_client_secret
 ```
 
-3. Guarda los cambios en el archivo `.env`.
+---
+
+### 3. ¿Cómo debes reemplazarlo con tus claves reales?
+Debes borrar los textos de relleno (`placeholder_client_id...` y `placeholder_client_secret`) y pegar directamente las claves que Google Cloud te entregó en la ventana del Paso 3.5:
+
+#### ✅ Cómo debe quedar (Ejemplo visual realista):
+```env
+# Google OAuth 2.0 (Social Login Gmail)
+GOOGLE_OAUTH_CLIENT_ID=987654321012-abcdefghijklmnopqrstuvwxyz123456.apps.googleusercontent.com
+GOOGLE_OAUTH_CLIENT_SECRET=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
+```
+
+> ⚠️ **Reglas críticas de formato:**
+> * **NO uses comillas:** No encierres las claves entre comillas dobles (`" "`) ni simples (`' '`). Pega el valor directamente después del signo igual `=`.
+> * **NO dejes espacios en blanco:** No dejes espacios antes ni después del signo `=`.
+> * **Una sola línea por clave:** Cada clave debe quedar completa en su propia línea, sin saltos de línea intermedios.
+
+---
+
+### 4. ¿Cómo sabe el sistema FOBANDOR leer estas claves?
+En el núcleo de Django (`config/settings/base.py`, líneas 100 a 104), el módulo `django-allauth` ya está programado para conectarse a estas variables del `.env` mediante `django-environ`:
+
+```python
+SOCIALACCOUNT_PROVIDERS = {
+    "google": {
+        "SCOPE": ["profile", "email"],
+        "AUTH_PARAMS": {"access_type": "online"},
+        "APP": {
+            "client_id": env("GOOGLE_OAUTH_CLIENT_ID", default=""),
+            "secret": env("GOOGLE_OAUTH_CLIENT_SECRET", default=""),
+            "key": "",
+        },
+    }
+}
+```
+
+Al guardar los cambios en el archivo `.env`, las credenciales quedan inmediatamente vinculadas al sistema.
 
 ---
 
@@ -154,3 +199,4 @@ Cuando el sitio web se despliegue en el VPS en `www.fobandor.com`, solo deberás
 ---
 
 © 2026 FOBANDOR. Documento técnico de configuración de infraestructura externa.
+
