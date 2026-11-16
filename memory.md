@@ -174,6 +174,29 @@
 
 ---
 
+### [ADR-016] Estrategia de Despliegue en Producción con EasyPanel, Traefik y WhiteNoise en Hostinger VPS
+* **Estado:** Propuesto en FASE 3: APROBAR (En espera de aprobación del Desarrollador Líder).
+* **Contexto:**
+  * El cliente Freddy Obando adquirió el dominio `fobandor.com` en NIC.com (DNS en GoDaddy) y dispone de un servidor Hostinger KVM VPS (`89.117.32.46`, 8 GB RAM, 96 GB SSD) administrado mediante EasyPanel v2.31.0 con Traefik 3.6.7 en los puertos 80 y 443.
+  * El servidor ejecuta activamente `n8n` y `barberbot` (`evolution-api` + postgres + redis) con uso mínimo de CPU (0.0%) y 6.4 GB de RAM disponibles.
+  * El plan de EasyPanel presentaba un límite de proyectos concurrentes (máximo 3 proyectos activos). Se detectó el proyecto detenido `massaro`, el cual fue respaldado íntegramente (`/root/backups/backup_massaro_20261116.tar.gz`) y descargado a local, procediéndose a su eliminación en la UI de EasyPanel para liberar un slot dedicado a `fobandor`.
+  * Los registros DNS en NIC.com/GoDaddy fueron configurados: `@` (A) -> `89.117.32.46` y `www` (CNAME) -> `fobandor.com`, verificándose su propagación global hacia el servidor.
+* **Decisión:**
+  1. **Arquitectura de Empaquetado:** Implementar un `Dockerfile` multi-etapa:
+     - *Etapa 1 (`frontend-builder` con `node:22-alpine`):* Compila y minifica Tailwind CSS sin inflar la imagen de producción.
+     - *Etapa 2 (`runner` con `python:3.14-slim`):* Runtime liviano con dependencias de producción, usuario no-root `django`, servidor WSGI Gunicorn (3 workers, timeout 120s) y script de inicialización `entrypoint.sh` para aplicar migraciones y seeders automáticos.
+  2. **Serving de Archivos Estáticos:** Adoptar **WhiteNoise** con compresión Brotli y Gzip (`whitenoise[brotli]`) y almacenamiento con hash inmutable (`CompressedManifestStaticFilesStorage`). Esto garantiza el cumplimiento estricto de la directriz *Zero External CDN*, evitando la complejidad y sobrecarga de memoria de un contenedor Nginx adicional.
+  3. **Enrutamiento y Terminación TLS/SSL:** Delegar la terminación HTTPS y emisión automática de certificados Let's Encrypt a **Traefik**, configurando en Django `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`, `USE_X_FORWARDED_HOST = True` y `USE_X_FORWARDED_PORT = True`.
+  4. **Base de Datos de Producción:** Crear un servicio administrado PostgreSQL 16 provisto por EasyPanel en la red interna del proyecto `fobandor`, conectándose mediante la variable de entorno `DATABASE_URL` (estándar 12-Factor).
+  5. **Ciclo de Vida de Pasarela Stripe:** Desplegar inicialmente con claves de Stripe en *Test Mode* en el dominio productivo `https://fobandor.com/` para validar el flujo completo de checkout y la recepción de webhooks criptográficos sobre HTTPS real sin túneles de desarrollo (`stripe listen`/`ngrok`). Una vez validado comercialmente con Freddy Obando, la transición a *Live Mode* se realizará de forma inmediata mediante variables de entorno en EasyPanel y actualización de IDs de precios en `/backoffice/planes/`.
+* **Justificación / Razonamiento:**
+  * Máxima simplicidad operativa y uso eficiente de los recursos del VPS (menos de 300 MB de RAM adicionales para el runtime Django + Postgres).
+  * Renovación de certificados SSL 100% automatizada y sin intervención manual.
+  * Zero External CDN y alta velocidad de carga mediante compresión Brotli local.
+  * Despliegue continuo sin fricción vía GitHub a la rama `main`.
+
+---
+
 ## 2. Diagnóstico del Entorno de Ejecución (Ubuntu Local)
 
 * **Sistema Operativo:** Linux Ubuntu 26.04.1 LTS "Resolute" (x86_64).
@@ -188,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis integral del flujo de pagos Stripe (SLA 7 días), Social Login Gmail (Google OAuth 2.0 / `django-allauth`), Onboarding AVS y modelo de órdenes `FulfillmentOrder`. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 3 (Tareas 3.0 a 3.11)** en `task.md` con rutas de archivo exactas, modelos, servicios, adapters y tests. |
-| **3. APROBAR** | **APROBADO** | Etapa 3 aprobada por el desarrollador líder con correcciones de revisión técnica (webhook `invoice.paid` como fuente única, 1 orden por suscripción). |
-| **4. EJECUTAR** | **EJECUTADA (Etapa 3 + Refinamiento)** | Tareas 3.0–3.11 (commit `da484dd`) y refinamiento comercial 3.12–3.16 ejecutados por OpenCode. Pendiente validación de Antigravity-IDE del refinamiento. |
-| **5. REGISTRAR** | **COMPLETADA (Etapa 3)** | Bitácora y ADRs sincronizados con el alcance de pagos, entregas y hallazgos en `memory.md`. |
-| **6. APRENDER** | **COMPLETADA (Etapa 3)** | Documentación viva actualizada en `README.md` con el estado del roadmap y catálogo de precios. |
+| **1. ANALIZAR** | **COMPLETADA** | Diagnóstico integral del VPS Hostinger (`89.117.32.46`), recursos libres (6.4GB RAM, 86GB SSD), servicios activos (Traefik, EasyPanel, n8n, barberbot), auditoría DNS en Nic.com/GoDaddy (`fobandor.com` -> `89.117.32.46`) y análisis de seguridad OWASP/WhiteNoise. |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 4 (Tareas 4.0 a 4.5)** en `task.md` con Dockerfile multi-etapa, WhiteNoise, settings de producción, sitemaps XML bilingües, `robots.txt`, suite `test_seo.py` y checklist de despliegue en EasyPanel. |
+| **3. APROBAR** | **EN REVISIÓN (ACTIVA)** | **PAUSA OBLIGATORIA.** Plan atómico de Etapa 4 y ADR-016 presentados formalmente al Desarrollador Líder para su aprobación explícita antes de ejecutar. |
+| **4. EJECUTAR** | **PENDIENTE (Etapa 4)** | Ejecución de Tareas 4.0 a 4.5 tras aprobación (OpenCode / Antigravity). |
+| **5. REGISTRAR** | **COMPLETADA (Etapa 1-3) / EN PROCESO (Etapa 4)** | Bitácora y ADRs (ADR-001 al ADR-016) registrados en `memory.md` junto con Sección 12 de diagnóstico de infraestructura. |
+| **6. APRENDER** | **COMPLETADA (Etapa 1-3) / PENDIENTE (Etapa 4)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` y documentación final. |
 
 ---
 
@@ -374,6 +397,68 @@ Correcciones técnicas aplicadas al plan (ver `task.md` §5 "Notas de Correcció
 * **Backoffice `/backoffice/planes/`:** listado + edición con `SubscriptionPlanForm` (features editables como una-línea-por-bullet), pestañas ES/EN/«Precio y datos». `slug` no editable.
 * **`/precios/`:** subtítulos, badge "RECOMENDADO" (`is_highlighted`), badge de compromiso, público objetivo, disclaimer y modal de diagnóstico conectado a Formspree (`FORMSPREE_ENDPOINT`).
 * **Verificación:** `pytest` 28/28, `flake8` limpio, `check` 0 issues, migraciones limpias, CSS compilado. HTTP: `/es/precios/` y `/en/precios/` 200 con planes bilingües; `/es/backoffice/planes/` anónimo → 302.
+
+---
+
+## 12. Preparación y Validación Técnica para la Etapa 4 (Producción en VPS Hostinger)
+
+* **Objetivo de la Etapa:** SEO Técnico, Blindaje OWASP, Empaquetado Docker Multi-Etapa y Despliegue en Vivo en Hostinger KVM VPS (`89.117.32.46`) bajo EasyPanel y Traefik.
+* **Documento Rector:** [task.md](file:///home/jet/proyectos_lnx/proyectos/fobandor/task.md) (Sección 6: Tareas 4.0 a 4.5).
+* **Decisiones Arquitectónicas Incorporadas:** ADR-016 (Despliegue EasyPanel + Traefik + WhiteNoise + Docker Multi-Etapa).
+
+### Diagnóstico de Infraestructura del VPS Target (`89.117.32.46`)
+1. **Acceso y Hardware:**
+   - Conexión vía SSH por llave pública: `ssh root@89.117.32.46`.
+   - Sistema Operativo: Ubuntu Linux x86_64 en Hostinger KVM VPS.
+   - Memoria RAM: 8.0 GB totales (6.4 GB disponibles, 1.4 GB en uso por el kernel y containers activos).
+   - Almacenamiento SSD: 96.0 GB totales (86.0 GB disponibles, 9.9 GB en uso).
+   - Carga de Procesador: CPU load 0.00 / 0.00 / 0.00 (holgura térmica y de cómputo óptima).
+2. **Servicios y Puertos Activos:**
+   - **Traefik 3.6.7:** Escuchando en `0.0.0.0:80` y `0.0.0.0:443`, administrando los routers de entrada, balanceo y Let's Encrypt SSL.
+   - **EasyPanel v2.31.0:** Panel web administrativo en `http://89.117.32.46:3000`.
+   - **Proyectos existentes:** `n8n` (workflow automation) y `barberbot` (`evolution-api` + PostgreSQL + Redis).
+3. **Gestión de Cuota de Proyectos y Slot en EasyPanel:**
+   - EasyPanel (versión comunitaria) presentaba una restricción operativa de máximo 3 proyectos activos concurrentes.
+   - Con `barberbot`, `n8n` y `massaro` (inactivo), el servidor se encontraba en 3/3 proyectos.
+   - **Protocolo de Respaldo Preventivo:** Se empaquetó el proyecto `massaro` íntegramente en el VPS:
+     ```bash
+     tar -czvf /root/backups/backup_massaro_20261116.tar.gz -C /etc/easypanel/projects massaro
+     ```
+     El archivo (1.8 MB) fue descargado localmente a `backups/backup_massaro_20261116.tar.gz` (incluido en `.gitignore` para no contaminar el historial de Git).
+   - El Desarrollador Líder eliminó el proyecto `massaro` en la UI de EasyPanel, dejando 2 proyectos activos y 1 slot libre disponible para `fobandor`.
+
+### Diagnóstico y Auditoría de Dominio y DNS (NIC.com / GoDaddy)
+1. **Delegación de Dominio:**
+   - Dominio comercial oficial: `fobandor.com` (propiedad de Freddy Obando).
+   - Registrador: NIC.com, gestionado bajo la infraestructura DNS de GoDaddy (`ns19.domaincontrol.com`, `ns20.domaincontrol.com`).
+2. **Registros DNS Configurados:**
+   - Registro `A` para host `@`: `89.117.32.46` (TTL: 600 segundos).
+   - Registro `CNAME` para host `www`: `fobandor.com.` (TTL: 1800 segundos).
+3. **Validación de Propagación:**
+   - Verificado con `dig @8.8.8.8 fobandor.com A` y `dig @1.1.1.1 fobandor.com A` → Responde `89.117.32.46`.
+   - Verificado `dig www.fobandor.com CNAME` → Responde `fobandor.com.`.
+   - Traefik en el VPS ya recibe el tráfico: `curl -I http://fobandor.com/` retorna `HTTP/1.1 308 Permanent Redirect` hacia HTTPS; `https://fobandor.com/` retorna `HTTP/2 404 page not found` emitido por Traefik, indicando que el proxy está a la espera del backend `fobandor`.
+
+### Estrategia de Pasarela de Pagos Stripe en Producción
+* Se analizó la viabilidad de desplegar la plataforma con Stripe en **Modo Test** (`pk_test_...`, `sk_test_...` y webhook secret `whsec_...` en EasyPanel).
+* **Conclusión Técnica:** Es la mejor práctica recomendada. Permite validar en el entorno productivo real (`https://fobandor.com/`) el flujo E2E:
+  1. Registro de usuario y Social Login de Google con HTTPS real.
+  2. Redirección a Stripe Checkout con tarjetas de prueba internacionales.
+  3. Recepción del webhook criptográfico `invoice.paid` en `https://fobandor.com/stripe/webhook/` con certificado SSL válido sin requerir túneles de desarrollo (`stripe listen`).
+  4. Generación automática de `FulfillmentOrder` y verificación del semáforo SLA 7 días en `/backoffice/entregas/`.
+* Una vez validado con Freddy Obando, el paso a **Modo Live** es inmediato: únicamente se cambian las 3 variables de Stripe en el panel de EasyPanel y se cargan los `price_...` de producción en `/backoffice/planes/`.
+
+### Estado de Google Cloud OAuth
+* El desarrollador líder configuró las credenciales en Google Cloud Console para Web Application:
+  - Authorized JavaScript Origins: `http://localhost:8000`, `https://www.fobandor.com`.
+  - Authorized Redirect URIs: `http://localhost:8000/accounts/google/login/callback/`, `https://www.fobandor.com/accounts/google/login/callback/`, `http://127.0.0.1:8000/accounts/google/login/callback/`.
+* Se corrigió la lectura de `GOOGLE_OAUTH_CLIENT_ID` y `GOOGLE_OAUTH_CLIENT_SECRET` en `config/settings/base.py`.
+* Verificado localmente: el botón "Continuar con Google" redirige con éxito a la pantalla de consentimiento de Google Cloud sin errores 400.
+
+### Condición de Entrada a la FASE 4 (EJECUTAR)
+* Planificación exhaustiva detallada en `task.md` (Tareas 4.0 a 4.5).
+* Fundamentos arquitectónicos y operacionales documentados en ADR-016.
+* **Pausa Obligatoria de Gobernanza HARNESS (FASE 3: APROBAR):** Se requiere la confirmación y visto bueno explícito del Desarrollador Líder para proceder a la codificación del empaquetado Docker, WhiteNoise, SEO y despliegue en EasyPanel.
 
 
 

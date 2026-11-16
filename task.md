@@ -1,9 +1,9 @@
-# TASK.MD: Plan de Ejecución Atómica — Etapa 1: Cimientos, Branding y UI Base
+# TASK.MD: Plan de Ejecución Atómica y Hoja de Ruta — FOBANDOR
 
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 4: EJECUTADA Y VALIDADA por Antigravity-IDE. Criterio de Aceptación de la Etapa 1 CUMPLIDO. Listo para inicio de Etapa 2.
+> * **Estado Actual:** FASE 3: APROBAR (Etapa 4 — SEO Técnico, Auditoría OWASP, Empaquetado Docker y Despliegue en Producción VPS Hostinger / EasyPanel). En espera de aprobación explícita del Desarrollador Líder.
 
 ---
 
@@ -1861,10 +1861,382 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 
 ---
 
-## 6. Planificación de Próximas Etapas (Roadmap Anticipado)
+## 6. Etapa 4 — SEO Técnico, Auditoría OWASP, Empaquetado Docker y Despliegue en Producción (Hostinger VPS / EasyPanel)
 
-### Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción
-- Metadatos dinámicos, Open Graph, sitemap bilingüe y `robots.txt`.
-- Suite de pruebas automatizadas con `pytest` y `pytest-django`.
-- Auditoría OWASP y verificación `check --deploy`.
-- Empaquetado Docker para VPS (Hostinger u otro proveedor agnóstico).
+> **Gobernanza Multi-Agente:**
+> * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
+> * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
+> * **Estado Actual:** FASE 3: APROBAR — Plan formulado en pausa obligatoria para revisión del desarrollador líder.
+
+---
+
+### Resumen de Alcance (Etapa 4)
+
+1. **SEO Técnico y Metadatos Dinámicos:**
+   - Mapa de sitio XML bilingüe (`/sitemap.xml`) con `django.contrib.sitemaps`.
+   - Archivo `/robots.txt` optimizado para indexación en motores de búsqueda.
+   - Metadatos completos de Open Graph y Twitter Cards (`og:title`, `og:description`, `og:image`, `og:url`) en `templates/base.html`.
+2. **Blindaje de Seguridad OWASP y Configuración de Producción:**
+   - Módulo `config/settings/production.py` con `DEBUG = False`.
+   - Headers de proxy inverso para Traefik: `SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')`.
+   - Servicio de archivos estáticos locales de alta velocidad con **WhiteNoise** (compresión Brotli/Gzip y caché inmutable, cumpliendo estrictamente con *Zero External CDN*).
+   - Cookies seguras (`HttpOnly`, `Secure`, `SameSite=Lax`), HSTS a 1 año, protección XSS y Clickjacking (`X_FRAME_OPTIONS = 'DENY'`).
+   - Auditoría automatizada con `python manage.py check --deploy`.
+3. **Empaquetado Docker Multi-Etapa de Producción:**
+   - `Dockerfile` multi-stage: compilación de Tailwind CSS con Node.js + runtime liviano Python 3.14 con usuario no-root `django`.
+   - Script de arranque `entrypoint.sh` automatizado: migraciones (`migrate`), seeders (`seed_initial_content`, `seed_subscription_plans`, `create_rbac_groups`) y servidor WSGI Gunicorn (3 workers).
+4. **Despliegue en Vivo en Hostinger VPS (`89.117.32.46` / EasyPanel):**
+   - Creación del proyecto `fobandor` en EasyPanel con base de datos PostgreSQL 16 y servicio Web conectado a GitHub.
+   - Vinculación con los dominios oficiales `fobandor.com` y `www.fobandor.com`.
+   - Emisión automática de certificados SSL HTTPS por Traefik (Let's Encrypt).
+   - Verificación de aceptación técnica en vivo en la web pública y en el Backoffice.
+
+---
+
+### Árbol de Archivos Objetivo (Etapa 4 — Incremental)
+
+```text
+fobandor/
+├── Dockerfile
+├── .dockerignore
+├── entrypoint.sh
+├── requirements/
+│   └── base.txt                       (añade gunicorn y whitenoise)
+├── config/
+│   ├── urls.py                        (añade rutas sitemap y robots)
+│   └── settings/
+│       └── production.py              (configuración de seguridad y WhiteNoise)
+├── fobandor/
+│   └── core/
+│       ├── sitemaps.py                (sitemap bilingüe de vistas públicas)
+│       └── tests/
+│           └── test_seo.py            (tests de sitemap, robots y headers)
+└── templates/
+    ├── robots.txt                     (directivas para bots de búsqueda)
+    └── base.html                      (metadatos Open Graph y Twitter Cards)
+```
+
+---
+
+### Tarea 4.0: Dependencias de Producción y Serving Estático
+
+- [ ] Añadir a `requirements/base.txt`:
+  ```text
+  gunicorn>=22.0.0
+  whitenoise[brotli]>=6.6.0
+  ```
+- [ ] Instalar en el entorno virtual:
+  ```bash
+  pip install -r requirements/base.txt
+  ```
+
+---
+
+### Tarea 4.1: SEO Técnico, Open Graph, Sitemap e i18n (`robots.txt`, `sitemap.xml`)
+
+- [ ] Crear `fobandor/core/sitemaps.py`:
+  ```python
+  from django.contrib.sitemaps import Sitemap
+  from django.urls import reverse
+
+
+  class StaticViewSitemap(Sitemap):
+      priority = 0.8
+      changefreq = 'weekly'
+
+      def items(self):
+          return [
+              ('core:home', 'es'),
+              ('core:home', 'en'),
+              ('billing:pricing', 'es'),
+              ('billing:pricing', 'en'),
+          ]
+
+      def location(self, item):
+          view_name, lang = item
+          from django.utils import translation
+          with translation.override(lang):
+              return reverse(view_name)
+  ```
+- [ ] Configurar `django.contrib.sitemaps` en `INSTALLED_APPS` en `config/settings/base.py`.
+- [ ] Crear vista y plantilla `templates/robots.txt`:
+  ```text
+  User-agent: *
+  Allow: /
+  Disallow: /admin/
+  Disallow: /backoffice/
+  Disallow: /mi-cuenta/
+  Disallow: /stripe/
+
+  Sitemap: https://www.fobandor.com/sitemap.xml
+  ```
+- [ ] Registrar rutas `/sitemap.xml` y `/robots.txt` en `config/urls.py` (fuera de `i18n_patterns`):
+  ```python
+  from django.contrib.sitemaps.views import sitemap
+  from django.views.generic import TemplateView
+  from fobandor.core.sitemaps import StaticViewSitemap
+
+  sitemaps = {
+      'static': StaticViewSitemap,
+  }
+
+  urlpatterns = [
+      path("robots.txt", TemplateView.as_view(template_name="robots.txt", content_type="text/plain")),
+      path("sitemap.xml", sitemap, {"sitemaps": sitemaps}, name="django.contrib.sitemaps.views.sitemap"),
+      path("i18n/", include("django.conf.urls.i18n")),
+      path("accounts/", include("allauth.urls")),
+      path("stripe/webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
+  ]
+  ```
+- [ ] Enriquecer `templates/base.html` con etiquetas Open Graph y Twitter Cards dinámicas:
+  - `og:site_name`: "FOBANDOR"
+  - `og:title`: "FOBANDOR — Ideas, código y creatividad impulsados por IA"
+  - `og:description`: "Build. Advertise. Entertain. With AI. Marketing Digital, Apps y Producción Audiovisual en Orlando, FL."
+  - `og:image`: `https://www.fobandor.com/static/images/favicons/apple-touch-icon.png`
+  - `og:url`: `https://www.fobandor.com/`
+  - `twitter:card`: `summary_large_image`
+- [ ] Crear suite de pruebas automatizadas en `fobandor/core/tests/test_seo.py`:
+  ```python
+  import pytest
+  from django.urls import reverse
+
+
+  @pytest.mark.django_db
+  def test_robots_txt_status_and_content(client):
+      response = client.get("/robots.txt")
+      assert response.status_code == 200
+      assert "text/plain" in response.headers["content-type"]
+      content = response.content.decode()
+      assert "User-agent: *" in content
+      assert "Allow: /" in content
+      assert "Disallow: /admin/" in content
+      assert "Disallow: /backoffice/" in content
+      assert "Disallow: /mi-cuenta/" in content
+      assert "Disallow: /stripe/" in content
+      assert "Sitemap: https://www.fobandor.com/sitemap.xml" in content
+
+
+  @pytest.mark.django_db
+  def test_sitemap_xml_status_and_urls(client):
+      response = client.get("/sitemap.xml")
+      assert response.status_code == 200
+      assert "xml" in response.headers["content-type"]
+      content = response.content.decode()
+      assert "<urlset" in content
+      assert "/es/" in content
+      assert "/en/" in content
+      assert "/es/precios/" in content
+      assert "/en/precios/" in content
+
+
+  @pytest.mark.django_db
+  def test_open_graph_meta_tags_rendered(client):
+      response = client.get(reverse("core:home"))
+      assert response.status_code == 200
+      content = response.content.decode()
+      assert 'property="og:site_name" content="FOBANDOR"' in content
+      assert 'property="og:title"' in content
+      assert 'property="og:description"' in content
+      assert 'property="og:image"' in content
+      assert 'name="twitter:card" content="summary_large_image"' in content
+  ```
+
+---
+
+### Tarea 4.2: Blindaje de Seguridad OWASP y Configuración de Producción (`config/settings/production.py`)
+
+- [ ] Implementar `config/settings/production.py`:
+  ```python
+  import os
+  from .base import *  # noqa: F403
+  from .base import BASE_DIR, env
+
+  DEBUG = False
+
+  SECRET_KEY = env('SECRET_KEY')
+
+  ALLOWED_HOSTS = env.list(
+      'ALLOWED_HOSTS',
+      default=['fobandor.com', 'www.fobandor.com', '89.117.32.46', 'localhost', '127.0.0.1']
+  )
+
+  CSRF_TRUSTED_ORIGINS = env.list(
+      'CSRF_TRUSTED_ORIGINS',
+      default=['https://fobandor.com', 'https://www.fobandor.com']
+  )
+
+  # Configuración para proxy inverso Traefik
+  SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+  USE_X_FORWARDED_HOST = True
+  USE_X_FORWARDED_PORT = True
+
+  # WhiteNoise: servicio eficiente de archivos estáticos compilados
+  MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')  # noqa: F405
+  STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+
+  # Blindaje de cookies y sesiones
+  SESSION_COOKIE_SECURE = True
+  SESSION_COOKIE_HTTPONLY = True
+  SESSION_COOKIE_SAMESITE = 'Lax'
+  CSRF_COOKIE_SECURE = True
+  CSRF_COOKIE_HTTPONLY = True
+  CSRF_COOKIE_SAMESITE = 'Lax'
+
+  # Cabeceras de seguridad HTTP (OWASP)
+  SECURE_BROWSER_XSS_FILTER = True
+  SECURE_CONTENT_TYPE_NOSNIFF = True
+  X_FRAME_OPTIONS = 'DENY'
+  SECURE_HSTS_SECONDS = 31536000  # 1 año
+  SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+  SECURE_HSTS_PRELOAD = True
+
+  # Email en producción (SMTP o console fallback)
+  EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+  ```
+
+---
+
+### Tarea 4.3: Suite de Pruebas de Regresión y Auditoría de Seguridad Automatizada (`pytest`, `flake8`, `check --deploy`)
+
+- [ ] Ejecutar suite completa de pruebas unitarias y de integración:
+  ```bash
+  pytest
+  ```
+  - Validar que pasen el 100% de las pruebas (mínimo 31/31: 28 existentes + 3 nuevas de SEO/Metadatos).
+- [ ] Ejecutar auditoría de estilo y sintaxis:
+  ```bash
+  flake8 config fobandor scripts
+  ```
+  - Validar 0 errores ni advertencias de estilo.
+- [ ] Ejecutar chequeo formal de despliegue en entorno local:
+  ```bash
+  python manage.py check --deploy --settings=config.settings.production
+  ```
+- [ ] Validar que retorne **0 advertencias o errores críticos** de seguridad OWASP.
+
+---
+
+### Tarea 4.4: Empaquetado Docker Multi-Etapa de Producción
+
+- [ ] Crear `.dockerignore`:
+  ```text
+  .git/
+  .venv/
+  node_modules/
+  __pycache__/
+  *.pyc
+  db.sqlite3
+  backups/
+  .pytest_cache/
+  .coverage
+  htmlcov/
+  .env
+  ```
+- [ ] Crear `Dockerfile` multi-stage:
+  ```dockerfile
+  # Etapa 1: Compilación de Tailwind CSS
+  FROM node:22-alpine AS frontend-builder
+  WORKDIR /app
+  COPY package.json package-lock.json ./
+  RUN npm ci
+  COPY tailwind.config.js ./
+  COPY templates/ ./templates/
+  COPY fobandor/ ./fobandor/
+  COPY static/css/input.css ./static/css/input.css
+  RUN npx tailwindcss -i ./static/css/input.css -o ./static/css/output.css --minify
+
+  # Etapa 2: Runtime de Python y Django
+  FROM python:3.14-slim AS runner
+  ENV PYTHONDONTWRITEBYTECODE=1 \
+      PYTHONUNBUFFERED=1 \
+      DJANGO_SETTINGS_MODULE=config.settings.production \
+      PORT=8000
+
+  WORKDIR /app
+
+  # Instalar dependencias del sistema mínimas
+  RUN apt-get update && apt-get install -y --no-install-recommends \
+      curl \
+      && rm -rf /var/lib/apt/lists/*
+
+  # Instalar dependencias de Python
+  COPY requirements/ requirements/
+  RUN pip install --no-cache-dir -r requirements/base.txt
+
+  # Copiar código fuente
+  COPY . .
+
+  # Copiar el CSS compilado desde la etapa 1
+  COPY --from=frontend-builder /app/static/css/output.css /app/static/css/output.css
+
+  # Recolectar archivos estáticos para WhiteNoise
+  RUN python manage.py collectstatic --noinput --settings=config.settings.local
+
+  # Crear usuario no-root para seguridad
+  RUN useradd -m -u 1000 django && \
+      chown -R django:django /app
+  USER django
+
+  EXPOSE 8000
+
+  COPY entrypoint.sh /app/entrypoint.sh
+  ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
+  ```
+- [ ] Crear `entrypoint.sh`:
+  ```bash
+  #!/bin/sh
+  set -e
+
+  echo "==> Aplicando migraciones de base de datos..."
+  python manage.py migrate --noinput
+
+  echo "==> Sembrando contenido inicial y planes oficiales..."
+  python manage.py seed_initial_content
+  python manage.py seed_subscription_plans
+  python manage.py create_rbac_groups
+
+  echo "==> Iniciando servidor Gunicorn en el puerto ${PORT:-8000}..."
+  exec gunicorn config.wsgi:application \
+      --bind 0.0.0.0:${PORT:-8000} \
+      --workers 3 \
+      --timeout 120 \
+      --access-logfile - \
+      --error-logfile -
+  ```
+- [ ] Otorgar permisos de ejecución a `entrypoint.sh`: `chmod +x entrypoint.sh`.
+
+---
+
+### Tarea 4.5: Despliegue en EasyPanel (Hostinger VPS) y Verificación en Vivo
+
+- [ ] **Configuración en EasyPanel (`http://89.117.32.46:3000`):**
+  1. Entrar al proyecto `fobandor`.
+  2. Crear servicio **Database** (`postgres:16`):
+     - Base de datos: `fobandor_db`
+     - Usuario: `fobandor_user`
+     - Copiar la variable de conexión interna `DATABASE_URL`.
+  3. Crear servicio **App** (`web`):
+     - Source: GitHub Repo `https://github.com/javieresquivelt-ux/fobandor-web` (rama `main`).
+     - Build: Dockerfile (`/Dockerfile`).
+     - Port: `8000`.
+     - Domains: `fobandor.com`, `www.fobandor.com`.
+     - Environment Variables:
+       - `SECRET_KEY`: (clave criptográfica segura de producción).
+       - `DATABASE_URL`: (conexión al servicio postgres de EasyPanel).
+       - `ALLOWED_HOSTS`: `fobandor.com,www.fobandor.com,89.117.32.46`.
+       - `CSRF_TRUSTED_ORIGINS`: `https://fobandor.com,https://www.fobandor.com`.
+       - `GOOGLE_OAUTH_CLIENT_ID`: (valor de Google Cloud).
+       - `GOOGLE_OAUTH_CLIENT_SECRET`: (valor de Google Cloud).
+       - `FORMSPREE_ENDPOINT`: `https://formspree.io/f/placeholder`.
+  4. Presionar **Deploy** y monitorear los logs del contenedor.
+- [ ] **Verificación de Aceptación Técnica en Vivo:**
+  - `https://fobandor.com/` → HTTP 200 con candado SSL válido emitido por Let's Encrypt / Traefik.
+  - `https://www.fobandor.com/` → Redirección correcta y certificado válido.
+  - `https://fobandor.com/robots.txt` y `https://fobandor.com/sitemap.xml` operativos.
+  - `https://fobandor.com/es/precios/` muestra los 3 planes reales de Freddy Obando.
+  - Crear superusuario en el contenedor de EasyPanel:
+    ```bash
+    python manage.py createsuperuser
+    ```
+  - `https://fobandor.com/es/backoffice/` accesible con la cuenta de superusuario.
+  - Repositorio sincronizado en GitHub con tag oficial de release `v1.0.0`.
