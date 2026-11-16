@@ -93,6 +93,7 @@ ACCOUNT_EMAIL_VERIFICATION = "mandatory"
 ACCOUNT_LOGIN_ON_EMAIL_CONFIRMATION = True
 ACCOUNT_ADAPTER = "fobandor.users.adapters.CustomAccountAdapter"
 SOCIALACCOUNT_ADAPTER = "fobandor.users.adapters.CustomSocialAccountAdapter"
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 SOCIALACCOUNT_PROVIDERS = {
     "google": {
