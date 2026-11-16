@@ -114,3 +114,51 @@ msgstr "Meet FOBANDOR, Orlando, Florida."
 
 msgid "Formulario de contacto próximamente."
 msgstr "Contact form coming soon."
+
+msgid "Planes de Acompañamiento"
+msgstr "Mentorship & Growth Plans"
+
+msgid "Marketing Digital & Ventas para negocios locales."
+msgstr "Digital Marketing & Sales for local businesses."
+
+msgid "RECOMENDADO"
+msgstr "RECOMMENDED"
+
+msgid "mes"
+msgstr "month"
+
+msgid "Acompañamiento mínimo: %(months)s meses"
+msgstr "Minimum commitment: %(months)s months"
+
+msgid "Planes próximamente."
+msgstr "Plans coming soon."
+
+msgid "Agenda un diagnóstico y descubre cuál plan necesita tu negocio"
+msgstr "Schedule a diagnosis and discover which plan your business needs"
+
+msgid "Hablemos hoy"
+msgstr "Let's talk today"
+
+msgid "Solicita tu diagnóstico"
+msgstr "Request your diagnosis"
+
+msgid "Nombre"
+msgstr "Name"
+
+msgid "Email"
+msgstr "Email"
+
+msgid "Teléfono"
+msgstr "Phone"
+
+msgid "Mensaje"
+msgstr "Message"
+
+msgid "Enviar solicitud"
+msgstr "Send request"
+
+msgid "Cerrar"
+msgstr "Close"
+
+msgid "Planes & Precios"
+msgstr "Plans & Pricing"

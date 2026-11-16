@@ -344,7 +344,7 @@ flowchart LR
 
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
 * [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
-* [x] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout y SLA 7 Días:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0 / `django-allauth`), formulario de facturación AVS, 3 planes de suscripción mensual ($199, $499, $999), Webhooks firmados criptográficamente y motor de órdenes `FulfillmentOrder` (SLA 7 días).
+* [x] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout, Motor SLA 7 Días y Planes Reales:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0 / `django-allauth`), formulario de facturación AVS, Planes de Acompañamiento oficiales de Freddy Obando ($697, $1,297, $1,997 USD) administrables dinámicamente desde `/backoffice/planes/`, diagnóstico Formspree, Webhooks firmados criptográficamente y motor de órdenes `FulfillmentOrder` (SLA 7 días).
 * [ ] **Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción:** Sitemap dinámico, Open Graph, suite completa de pruebas, auditoría `check --deploy` y despliegue agnóstico en VPS.
 
 ---
