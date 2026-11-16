@@ -2040,6 +2040,27 @@ fobandor/
       assert 'property="og:image"' in content
       assert 'name="twitter:card" content="summary_large_image"' in content
   ```
+- [ ] Crear management command `fobandor/core/management/commands/setup_production_site.py` para garantizar que `Site.domain` y `Site.name` apunten a `www.fobandor.com` en producción (corrigiendo URLs de sitemap y callbacks de allauth):
+  ```python
+  from django.core.management.base import BaseCommand
+  from django.contrib.sites.models import Site
+  from django.conf import settings
+
+
+  class Command(BaseCommand):
+      help = "Configura el dominio del Site oficial para sitemaps, emails y allauth"
+
+      def handle(self, *args, **options):
+          site_id = getattr(settings, "SITE_ID", 1)
+          domain = "www.fobandor.com"
+          name = "FOBANDOR"
+          site, created = Site.objects.update_or_create(
+              id=site_id,
+              defaults={"domain": domain, "name": name}
+          )
+          action = "creado" if created else "actualizado"
+          self.stdout.write(self.style.SUCCESS(f"Site ID {site_id} {action} a {domain} ({name})"))
+  ```
 
 ---
 
@@ -2047,13 +2068,17 @@ fobandor/
 
 - [ ] Implementar `config/settings/production.py`:
   ```python
-  import os
   from .base import *  # noqa: F403
   from .base import BASE_DIR, env
 
   DEBUG = False
 
   SECRET_KEY = env('SECRET_KEY')
+
+  # Base de Datos de Producción (PostgreSQL en EasyPanel)
+  DATABASES = {
+      'default': env.db('DATABASE_URL')
+  }
 
   ALLOWED_HOSTS = env.list(
       'ALLOWED_HOSTS',
@@ -2069,17 +2094,19 @@ fobandor/
   SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
   USE_X_FORWARDED_HOST = True
   USE_X_FORWARDED_PORT = True
+  SECURE_SSL_REDIRECT = env.bool('SECURE_SSL_REDIRECT', default=True)
+  SECURE_REFERRER_POLICY = 'same-origin'
 
   # WhiteNoise: servicio eficiente de archivos estáticos compilados
   MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')  # noqa: F405
   STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
-  # Blindaje de cookies y sesiones
+  # Blindaje de cookies y sesiones (CSRF_COOKIE_HTTPONLY=False requerido para HTMX)
   SESSION_COOKIE_SECURE = True
   SESSION_COOKIE_HTTPONLY = True
   SESSION_COOKIE_SAMESITE = 'Lax'
   CSRF_COOKIE_SECURE = True
-  CSRF_COOKIE_HTTPONLY = True
+  CSRF_COOKIE_HTTPONLY = False  # Permite lectura por HTMX/JS para envío de token CSRF
   CSRF_COOKIE_SAMESITE = 'Lax'
 
   # Cabeceras de seguridad HTTP (OWASP)
@@ -2088,10 +2115,17 @@ fobandor/
   X_FRAME_OPTIONS = 'DENY'
   SECURE_HSTS_SECONDS = 31536000  # 1 año
   SECURE_HSTS_INCLUDE_SUBDOMAINS = True
-  SECURE_HSTS_PRELOAD = True
+  SECURE_HSTS_PRELOAD = env.bool('SECURE_HSTS_PRELOAD', default=False)  # Activar tras verificar estabilidad
 
-  # Email en producción (SMTP o console fallback)
+  # Email en producción (SMTP configurable con fallback seguro)
   EMAIL_BACKEND = env('EMAIL_BACKEND', default='django.core.mail.backends.smtp.EmailBackend')
+  EMAIL_HOST = env('EMAIL_HOST', default='')
+  EMAIL_PORT = env.int('EMAIL_PORT', default=587)
+  EMAIL_HOST_USER = env('EMAIL_HOST_USER', default='')
+  EMAIL_HOST_PASSWORD = env('EMAIL_HOST_PASSWORD', default='')
+  EMAIL_USE_TLS = env.bool('EMAIL_USE_TLS', default=True)
+  DEFAULT_FROM_EMAIL = env('DEFAULT_FROM_EMAIL', default='FOBANDOR <noreply@fobandor.com>')
+  ACCOUNT_EMAIL_VERIFICATION = env('ACCOUNT_EMAIL_VERIFICATION', default='optional')
   ```
 
 ---
@@ -2127,6 +2161,7 @@ fobandor/
   *.pyc
   db.sqlite3
   backups/
+  static/css/output.css
   .pytest_cache/
   .coverage
   htmlcov/
@@ -2169,9 +2204,6 @@ fobandor/
   # Copiar el CSS compilado desde la etapa 1
   COPY --from=frontend-builder /app/static/css/output.css /app/static/css/output.css
 
-  # Recolectar archivos estáticos para WhiteNoise
-  RUN python manage.py collectstatic --noinput --settings=config.settings.local
-
   # Crear usuario no-root para seguridad
   RUN useradd -m -u 1000 django && \
       chown -R django:django /app
@@ -2187,13 +2219,24 @@ fobandor/
   #!/bin/sh
   set -e
 
+  echo "==> Recolectando archivos estáticos con WhiteNoise (manifest)..."
+  python manage.py collectstatic --noinput
+
   echo "==> Aplicando migraciones de base de datos..."
   python manage.py migrate --noinput
+
+  echo "==> Configurando Site oficial en base de datos (www.fobandor.com)..."
+  python manage.py setup_production_site
 
   echo "==> Sembrando contenido inicial y planes oficiales..."
   python manage.py seed_initial_content
   python manage.py seed_subscription_plans
   python manage.py create_rbac_groups
+
+  if [ -n "$DJANGO_SUPERUSER_EMAIL" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
+      echo "==> Creando superusuario inicial si no existe..."
+      python manage.py createsuperuser --noinput || true
+  fi
 
   echo "==> Iniciando servidor Gunicorn en el puerto ${PORT:-8000}..."
   exec gunicorn config.wsgi:application \
@@ -2220,23 +2263,24 @@ fobandor/
      - Build: Dockerfile (`/Dockerfile`).
      - Port: `8000`.
      - Domains: `fobandor.com`, `www.fobandor.com`.
+     - **Volumen Persistente (Mounts):**
+       - Montar volumen persistente `fobandor_media` apuntando a `/app/media/` para proteger los entregables de `FulfillmentOrder` contra rebuilds.
      - Environment Variables:
-       - `SECRET_KEY`: (clave criptográfica segura de producción).
+       - `SECRET_KEY`: (clave criptográfica segura de producción de 50+ caracteres).
        - `DATABASE_URL`: (conexión al servicio postgres de EasyPanel).
        - `ALLOWED_HOSTS`: `fobandor.com,www.fobandor.com,89.117.32.46`.
        - `CSRF_TRUSTED_ORIGINS`: `https://fobandor.com,https://www.fobandor.com`.
        - `GOOGLE_OAUTH_CLIENT_ID`: (valor de Google Cloud).
        - `GOOGLE_OAUTH_CLIENT_SECRET`: (valor de Google Cloud).
-       - `FORMSPREE_ENDPOINT`: `https://formspree.io/f/placeholder`.
+       - `FORMSPREE_ENDPOINT`: `https://formspree.io/f/placeholder` (actualizar con ID real de Freddy).
+       - `ACCOUNT_EMAIL_VERIFICATION`: `optional` (diferir hasta configurar SMTP; usuarios con Google OAuth quedan automáticamente verificados).
+       - `DJANGO_SUPERUSER_EMAIL`: `admin@fobandor.com` (opcional para creación automática).
+       - `DJANGO_SUPERUSER_PASSWORD`: (clave segura temporal).
   4. Presionar **Deploy** y monitorear los logs del contenedor.
 - [ ] **Verificación de Aceptación Técnica en Vivo:**
   - `https://fobandor.com/` → HTTP 200 con candado SSL válido emitido por Let's Encrypt / Traefik.
   - `https://www.fobandor.com/` → Redirección correcta y certificado válido.
   - `https://fobandor.com/robots.txt` y `https://fobandor.com/sitemap.xml` operativos.
   - `https://fobandor.com/es/precios/` muestra los 3 planes reales de Freddy Obando.
-  - Crear superusuario en el contenedor de EasyPanel:
-    ```bash
-    python manage.py createsuperuser
-    ```
   - `https://fobandor.com/es/backoffice/` accesible con la cuenta de superusuario.
   - Repositorio sincronizado en GitHub con tag oficial de release `v1.0.0`.

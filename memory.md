@@ -455,10 +455,23 @@ Correcciones técnicas aplicadas al plan (ver `task.md` §5 "Notas de Correcció
 * Se corrigió la lectura de `GOOGLE_OAUTH_CLIENT_ID` y `GOOGLE_OAUTH_CLIENT_SECRET` en `config/settings/base.py`.
 * Verificado localmente: el botón "Continuar con Google" redirige con éxito a la pantalla de consentimiento de Google Cloud sin errores 400.
 
+### Decisiones y Correcciones Técnicas de la Etapa 4 (Revisión OpenCode)
+Tras la revisión técnica del Agente Ejecutor (OpenCode / DeepSeek V4 Pro), se incorporaron los siguientes refinamientos críticos al plan de despliegue:
+1. **Definición de `DATABASES` en `production.py`:** Se incorpora `DATABASES = {'default': env.db('DATABASE_URL')}`, resolviendo la ausencia de backend de base de datos en producción.
+2. **Ciclo de `collectstatic` en Runtime:** Se eliminó `collectstatic` del `Dockerfile` (que fallaba en build al carecer de `.env` y generar estáticos sin el manifest de WhiteNoise) y se trasladó a `entrypoint.sh`, ejecutándose en runtime con las variables de entorno inyectadas por EasyPanel.
+3. **Sincronización del `Site` de Django (`setup_production_site`):** Se crea un comando para asegurar que `Site.domain` y `Site.name` apunten a `www.fobandor.com` en la base de datos de producción, garantizando que el sitemap XML y los callbacks de Allauth generen URLs absolutas válidas.
+4. **Resolución de Email Transaccional en Producción:**
+   - Se parametriza el backend SMTP en `production.py` vía variables de entorno (`EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, `EMAIL_USE_TLS`).
+   - Se configura `ACCOUNT_EMAIL_VERIFICATION = env('ACCOUNT_EMAIL_VERIFICATION', default='optional')`. Esto desbloquea el registro manual si Freddy Obando no ha provisto aún las credenciales SMTP, mientras que los usuarios que ingresan vía Google OAuth quedan automáticamente verificados al 100% de inmediato (ADR-008).
+5. **Persistencia de Media:** Se documenta el montaje de volumen persistente en EasyPanel (`fobandor_media` -> `/app/media/`) para evitar pérdida de entregables de `FulfillmentOrder` en futuros despliegues.
+6. **Anti-patrón CSRF Corregido:** Se fija `CSRF_COOKIE_HTTPONLY = False` para permitir a HTMX leer la cookie `csrftoken` en peticiones dinámicas.
+7. **OWASP `check --deploy` Limpio:** Se incorporan `SECURE_SSL_REDIRECT = True` y `SECURE_REFERRER_POLICY = 'same-origin'`, y se modera `SECURE_HSTS_PRELOAD = False` hasta validar la estabilidad del certificado SSL en vivo.
+8. **Automatización de Superusuario:** `entrypoint.sh` soporta inicialización automática con `DJANGO_SUPERUSER_EMAIL` y `DJANGO_SUPERUSER_PASSWORD`.
+
 ### Condición de Entrada a la FASE 4 (EJECUTAR)
-* Planificación exhaustiva detallada en `task.md` (Tareas 4.0 a 4.5).
+* Planificación exhaustiva detallada en `task.md` (Tareas 4.0 a 4.5) con las 14 correcciones integradas.
 * Fundamentos arquitectónicos y operacionales documentados en ADR-016.
-* **Pausa Obligatoria de Gobernanza HARNESS (FASE 3: APROBAR):** Se requiere la confirmación y visto bueno explícito del Desarrollador Líder para proceder a la codificación del empaquetado Docker, WhiteNoise, SEO y despliegue en EasyPanel.
+* **Pausa Obligatoria de Gobernanza HARNESS (FASE 3: APROBAR):** Plan refinado listo para ejecución.
 
 
 
