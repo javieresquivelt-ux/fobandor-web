@@ -2274,7 +2274,7 @@ fobandor/
        - `GOOGLE_OAUTH_CLIENT_SECRET`: (valor de Google Cloud).
        - `FORMSPREE_ENDPOINT`: `https://formspree.io/f/placeholder` (actualizar con ID real de Freddy).
        - `ACCOUNT_EMAIL_VERIFICATION`: `optional` (diferir hasta configurar SMTP; usuarios con Google OAuth quedan automáticamente verificados).
-       - `DJANGO_SUPERUSER_EMAIL`: `admin@fobandor.com` (opcional para creación automática).
+       - `DJANGO_SUPERUSER_EMAIL`: `fobandorgcp@gmail.com` (correo oficial de Freddy Obando para acceso de Superadmin y Social Login directo).
        - `DJANGO_SUPERUSER_PASSWORD`: (clave segura temporal).
   4. Presionar **Deploy** y monitorear los logs del contenedor.
 - [ ] **Verificación de Aceptación Técnica en Vivo:**
