@@ -1866,7 +1866,22 @@ Freddy Obando definió los 3 paquetes comerciales oficiales del negocio (**Plane
 > **Gobernanza Multi-Agente:**
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)
-> * **Estado Actual:** FASE 3: APROBAR — Plan formulado en pausa obligatoria para revisión del desarrollador líder.
+> * **Estado Actual:** FASE 3: APROBAR — Plan formulado en pausa obligatoria para revisión del desarrollador líder. Correcciones de revisión técnica aplicadas.
+
+---
+
+### Notas de Corrección (revisión técnica OpenCode, aplicadas)
+
+1. **`production.py`** define `DATABASES = {"default": env.db("DATABASE_URL")}` (base.py no lo define).
+2. **`collectstatic` se mueve a `entrypoint.sh`** (runtime, settings de producción + env inyectadas); se elimina del Dockerfile (evita fallo en build sin `SECRET_KEY` y estáticos sin manifest).
+3. **`Site.domain`** se fija con management command `setup_production_site` (`www.fobandor.com`), ejecutado en `entrypoint.sh` (sitemap y callbacks allauth con URL absoluta válida).
+4. **Email diferido:** `ACCOUNT_EMAIL_VERIFICATION = env(..., default='optional')` en producción y SMTP configurable por env. El gate de checkout (`is_email_verified`) se mantiene (verificación manual vía admin o login Google auto-verificado).
+5. **`CSRF_COOKIE_HTTPONLY = False`** (requerido para HTMX/JS). Solo `SESSION_COOKIE_HTTPONLY=True`.
+6. **`check --deploy` limpio:** `SECURE_SSL_REDIRECT = True`, `SECURE_REFERRER_POLICY = "same-origin"` y `SECURE_HSTS_PRELOAD = False` (hasta validar SSL en vivo). W009 depende de una `SECRET_KEY` real en producción.
+7. **`media/`** requiere volumen persistente en EasyPanel (`/app/media/`) para entregables.
+8. **`.dockerignore`** añade `static/css/output.css` y `backups/`.
+9. **`createsuperuser`** no interactivo (`--noinput` + `DJANGO_SUPERUSER_EMAIL/PASSWORD`).
+10. **`FORMSPREE_ENDPOINT`** real en EasyPanel (no placeholder).
 
 ---
 
