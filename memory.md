@@ -213,10 +213,10 @@
 | :--- | :---: | :--- |
 | **1. ANALIZAR** | **COMPLETADA** | Diagnóstico integral del VPS Hostinger (`89.117.32.46`), recursos libres (6.4GB RAM, 86GB SSD), servicios activos (Traefik, EasyPanel, n8n, barberbot), auditoría DNS en Nic.com/GoDaddy (`fobandor.com` -> `89.117.32.46`) y análisis de seguridad OWASP/WhiteNoise. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 4 (Tareas 4.0 a 4.5)** en `task.md` con Dockerfile multi-etapa, WhiteNoise, settings de producción, sitemaps XML bilingües, `robots.txt`, suite `test_seo.py` y checklist de despliegue en EasyPanel. |
-| **3. APROBAR** | **EN REVISIÓN (ACTIVA)** | **PAUSA OBLIGATORIA.** Plan atómico de Etapa 4 y ADR-016 presentados formalmente al Desarrollador Líder para su aprobación explícita antes de ejecutar. |
-| **4. EJECUTAR** | **PENDIENTE (Etapa 4)** | Ejecución de Tareas 4.0 a 4.5 tras aprobación (OpenCode / Antigravity). |
-| **5. REGISTRAR** | **COMPLETADA (Etapa 1-3) / EN PROCESO (Etapa 4)** | Bitácora y ADRs (ADR-001 al ADR-016) registrados en `memory.md` junto con Sección 12 de diagnóstico de infraestructura. |
-| **6. APRENDER** | **COMPLETADA (Etapa 1-3) / PENDIENTE (Etapa 4)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` y documentación final. |
+| **3. APROBAR** | **APROBADO** | Plan atómico de Etapa 4 aprobado por el desarrollador líder (luz verde para ejecución). |
+| **4. EJECUTAR** | **EN CURSO (Etapa 4)** | Tareas 4.0–4.4 ejecutadas por OpenCode (deps, SEO, producción, Docker). Tarea 4.5 (despliegue EasyPanel) pendiente de credenciales y acceso al panel. |
+| **5. REGISTRAR** | **EN PROCESO (Etapa 4)** | Bitácora y ADRs (ADR-001 al ADR-016) + Sección 13 con hallazgos de ejecución (fix `STORAGES` en Django 5.2). |
+| **6. APRENDER** | **PENDIENTE (Etapa 4)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` y tag `v1.0.0`. |
 
 ---
 
@@ -472,6 +472,43 @@ Tras la revisión técnica del Agente Ejecutor (OpenCode / DeepSeek V4 Pro), se 
 * Planificación exhaustiva detallada en `task.md` (Tareas 4.0 a 4.5) con las 14 correcciones integradas.
 * Fundamentos arquitectónicos y operacionales documentados en ADR-016.
 * **Pausa Obligatoria de Gobernanza HARNESS (FASE 3: APROBAR):** Plan refinado listo para ejecución.
+
+---
+
+## 13. Ejecución de la Etapa 4 (Tareas 4.0–4.4)
+
+### Versiones instaladas
+* **gunicorn 27.0.1**, **whitenoise 6.12.0** (+ **brotli 1.2.1**).
+
+### Hallazgo crítico durante la ejecución
+1. **`STATICFILES_STORAGE` está obsoleto en Django 5.2.** El plan usaba `STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'`, que Django 5.2 **ignora** (deprecado en 4.2, eliminado en 5.1; ahora se usa `STORAGES`). Consecuencia: `collectstatic` generaba archivos **sin hash** y **sin `staticfiles.json`** (storage por defecto `StaticFilesStorage`). Se corrigió en `production.py` con:
+   ```python
+   STORAGES = {
+       'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+       'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+   }
+   ```
+   Verificado: `collectstatic` genera `staticfiles.json` + archivos hasheados `.br`/`.gz` (676 post-processed).
+
+### Implementado (4.0–4.4)
+* **SEO:** `StaticViewSitemap` (tuplas manuales bilingües), `templates/robots.txt`, rutas `/sitemap.xml` y `/robots.txt` fuera de `i18n_patterns`, meta OG/Twitter en `base.html`, command `setup_production_site`, tests `test_seo.py`.
+* **Producción:** `config/settings/production.py` completo (DATABASES, proxy Traefik, STORAGES/WhiteNoise, cookies, OWASP, SMTP configurable, `ACCOUNT_EMAIL_VERIFICATION` env).
+* **Docker:** `Dockerfile` multi-stage (node:22-alpine → python:3.14-slim, usuario no-root `django`), `.dockerignore`, `entrypoint.sh` (collectstatic → migrate → setup_production_site → seeders → createsuperuser condicional → gunicorn 3 workers).
+
+### Verificación de aceptación (Tarea 4.3)
+* `python manage.py check` → 0 issues. `makemigrations --check --dry-run` → sin cambios.
+* `pytest` → **31/31 passing** (28 previas + 3 SEO).
+* `flake8 config fobandor scripts` → limpio.
+* `collectstatic --settings=config.settings.production` → manifest OK (140 archivos, 676 post-processed).
+* `check --deploy --settings=config.settings.production`:
+  * Con `SECRET_KEY` dev (`django-insecure-...`): **W009** (placeholder, esperado) + **W021** (`SECURE_HSTS_PRELOAD=False`, diferido).
+  * Con `SECRET_KEY` real: solo **W021** (HSTS preload diferido hasta validar SSL en vivo).
+  * En producción (clave real + `SECURE_HSTS_PRELOAD=true` tras validar SSL): **0 warnings**.
+
+### Prerrequisitos externos pendientes (Tarea 4.5 — despliegue)
+* **EasyPanel**: crear proyecto `fobandor` (Postgres 16 + servicio App desde GitHub `main`, Dockerfile, puerto 8000, dominios `fobandor.com`/`www.fobandor.com`, volumen `/app/media/`).
+* **Credenciales reales**: `SECRET_KEY` (50+), `STRIPE_*` (test mode), `GOOGLE_OAUTH_*`, `FORMSPREE_ENDPOINT` (ID real), `DJANGO_SUPERUSER_EMAIL/PASSWORD`, `ACCOUNT_EMAIL_VERIFICATION=optional`.
+* **Tag release** `v1.0.0` tras verificar el despliegue en vivo.
 
 
 

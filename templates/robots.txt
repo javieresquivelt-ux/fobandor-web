@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /backoffice/
+Disallow: /mi-cuenta/
+Disallow: /stripe/
+
+Sitemap: https://www.fobandor.com/sitemap.xml

@@ -1935,12 +1935,12 @@ fobandor/
 
 ### Tarea 4.0: Dependencias de Producción y Serving Estático
 
-- [ ] Añadir a `requirements/base.txt`:
+- [x] Añadir a `requirements/base.txt`:
   ```text
   gunicorn>=22.0.0
   whitenoise[brotli]>=6.6.0
   ```
-- [ ] Instalar en el entorno virtual:
+- [x] Instalar en el entorno virtual:
   ```bash
   pip install -r requirements/base.txt
   ```
@@ -1949,7 +1949,7 @@ fobandor/
 
 ### Tarea 4.1: SEO Técnico, Open Graph, Sitemap e i18n (`robots.txt`, `sitemap.xml`)
 
-- [ ] Crear `fobandor/core/sitemaps.py`:
+- [x] Crear `fobandor/core/sitemaps.py`:
   ```python
   from django.contrib.sitemaps import Sitemap
   from django.urls import reverse
@@ -1973,8 +1973,8 @@ fobandor/
           with translation.override(lang):
               return reverse(view_name)
   ```
-- [ ] Configurar `django.contrib.sitemaps` en `INSTALLED_APPS` en `config/settings/base.py`.
-- [ ] Crear vista y plantilla `templates/robots.txt`:
+- [x] Configurar `django.contrib.sitemaps` en `INSTALLED_APPS` en `config/settings/base.py`.
+- [x] Crear vista y plantilla `templates/robots.txt`:
   ```text
   User-agent: *
   Allow: /
@@ -1985,7 +1985,7 @@ fobandor/
 
   Sitemap: https://www.fobandor.com/sitemap.xml
   ```
-- [ ] Registrar rutas `/sitemap.xml` y `/robots.txt` en `config/urls.py` (fuera de `i18n_patterns`):
+- [x] Registrar rutas `/sitemap.xml` y `/robots.txt` en `config/urls.py` (fuera de `i18n_patterns`):
   ```python
   from django.contrib.sitemaps.views import sitemap
   from django.views.generic import TemplateView
@@ -2003,14 +2003,14 @@ fobandor/
       path("stripe/webhook/", StripeWebhookView.as_view(), name="stripe-webhook"),
   ]
   ```
-- [ ] Enriquecer `templates/base.html` con etiquetas Open Graph y Twitter Cards dinámicas:
+- [x] Enriquecer `templates/base.html` con etiquetas Open Graph y Twitter Cards dinámicas:
   - `og:site_name`: "FOBANDOR"
   - `og:title`: "FOBANDOR — Ideas, código y creatividad impulsados por IA"
   - `og:description`: "Build. Advertise. Entertain. With AI. Marketing Digital, Apps y Producción Audiovisual en Orlando, FL."
   - `og:image`: `https://www.fobandor.com/static/images/favicons/apple-touch-icon.png`
   - `og:url`: `https://www.fobandor.com/`
   - `twitter:card`: `summary_large_image`
-- [ ] Crear suite de pruebas automatizadas en `fobandor/core/tests/test_seo.py`:
+- [x] Crear suite de pruebas automatizadas en `fobandor/core/tests/test_seo.py`:
   ```python
   import pytest
   from django.urls import reverse
@@ -2055,7 +2055,7 @@ fobandor/
       assert 'property="og:image"' in content
       assert 'name="twitter:card" content="summary_large_image"' in content
   ```
-- [ ] Crear management command `fobandor/core/management/commands/setup_production_site.py` para garantizar que `Site.domain` y `Site.name` apunten a `www.fobandor.com` en producción (corrigiendo URLs de sitemap y callbacks de allauth):
+- [x] Crear management command `fobandor/core/management/commands/setup_production_site.py` para garantizar que `Site.domain` y `Site.name` apunten a `www.fobandor.com` en producción (corrigiendo URLs de sitemap y callbacks de allauth):
   ```python
   from django.core.management.base import BaseCommand
   from django.contrib.sites.models import Site
@@ -2081,7 +2081,7 @@ fobandor/
 
 ### Tarea 4.2: Blindaje de Seguridad OWASP y Configuración de Producción (`config/settings/production.py`)
 
-- [ ] Implementar `config/settings/production.py`:
+- [x] Implementar `config/settings/production.py`:
   ```python
   from .base import *  # noqa: F403
   from .base import BASE_DIR, env
@@ -2114,7 +2114,10 @@ fobandor/
 
   # WhiteNoise: servicio eficiente de archivos estáticos compilados
   MIDDLEWARE.insert(1, 'whitenoise.middleware.WhiteNoiseMiddleware')  # noqa: F405
-  STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+  STORAGES = {
+      'default': {'BACKEND': 'django.core.files.storage.FileSystemStorage'},
+      'staticfiles': {'BACKEND': 'whitenoise.storage.CompressedManifestStaticFilesStorage'},
+  }
 
   # Blindaje de cookies y sesiones (CSRF_COOKIE_HTTPONLY=False requerido para HTMX)
   SESSION_COOKIE_SECURE = True
@@ -2147,27 +2150,27 @@ fobandor/
 
 ### Tarea 4.3: Suite de Pruebas de Regresión y Auditoría de Seguridad Automatizada (`pytest`, `flake8`, `check --deploy`)
 
-- [ ] Ejecutar suite completa de pruebas unitarias y de integración:
+- [x] Ejecutar suite completa de pruebas unitarias y de integración:
   ```bash
   pytest
   ```
   - Validar que pasen el 100% de las pruebas (mínimo 31/31: 28 existentes + 3 nuevas de SEO/Metadatos).
-- [ ] Ejecutar auditoría de estilo y sintaxis:
+- [x] Ejecutar auditoría de estilo y sintaxis:
   ```bash
   flake8 config fobandor scripts
   ```
   - Validar 0 errores ni advertencias de estilo.
-- [ ] Ejecutar chequeo formal de despliegue en entorno local:
+- [x] Ejecutar chequeo formal de despliegue en entorno local:
   ```bash
   python manage.py check --deploy --settings=config.settings.production
   ```
-- [ ] Validar que retorne **0 advertencias o errores críticos** de seguridad OWASP.
+- [x] Validar que retorne **0 advertencias o errores críticos** de seguridad OWASP.
 
 ---
 
 ### Tarea 4.4: Empaquetado Docker Multi-Etapa de Producción
 
-- [ ] Crear `.dockerignore`:
+- [x] Crear `.dockerignore`:
   ```text
   .git/
   .venv/
@@ -2182,7 +2185,7 @@ fobandor/
   htmlcov/
   .env
   ```
-- [ ] Crear `Dockerfile` multi-stage:
+- [x] Crear `Dockerfile` multi-stage:
   ```dockerfile
   # Etapa 1: Compilación de Tailwind CSS
   FROM node:22-alpine AS frontend-builder
@@ -2229,7 +2232,7 @@ fobandor/
   COPY entrypoint.sh /app/entrypoint.sh
   ENTRYPOINT ["/bin/sh", "/app/entrypoint.sh"]
   ```
-- [ ] Crear `entrypoint.sh`:
+- [x] Crear `entrypoint.sh`:
   ```bash
   #!/bin/sh
   set -e
@@ -2261,7 +2264,7 @@ fobandor/
       --access-logfile - \
       --error-logfile -
   ```
-- [ ] Otorgar permisos de ejecución a `entrypoint.sh`: `chmod +x entrypoint.sh`.
+- [x] Otorgar permisos de ejecución a `entrypoint.sh`: `chmod +x entrypoint.sh`.
 
 ---
 

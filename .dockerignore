@@ -1,0 +1,13 @@
+.git/
+.venv/
+node_modules/
+__pycache__/
+*.pyc
+db.sqlite3
+backups/
+static/css/output.css
+.pytest_cache/
+.coverage
+htmlcov/
+.env
+media/
