@@ -244,3 +244,4 @@ Cuando el sitio esté en el VPS en `https://www.fobandor.com/` y listo para reci
 ---
 
 © 2026 FOBANDOR. Guía técnica de integración de pagos Stripe.
+
