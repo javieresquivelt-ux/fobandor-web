@@ -2296,3 +2296,29 @@ fobandor/
   - `https://fobandor.com/es/backoffice/` → HTTP/2 302 redirige a `/accounts/login/` con cookie `csrftoken` segura.
   - Superusuario `fobandorgcp@gmail.com` creado en PostgreSQL de producción.
   - Repositorio sincronizado en GitHub con tag oficial de release `v1.0.0`.
+
+---
+
+### Tarea 4.6: Hotfix de Post-Despliegue — Auto-vinculación de Google OAuth y Blindaje Operativo
+
+- [x] **Diagnóstico y Causa Raíz de Incidentes de Producción:**
+  1. *Fallo de Google OAuth ("Account already exists with this email address"):* Al existir previamente `fobandorgcp@gmail.com` en PostgreSQL como superusuario, Allauth rechazaba la autenticación de Google por requerir confirmación explícita de vinculación.
+  2. *Pantallas sin estilos:* `/accounts/google/login/` y `/accounts/3rdparty/signup/` carecían de plantillas con diseño corporativo en el proyecto.
+  3. *Error 502 Bad Gateway:* EasyPanel inyectaba `PORT=80` por defecto en tiempo de ejecución, causando que Gunicorn escuchara en el puerto 80 mientras Traefik enrutaba al puerto 8000.
+  4. *Error de conexión a PostgreSQL:* EasyPanel autogeneró una contraseña para `fobandor_user` distinta a la que se configuró en `DATABASE_URL` (`fobandor_db`).
+- [x] **Implementación del Hotfix:**
+  - `config/settings/base.py`:
+    ```python
+    SOCIALACCOUNT_LOGIN_ON_GET = True
+    SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
+    SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+    ```
+  - `templates/socialaccount/login.html`: plantilla con Tailwind CSS para confirmación de conexión de cuenta.
+  - `templates/socialaccount/signup.html`: plantilla con Tailwind CSS para registro social completado.
+  - `entrypoint.sh`: fijado explícito de `PORT=8000` previo a la llamada de Gunicorn.
+  - Base de Datos de Producción: sincronización de credencial mediante `ALTER USER fobandor_user WITH PASSWORD 'fobandor_db';`.
+- [x] **Verificación y Criterios de Aceptación:**
+  - Suite de pruebas automatizadas: 31/31 tests pasando (`pytest`).
+  - Linter: `flake8 config fobandor scripts` sin errores.
+  - Login verificado en `/es/admin` para `fobandorgcp@gmail.com` con `Fobandor2026Admin!`.
+  - Redirección OAuth directa sin pantallas intermedias.

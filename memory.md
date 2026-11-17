@@ -527,6 +527,21 @@ Tras la revisión técnica del Agente Ejecutor (OpenCode / DeepSeek V4 Pro), se 
 * **Release Oficial:** Publicado tag de versión **`v1.0.0`** en GitHub:
   `https://github.com/javieresquivelt-ux/fobandor-web/releases/tag/v1.0.0`.
 
+---
+
+## 14. Incidente de Post-Despliegue, Hotfix y Regularización de Gobernanza HARNESS
+
+### Diagnóstico de Fallas Operativas en Vivo
+Durante la verificación inicial del despliegue en EasyPanel se presentaron tres incidentes operativos:
+1. **Google OAuth ("An account already exists with this email address"):** Al intentar ingresar con `fobandorgcp@gmail.com`, Allauth rechazó la operación enviando a una vista de `signup` sin estilos. Causa: `allauth` no vincula automáticamente cuentas sociales a usuarios locales preexistentes por motivos de seguridad por defecto, requiriendo `SOCIALACCOUNT_EMAIL_AUTHENTICATION = True` y `SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True`.
+2. **Error 502 Bad Gateway intermitente:** EasyPanel inyectaba `PORT=80` en el entorno del contenedor, causando que Gunicorn escuchara en el puerto 80 mientras Traefik dirigía el tráfico a `fobandor_web:8000`. Solución: fijar `PORT=8000` de forma estricta en `entrypoint.sh`.
+3. **Credencial de PostgreSQL:** Se sincronizó la contraseña en la base de datos de producción mediante `ALTER USER fobandor_user WITH PASSWORD 'fobandor_db';`.
+
+### Regularización de Gobernanza y Aprendizaje
+* **Desviación detectada:** Durante la atención del incidente en vivo, Antigravity-IDE implementó cambios de código y plantillas directamente sin formular primero la tarea atómica en `task.md` ni solicitar la aprobación previa del Desarrollador Líder en FASE 3.
+* **Medida Correctiva:** El incidente fue formalmente regularizado incorporando la **Tarea 4.6 en `task.md`** y este registro en `memory.md`.
+* **Regla Inmutable:** Se ratifica que cualquier intervención técnica (incluyendo hotfixes de producción o ajustes de configuración) debe ceñirse sin excepciones al ciclo HARNESS: Análisis → Tarea Atómica → Aprobación Explícita del Desarrollador Líder → Ejecución → Registro.
+
 
 
 
