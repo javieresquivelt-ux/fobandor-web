@@ -107,13 +107,16 @@
         <!-- Éxito -->
         <div x-show="submitted" x-cloak class="text-center py-6">
           <p class="text-green-600 text-lg font-semibold">✓</p>
+          <h4 class="text-lg font-bold mt-2">
+            {% if LANGUAGE_CODE == 'es' %}{{ company.diag_modal_title_es }}{% else %}{{ company.diag_modal_title_en }}{% endif %}
+          </h4>
           <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
-            {% trans "¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas." %}
+            {% if LANGUAGE_CODE == 'es' %}{{ company.diag_success_msg_es }}{% else %}{{ company.diag_success_msg_en }}{% endif %}
           </p>
         </div>
 
         <form x-show="!submitted" x-cloak action="{{ formspree_endpoint }}" method="POST" class="space-y-4" @submit.prevent="submitForm($event)">
-          <input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">
+          <input type="hidden" name="_subject" value="{{ company.diag_form_subject }}">
           <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
 
           <div>

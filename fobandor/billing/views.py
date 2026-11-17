@@ -13,6 +13,7 @@ from django.views.generic import ListView
 
 from fobandor.billing import services
 from fobandor.billing.models import SubscriptionPlan
+from fobandor.cms.models import CompanyProfile
 from fobandor.users.mixins import EmailVerifiedRequiredMixin
 
 
@@ -27,6 +28,7 @@ class PricingCatalogView(ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["formspree_endpoint"] = settings.FORMSPREE_ENDPOINT
+        ctx["company"] = CompanyProfile.load()
         return ctx
 
 

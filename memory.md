@@ -214,9 +214,12 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis del flujo de captación comercial con Formspree en `/precios/`, protección anti-spam silenciosa y experiencia asíncrona inmersiva. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.8** en `task.md` (variables de entorno, soporte Alpine.js async, honeypot y metadata). |
 | **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación del Desarrollador Líder y de la provisión del Form ID / Endpoint por Freddy Obando. |
-| **4. EJECUTAR** | **COMPLETADA (Tarea 4.8)** | Implementación en plantilla, suite 33/33 tests, despliegue en VPS EasyPanel/Swarm y convergencia de `fobandor_web`. |
-| **5. REGISTRAR** | **COMPLETADA** | Sección 16 documentada en `memory.md` con los resultados de despliegue y hallazgo sobre reCAPTCHA en Formspree. |
-| **6. APRENDER** | **COMPLETADA** | Verificación técnica de endpoint en producción; identificación de ajuste requerido en dashboard de Formspree (desactivar reCAPTCHA para permitir envíos AJAX fluidos). |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis de correcciones textuales del modal de diagnóstico en `/precios/` y factibilidad de integración al CMS (`CompanyProfile` singleton). |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.9** en `task.md` (Sub-tarea A: cambios de texto inmediatos; Sub-tarea B: extensión del singleton `CompanyProfile` y backoffice). |
+| **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación explícita del Desarrollador Líder antes de ejecutar. |
+| **4. EJECUTAR** | **PENDIENTE (Tarea 4.9)** | Implementación de correcciones, migración de BD, actualización de vistas y template tras visto bueno. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 17 iniciada en `memory.md` con análisis de factibilidad y decisiones arquitectónicas. |
+| **6. APRENDER** | **PENDIENTE** | Verificación en `/backoffice/empresa/` y `/precios/` en producción tras despliegue. |
 
 ---
 
@@ -595,6 +598,42 @@ Durante la verificación inicial del despliegue en EasyPanel se presentaron tres
 * **Hallazgo Clave de Aceptación con Formspree:**
   - Al realizar la prueba de envío asíncrono con `Accept: application/json`, Formspree retorna: `{"error":"In order to submit via AJAX, you need to set a custom key or reCAPTCHA must be disabled in this form's settings page."}`.
   - Para que el envío asíncrono transparente (sin CAPTCHA ni abandono del sitio) funcione de manera fluida, Freddy debe acceder al dashboard de Formspree (`mqpqqggk`), ir a la pestaña **Settings** -> sección **Spam Protection**, y desactivar la opción **reCAPTCHA** (dejando la protección anti-spam en el honeypot `_gotcha` que ya implementamos en el formulario).
+* **Estado de Producción Actual:** Formulario funcionando correctamente. Freddy desactivó reCAPTCHA y verificó recepción de envíos en la pestaña **Submissions** de Formspree. Las notificaciones llegan a `administrator@fobandor.com`.
+
+---
+
+## 17. Correcciones de Textos del Modal de Diagnóstico e Integración al CMS (`CompanyProfile`)
+
+### Contexto
+Con el formulario de diagnóstico operando en producción, Freddy Obando solicita:
+1. **Corrección de textos inmediata:** Cambios en el asunto del formulario, título del estado de éxito y mensaje de confirmación.
+2. **Integración al CMS:** Que estos textos sean editables desde el Backoffice en `/backoffice/empresa/` sin intervención técnica.
+
+### Decisión Arquitectónica: Extender `CompanyProfile` (Singleton)
+
+* **Alternativa descartada:** Crear un nuevo modelo `ContactFormSettings` → Sobre-modelado innecesario para un formulario único.
+* **Decisión adoptada:** Agregar 5 campos nuevos al modelo `CompanyProfile` existente:
+  - `diag_form_subject` (CharField, `default='Nuevo Formulario Web - FOBANDOR'`): Asunto del email enviado a Formspree.
+  - `diag_modal_title_es` / `diag_modal_title_en` (CharField, `default='Solicitud enviada'` / `'Request sent'`): Título del bloque de éxito del modal.
+  - `diag_success_msg_es` / `diag_success_msg_en` (TextField): Mensaje completo de confirmación bilingüe.
+* **Justificación:**
+  - `CompanyProfile` ya es el singleton de configuración global del sitio.
+  - Tiene backoffice propio (`/backoffice/empresa/`), formulario con pestañas ES/EN y el patrón `load()` lo hace trivialmente inyectable en cualquier vista.
+  - Cambiar estos textos desde el Backoffice (sin redeploy) es el flujo más simple para un equipo editorial no técnico.
+  - La vista `PricingCatalogView` ya carga el contexto de planes; inyectar `company = CompanyProfile.load()` tiene impacto mínimo en rendimiento (consulta cacheada en un único registro singleton).
+* **Impacto técnico:** 1 migración de BD (solo DDL `ALTER TABLE` con columnas `DEFAULT`, sin datos en riesgo), actualización de vista, template y formulario del backoffice.
+* **Gobernanza:** Plan detallado en `task.md` (Tarea 4.9). Estado: **FASE 4: EJECUTADA** (fusión A+B, una sola migración).
+
+### Ejecución (Tarea 4.9)
+* **Modelo:** 5 campos nuevos en `CompanyProfile` (migración `cms.0002`), con defaults ya corregidos.
+* **Vista:** `PricingCatalogView` inyecta `company = CompanyProfile.load()`.
+* **Plantilla:** `_subject` → `{{ company.diag_form_subject }}`; título de éxito y mensaje → `{{ company.diag_modal_title_es/en }}` y `{{ company.diag_success_msg_es/en }}` (bilingüe). Se eliminó el `{% trans %}` estático obsoleto del mensaje de éxito.
+* **Backoffice:** `CompanyProfileUpdateView.fields` ampliado; sección "Formulario de Diagnóstico" en el formulario con campos bilingües en pestañas ES/EN y `diag_form_subject` en zona común.
+* **Catálogo EN:** limpiado el string obsoleto (regenerado a 50 cadenas).
+* **Pruebas:** `test_pricing_view_uses_company_profile_diag_texts` (render dinámico desde `CompanyProfile`). Suite **34/34 passing**.
+* **Verificación local:** `/es/precios/` y `/en/precios/` muestran los textos corregidos desde CMS ("Solicitud enviada"/"Request sent", "Nos contactaremos a la brevedad"/"We will get back to you shortly").
+* **Pendiente (producción):** desplegar a EasyPanel (`fobandor_web`) y verificar que la edición en `/es/backoffice/empresa/` se refleja en `/es/precios/` sin redeploy.
+
 
 
 

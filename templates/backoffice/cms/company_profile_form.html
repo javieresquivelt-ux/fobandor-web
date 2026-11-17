@@ -27,6 +27,15 @@
         <label class="block text-sm font-semibold mb-1">{{ form.values_es.label }}</label>
         {{ form.values_es }}
       </div>
+      <h2 class="text-sm font-bold text-fobandor-orange pt-2">{% trans "Formulario de Diagnóstico" %}</h2>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.diag_modal_title_es.label }}</label>
+        {{ form.diag_modal_title_es }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.diag_success_msg_es.label }}</label>
+        {{ form.diag_success_msg_es }}
+      </div>
     </div>
     <div x-show="tab === 'en'" class="space-y-4">
       <div>
@@ -40,6 +49,15 @@
       <div>
         <label class="block text-sm font-semibold mb-1">{{ form.values_en.label }}</label>
         {{ form.values_en }}
+      </div>
+      <h2 class="text-sm font-bold text-fobandor-orange pt-2">{% trans "Formulario de Diagnóstico" %}</h2>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.diag_modal_title_en.label }}</label>
+        {{ form.diag_modal_title_en }}
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{{ form.diag_success_msg_en.label }}</label>
+        {{ form.diag_success_msg_en }}
       </div>
     </div>
 
@@ -56,6 +74,10 @@
     <div>
       <label class="block text-sm font-semibold mb-1">{{ form.website_url.label }}</label>
       {{ form.website_url }}
+    </div>
+    <div>
+      <label class="block text-sm font-semibold mb-1">{{ form.diag_form_subject.label }}</label>
+      {{ form.diag_form_subject }}
     </div>
 
     <div class="flex gap-3 pt-2">

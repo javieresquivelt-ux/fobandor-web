@@ -83,6 +83,22 @@ class CompanyProfile(models.Model):
                                 default='Orlando, Florida, EE.UU.')
     website_url = models.URLField('URL del sitio web', blank=True,
                                   default='https://www.fobandor.com')
+    # Formulario de diagnóstico / modal de precios
+    diag_form_subject = models.CharField(
+        'Asunto del formulario (Formspree)', max_length=200,
+        default='Nuevo Formulario Web - FOBANDOR')
+    diag_modal_title_es = models.CharField(
+        'Título del modal tras envío (ES)', max_length=100,
+        default='Solicitud enviada')
+    diag_modal_title_en = models.CharField(
+        'Modal title after submit (EN)', max_length=100,
+        default='Request sent')
+    diag_success_msg_es = models.TextField(
+        'Mensaje de éxito (ES)',
+        default='¡Gracias! Hemos recibido tu solicitud. Nos contactaremos a la brevedad.')
+    diag_success_msg_en = models.TextField(
+        'Success message (EN)',
+        default='Thank you! We received your request. We will get back to you shortly.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

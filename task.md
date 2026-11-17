@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 3: APROBAR (Tarea 4.8 — Integración de Formspree Real para Diagnóstico Comercial en /precios/). En espera de visto bueno del Desarrollador Líder.
+> * **Estado Actual:** FASE 3: APROBAR (Tarea 4.9 — Correcciones de Textos del Modal de Diagnóstico e Integración al CMS). En espera de visto bueno del Desarrollador Líder.
 
 ---
 
@@ -2379,4 +2379,114 @@ fobandor/
      - Ejecución de `pytest` (garantizar 100% passing).
      - Envío de prueba en producción desde `https://www.fobandor.com/es/precios/`.
      - Confirmación de recepción del lead de diagnóstico en la bandeja de entrada de `for@fobandor.com` y en el dashboard de Formspree.
+
+---
+
+### Tarea 4.9: Correcciones de Textos del Modal de Diagnóstico e Integración al CMS
+
+> **Estado Actual:** FASE 4: EJECUTADA. Correcciones de texto del modal integradas al CMS (`CompanyProfile`) con fusión A+B (una sola migración).
+
+- [x] **Contexto:**
+  - El formulario de diagnóstico comercial en `/es/precios/` fue entregado y verificado en producción (Tarea 4.8).
+  - Freddy Obando solicita 2 correcciones de texto inmediatas + la integración de los textos configurables al CMS del Backoffice para que el equipo editorial pueda actualizarlos en el futuro sin intervención técnica.
+
+- [x] **Desglose de Acciones Atómicas:**
+
+  **Sub-tarea A — Correcciones inmediatas de textos (impacto bajo, sin migraciones)**
+
+  1. **Asunto del formulario (`_subject`):**
+     - Cambiar en `templates/billing/pricing.html`:
+       ```html
+       <!-- Antes -->
+       <input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">
+       <!-- Después -->
+       <input type="hidden" name="_subject" value="Nuevo Formulario Web - FOBANDOR">
+       ```
+  2. **Título del estado de éxito en el modal:**
+     - Cambiar en `templates/billing/pricing.html` línea `{% trans "Solicita tu diagnóstico" %}` → `{% trans "Solicitud enviada" %}` (solo en el bloque `x-show="submitted"`).
+     - **Nota:** El título "Solicita tu diagnóstico" del encabezado del formulario activo queda igual; solo cambia el título del estado de confirmación.
+  3. **Mensaje de confirmación de éxito:**
+     - Cambiar en `templates/billing/pricing.html`:
+       ```
+       Antes: "¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas."
+       Después: "¡Gracias! Hemos recibido tu solicitud. Nos contactaremos a la brevedad."
+       ```
+  4. **Actualización del catálogo de traducción EN:**
+     - Actualizar las cadenas correspondientes en `locale/en/LC_MESSAGES/django.po`:
+       - `"Thank you! We received your request. Freddy Obando will contact you within 24 hours."` → `"Thank you! We received your request. We will get back to you shortly."`
+       - `"Request sent"` → nueva cadena para `"Solicitud enviada"`.
+     - Recompilar el catálogo `.mo` con `scripts/build_translations.py`.
+
+  **Sub-tarea B — Integración al CMS (factibilidad: ALTA ✅)**
+
+  > **Análisis de Factibilidad:**
+  > El modelo `CompanyProfile` (`fobandor/cms/models.py`) ya es un singleton con patrón `load()`, backoffice dedicado en `/backoffice/empresa/`, formulario bilingüe (Español/Inglés) y es el lugar arquitectónicamente correcto para albergar configuraciones globales del sitio.
+  >
+  > **Decisión:** Extender `CompanyProfile` con 4 campos nuevos para los textos del modal de diagnóstico. Esto es preferible a crear un nuevo modelo para evitar sobre-modelado y mantener un único punto de configuración para los administradores.
+
+  5. **Migración del modelo `CompanyProfile` (`fobandor/cms/models.py`):**
+     - Agregar 4 campos nuevos al modelo `CompanyProfile`:
+       ```python
+       # Formulario de diagnóstico / modal de precios
+       diag_form_subject = models.CharField(
+           'Asunto del formulario (Formspree)',
+           max_length=200,
+           default='Nuevo Formulario Web - FOBANDOR'
+       )
+       diag_modal_title_es = models.CharField(
+           'Título del modal tras envío (ES)',
+           max_length=100,
+           default='Solicitud enviada'
+       )
+       diag_modal_title_en = models.CharField(
+           'Modal title after submit (EN)',
+           max_length=100,
+           default='Request sent'
+       )
+       diag_success_msg_es = models.TextField(
+           'Mensaje de éxito (ES)',
+           default='¡Gracias! Hemos recibido tu solicitud. Nos contactaremos a la brevedad.'
+       )
+       diag_success_msg_en = models.TextField(
+           'Success message (EN)',
+           default='Thank you! We received your request. We will get back to you shortly.'
+       )
+       ```
+     - Generar y aplicar migración: `makemigrations cms` + `migrate`.
+
+  6. **Inyección del perfil en la vista `PricingCatalogView` (`fobandor/billing/views.py`):**
+     - Importar `CompanyProfile` y agregar al contexto:
+       ```python
+       from fobandor.cms.models import CompanyProfile
+       ctx['company'] = CompanyProfile.load()
+       ```
+
+  7. **Actualización de `templates/billing/pricing.html`:**
+     - Reemplazar los textos estáticos del modal por variables de contexto dinámicas:
+       ```html
+       <!-- Antes -->
+       <h4>{% trans "Solicita tu diagnóstico" %}</h4>
+       <input type="hidden" name="_subject" value="Nuevo Formulario Web - FOBANDOR">
+       <p>{% trans "¡Gracias! Hemos recibido tu solicitud. Nos contactaremos a la brevedad." %}</p>
+
+       <!-- Después -->
+       <h4>{% trans "Solicita tu diagnóstico" %}</h4>
+       <input type="hidden" name="_subject" value="{{ company.diag_form_subject }}">
+       <p>{% if LANGUAGE_CODE == 'es' %}{{ company.diag_success_msg_es }}{% else %}{{ company.diag_success_msg_en }}{% endif %}</p>
+       ```
+     - El título de éxito en `x-show="submitted"`:
+       ```html
+       <h4>{% if LANGUAGE_CODE == 'es' %}{{ company.diag_modal_title_es }}{% else %}{{ company.diag_modal_title_en }}{% endif %}</h4>
+       ```
+
+  8. **Actualización del formulario del Backoffice (`fobandor/backoffice/views.py` y `templates/backoffice/cms/company_profile_form.html`):**
+     - Agregar los 5 nuevos campos al formulario `CompanyProfileUpdateView.fields`.
+     - Agregar sección **"Formulario de Diagnóstico"** en el template del Backoffice con pestañas ES/EN para los campos bilingüales.
+
+  9. **Verificación de Aceptación:**
+     - `pytest` (target: 33/33 → al menos 33 passing, posibles tests nuevos de contexto).
+     - `flake8` sin errores.
+     - `python manage.py check` → 0 issues.
+     - Verificar en `/es/backoffice/empresa/` que los nuevos campos aparecen y se pueden editar.
+     - Cambiar un valor en el Backoffice y verificar que el modal de `/es/precios/` refleja el cambio en tiempo real (sin redeploy).
 

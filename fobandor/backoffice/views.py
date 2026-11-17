@@ -119,7 +119,9 @@ class CompanyProfileUpdateView(BackofficeMixin, UpdateView):
     model = CompanyProfile
     template_name = 'backoffice/cms/company_profile_form.html'
     fields = ['mission_es', 'mission_en', 'vision_es', 'vision_en',
-              'values_es', 'values_en', 'founded_year', 'location', 'website_url']
+              'values_es', 'values_en', 'founded_year', 'location', 'website_url',
+              'diag_form_subject', 'diag_modal_title_es', 'diag_modal_title_en',
+              'diag_success_msg_es', 'diag_success_msg_en']
     success_url = reverse_lazy('backoffice:company-profile')
 
     def get_object(self, queryset=None):

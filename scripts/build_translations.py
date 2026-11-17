@@ -64,8 +64,6 @@ TRANSLATIONS = {
     "Enviar solicitud": "Send request",
     "Enviar": "Send",
     "Enviando diagnóstico...": "Sending your request...",
-    "¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas.":
-        "Thank you! We received your request. Freddy Obando will contact you within 24 hours.",
     "No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a":
         "We couldn't send your request. Please try again or email us at",
     "Cerrar": "Close",
