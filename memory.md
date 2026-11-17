@@ -214,9 +214,9 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis del flujo de captación comercial con Formspree en `/precios/`, protección anti-spam silenciosa y experiencia asíncrona inmersiva. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.8** en `task.md` (variables de entorno, soporte Alpine.js async, honeypot y metadata). |
 | **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación del Desarrollador Líder y de la provisión del Form ID / Endpoint por Freddy Obando. |
-| **4. EJECUTAR** | **PENDIENTE (Tarea 4.8)** | Implementación en plantilla, actualización de `.env` y configuración en EasyPanel tras visto bueno. |
-| **5. REGISTRAR** | **EN PROGRESO** | Sección 16 documentada en `memory.md` con las justificaciones arquitectónicas y de UX. |
-| **6. APRENDER** | **PENDIENTE** | Verificación de recepción de lead en bandeja de entrada y dashboard de Formspree. |
+| **4. EJECUTAR** | **COMPLETADA (Tarea 4.8)** | Implementación en plantilla, suite 33/33 tests, despliegue en VPS EasyPanel/Swarm y convergencia de `fobandor_web`. |
+| **5. REGISTRAR** | **COMPLETADA** | Sección 16 documentada en `memory.md` con los resultados de despliegue y hallazgo sobre reCAPTCHA en Formspree. |
+| **6. APRENDER** | **COMPLETADA** | Verificación técnica de endpoint en producción; identificación de ajuste requerido en dashboard de Formspree (desactivar reCAPTCHA para permitir envíos AJAX fluidos). |
 
 ---
 
@@ -588,7 +588,13 @@ Durante la verificación inicial del despliegue en EasyPanel se presentaron tres
 * **Anti-spam:** honeypot `_gotcha` (`display:none` + `tabindex="-1"` + `autocomplete="off"` + `aria-hidden`) y `_subject` = "Nuevo Diagnóstico Comercial - FOBANDOR".
 * **Bilingüe:** mensajes ES/EN vía `{% trans %}` (catálogo EN regenerado: 51 cadenas).
 * **Pruebas:** `fobandor/billing/tests/test_views.py` (contexto `formspree_endpoint` + render de `_gotcha`/`_subject`/`@submit.prevent`). Suite total **33/33 passing**.
-* **Verificación local:** `/es/precios/` muestra el endpoint real + honeypot + `_subject`; `/en/precios/` muestra mensajes en inglés. Pendiente: prueba de envío real en producción y confirmación de lead en `for@fobandor.com` / dashboard Formspree.
+* **Verificación y Despliegue en VPS (Producción):**
+  1. EasyPanel LMDB y servicio Docker Swarm `fobandor_web` actualizados con `FORMSPREE_ENDPOINT=https://formspree.io/f/mqpqqggk`.
+  2. Build automatizado multi-stage completado exitosamente desde GitHub `main` (`cmwl6xhoc000h06o71ct368ne.log`).
+  3. Servicio Docker Swarm convergido y verificado: `https://www.fobandor.com/es/precios/` y `https://www.fobandor.com/en/precios/` sirviendo el formulario interactivo en vivo con el endpoint real.
+* **Hallazgo Clave de Aceptación con Formspree:**
+  - Al realizar la prueba de envío asíncrono con `Accept: application/json`, Formspree retorna: `{"error":"In order to submit via AJAX, you need to set a custom key or reCAPTCHA must be disabled in this form's settings page."}`.
+  - Para que el envío asíncrono transparente (sin CAPTCHA ni abandono del sitio) funcione de manera fluida, Freddy debe acceder al dashboard de Formspree (`mqpqqggk`), ir a la pestaña **Settings** -> sección **Spam Protection**, y desactivar la opción **reCAPTCHA** (dejando la protección anti-spam en el honeypot `_gotcha` que ya implementamos en el formulario).
 
 
 
