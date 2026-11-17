@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 3: APROBAR (Etapa 4 — SEO Técnico, Auditoría OWASP, Empaquetado Docker y Despliegue en Producción VPS Hostinger / EasyPanel). En espera de aprobación explícita del Desarrollador Líder.
+> * **Estado Actual:** FASE 3: APROBAR (Tarea 4.8 — Integración de Formspree Real para Diagnóstico Comercial en /precios/). En espera de visto bueno del Desarrollador Líder.
 
 ---
 
@@ -2349,3 +2349,34 @@ fobandor/
      - Ambas cuentas creadas con `is_staff=True`, `is_superuser=True`, `is_email_verified=True`.
      - Login exitoso con contraseña de respaldo `Fobandor2026Admin!`.
      - Login exitoso vía Google OAuth con auto-vinculación transparente en 1 clic para ambas cuentas corporativas en `https://www.fobandor.com/accounts/login/`.
+
+---
+
+### Tarea 4.8: Integración de Formspree Real para Diagnóstico Comercial en `/precios/`
+
+> **Estado Actual:** FASE 3: APROBAR. En espera de la aprobación explícita del Desarrollador Líder y de la recepción del Endpoint / Form ID generado por Freddy Obando.
+
+- [ ] **Contexto:**
+  - En la vista comercial `/es/precios/` y `/en/pricing/`, además del flujo de compra directa con Stripe Checkout, existe un botón destacado *"Hablemos hoy"* ("Let's Talk Today") que abre un modal de captación de prospectos para diagnósticos a medida.
+  - Actualmente dicho formulario apunta a un endpoint de prueba (`https://formspree.io/f/placeholder`).
+  - Freddy Obando se encuentra configurando el formulario real en su consola de Formspree vinculado a `for@fobandor.com`.
+- [ ] **Desglose de Acciones Atómicas:**
+  1. **Parametrización de Entorno (12-Factor):**
+     - Configurar `FORMSPREE_ENDPOINT=https://formspree.io/f/<ID_REAL>` en `.env` (desarrollo local).
+     - Actualizar variable de entorno `FORMSPREE_ENDPOINT` en el servicio `fobandor_web` de EasyPanel en el VPS (`89.117.32.46`).
+     - Mantener `.env.example` actualizado con el placeholder descriptivo.
+  2. **Mejora de UX y Blindaje en Plantilla (`templates/billing/pricing.html`):**
+     - **Envío Asíncrono con Alpine.js:** Migrar el submit síncrono estándar a un flujo asíncrono vía `fetch()` con encabezado `Accept: application/json`.
+       - Evita la redirección externa a la página genérica de Formspree.
+       - Deshabilita el botón de envío y muestra spinner / texto *"Enviando diagnóstico..."* durante la petición.
+       - Muestra mensaje de éxito reactivo dentro del modal: *"¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas."*.
+       - Manejo elegante de fallas de red con mensaje de reintento o contacto directo a `for@fobandor.com`.
+     - **Metadatos y Protección Anti-Spam Formspree:**
+       - Agregar campo oculto `<input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">` para facilitar la identificación de leads en el inbox de Freddy.
+       - Agregar campo honeypot silencioso `<input type="text" name="_gotcha" style="display:none">` para descartar envíos automáticos de bots sin molestar al usuario con captchas.
+  3. **Pruebas y Verificación de Aceptación:**
+     - Pruebas unitarias en `fobandor/billing/tests/test_views.py` para asegurar que `PricingCatalogView` inyecta correctamente `formspree_endpoint` en el contexto.
+     - Ejecución de `pytest` (garantizar 100% passing).
+     - Envío de prueba en producción desde `https://www.fobandor.com/es/precios/`.
+     - Confirmación de recepción del lead de diagnóstico en la bandeja de entrada de `for@fobandor.com` y en el dashboard de Formspree.
+

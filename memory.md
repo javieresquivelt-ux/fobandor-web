@@ -211,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis de migración a Google Workspace corporativo (`@fobandor.com`) y definición de cuentas de administración dual (`for@fobandor.com` y `jet@fobandor.com`). |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.7** en `task.md` (variables EasyPanel, aprovisionamiento de superusuarios en PostgreSQL y verificación de login OAuth/password). |
-| **3. APROBAR** | **APROBADO** | Aprobación explícita otorgada por el Desarrollador Líder para la ejecución de la Tarea 4.7. |
-| **4. EJECUTAR** | **COMPLETADA (Tarea 4.7)** | Aprovisionamiento exitoso de `for@fobandor.com` y `jet@fobandor.com` en PostgreSQL y credenciales Workspace activas en VPS. |
-| **5. REGISTRAR** | **COMPLETADA** | Sección 15 completada en `memory.md` con los resultados de aprovisionamiento y auto-conexión. |
-| **6. APRENDER** | **COMPLETADA** | Verificación de login dual (Google Workspace 1-clic y credenciales de respaldo) operativa en producción. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis del flujo de captación comercial con Formspree en `/precios/`, protección anti-spam silenciosa y experiencia asíncrona inmersiva. |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.8** en `task.md` (variables de entorno, soporte Alpine.js async, honeypot y metadata). |
+| **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación del Desarrollador Líder y de la provisión del Form ID / Endpoint por Freddy Obando. |
+| **4. EJECUTAR** | **PENDIENTE (Tarea 4.8)** | Implementación en plantilla, actualización de `.env` y configuración en EasyPanel tras visto bueno. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 16 documentada en `memory.md` con las justificaciones arquitectónicas y de UX. |
+| **6. APRENDER** | **PENDIENTE** | Verificación de recepción de lead en bandeja de entrada y dashboard de Formspree. |
 
 ---
 
@@ -557,6 +557,31 @@ Durante la verificación inicial del despliegue en EasyPanel se presentaron tres
   - Superusuarios creados en PostgreSQL en vivo: `for@fobandor.com` y `jet@fobandor.com` con `is_staff=True`, `is_superuser=True`, `is_email_verified=True`.
   - Credenciales de Google Workspace OAuth 2.0 actualizadas en el servicio `fobandor_web` en el VPS Hostinger.
   - Servicio convergido y verificado: `https://fobandor.com/` respondiendo HTTP/2 200.
+
+---
+
+## 16. Integración y Robustecimiento de Formspree para Captación de Leads y Diagnóstico Comercial
+
+* **Contexto Comercial:**
+  En el modelo de conversión de FOBANDOR, la vista de precios (`/precios/`) atiende a dos perfiles de prospecto:
+  1. *Comprador Inmediato:* Selecciona directamente uno de los tres planes de suscripción mensual (Impulso $697, Conversión $1,297, Crecimiento $1,997) e inicia el flujo de pago con Stripe Checkout.
+  2. *Prospecto Calificado / En Consulta:* Requiere un análisis previo de requerimientos, integración personalizada o consultoría estratégica antes de comprometerse con un plan mensual. Para este segmento, el CTA *"Hablemos hoy"* ("Let's Talk Today") abre un modal interactivo de diagnóstico.
+* **Diagnóstico Técnico del Endpoint Provisional:**
+  - El código base actual utilizaba un placeholder (`https://formspree.io/f/placeholder`) inyectado mediante `settings.FORMSPREE_ENDPOINT`.
+  - El formulario realizaba un envío síncrono estándar (`method="POST"`), lo cual, tras la sumisión, redirige al usuario a la página de agradecimiento por defecto alojada en `formspree.io`, rompiendo la identidad visual corporativa y alejándolo del sitio web de FOBANDOR.
+* **Decisiones Arquitectónicas y de Experiencia de Usuario (UX):**
+  1. **Configuración 12-Factor y Cero Hardcoding:** Mantener `FORMSPREE_ENDPOINT` desacoplado a través de variables de entorno tanto en el entorno local (`.env`) como en el servicio Swarm de producción (`fobandor_web` en EasyPanel).
+  2. **Envío Asíncrono sin Abandono del Sitio (Zero Friction):**
+     - Emplear Alpine.js (librería ya cargada localmente sin CDN) para interceptar el evento `submit` y despachar la petición vía `fetch()` con encabezado `Accept: application/json`.
+     - Esto permite conservar al usuario en `fobandor.com`, ofreciendo un estado de carga reactivo (*"Enviando..."*) y un mensaje de éxito contextual (*"¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas."*).
+  3. **Blindaje Anti-Spam Silencioso (Honeypot):**
+     - Incorporar el campo oculto `<input type="text" name="_gotcha" style="display:none">`. Formspree descarta automáticamente cualquier envío donde este campo venga diligenciado por bots automatizados, eliminando la necesidad de CAPTCHAs que generen fricción en la conversión de clientes de alto valor.
+  4. **Metadatos y Enrutamiento de Notificaciones:**
+     - Integrar `<input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">` para que el propietario Freddy Obando (`for@fobandor.com`) identifique y priorice inmediatamente el correo entrante con reglas de bandeja en Google Workspace.
+* **Gobernanza:**
+  - Plan detallado en `task.md` (Tarea 4.8).
+  - Estado: **FASE 3: APROBAR**. Se mantiene la pausa estricta a la espera de la autorización explícita y la entrega del ID del formulario por parte del Desarrollador Líder / Freddy.
+
 
 
 
