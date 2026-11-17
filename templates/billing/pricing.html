@@ -69,7 +69,28 @@
 
 <!-- Diagnóstico -->
 <section class="py-16 bg-gray-50 dark:bg-white/5">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center" x-data="{ open: false }">
+  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center"
+       x-data="{ open: false, submitting: false, submitted: false, error: false,
+                 async submitForm(event) {
+                   this.submitting = true;
+                   this.error = false;
+                   try {
+                     const res = await fetch(event.target.action, {
+                       method: 'POST',
+                       body: new FormData(event.target),
+                       headers: { 'Accept': 'application/json' },
+                     });
+                     if (res.ok) {
+                       this.submitted = true;
+                     } else {
+                       this.error = true;
+                     }
+                   } catch (e) {
+                     this.error = true;
+                   } finally {
+                     this.submitting = false;
+                   }
+                 } }">
     <h3 class="text-2xl md:text-3xl font-extrabold tracking-tight">{% trans "Agenda un diagnóstico y descubre cuál plan necesita tu negocio" %}</h3>
     <div class="mt-4 flex flex-wrap justify-center gap-2 text-xs font-semibold text-gray-500 dark:text-gray-400">
       <span>Innovación</span><span>•</span><span>Creatividad</span><span>•</span><span>Resultados</span><span>•</span><span>Sin límites</span>
@@ -82,7 +103,19 @@
     <div x-show="open" x-cloak class="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4" @click.away="open = false">
       <div class="bg-white dark:bg-fobandor-dark rounded-2xl p-6 w-full max-w-md text-left">
         <h4 class="text-lg font-bold mb-4">{% trans "Solicita tu diagnóstico" %}</h4>
-        <form action="{{ formspree_endpoint }}" method="POST" class="space-y-4">
+
+        <!-- Éxito -->
+        <div x-show="submitted" x-cloak class="text-center py-6">
+          <p class="text-green-600 text-lg font-semibold">✓</p>
+          <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
+            {% trans "¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo en menos de 24 horas." %}
+          </p>
+        </div>
+
+        <form x-show="!submitted" x-cloak action="{{ formspree_endpoint }}" method="POST" class="space-y-4" @submit.prevent="submitForm($event)">
+          <input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">
+          <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+
           <div>
             <label class="block text-sm font-semibold mb-1">{% trans "Nombre" %}</label>
             <input type="text" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent">
@@ -99,10 +132,18 @@
             <label class="block text-sm font-semibold mb-1">{% trans "Mensaje" %}</label>
             <textarea name="message" rows="3" class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent"></textarea>
           </div>
-          <button type="submit" class="w-full rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2.5 font-semibold">
-            {% trans "Enviar" %}
+
+          <div x-show="error" x-cloak class="text-fobandor-orange text-sm">
+            {% trans "No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a" %}
+            <a href="mailto:for@fobandor.com" class="underline">for@fobandor.com</a>.
+          </div>
+
+          <button type="submit" :disabled="submitting" class="w-full rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2.5 font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+            <span x-show="!submitting">{% trans "Enviar" %}</span>
+            <span x-show="submitting" x-cloak>{% trans "Enviando diagnóstico..." %}</span>
           </button>
         </form>
+
         <button type="button" @click="open = false" class="mt-3 w-full text-sm text-gray-500 hover:text-gray-700">{% trans "Cerrar" %}</button>
       </div>
     </div>

@@ -157,6 +157,22 @@ msgstr "Message"
 msgid "Enviar solicitud"
 msgstr "Send request"
 
+msgid "Enviar"
+msgstr "Send"
+
+msgid "Enviando diagnóstico..."
+msgstr "Sending your request..."
+
+msgid ""
+"¡Gracias! Hemos recibido tu solicitud. Freddy Obando se contactará contigo "
+"en menos de 24 horas."
+msgstr ""
+"Thank you! We received your request. Freddy Obando will contact you within "
+"24 hours."
+
+msgid "No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a"
+msgstr "We couldn't send your request. Please try again or email us at"
+
 msgid "Cerrar"
 msgstr "Close"
 

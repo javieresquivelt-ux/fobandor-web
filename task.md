@@ -2354,13 +2354,13 @@ fobandor/
 
 ### Tarea 4.8: Integración de Formspree Real para Diagnóstico Comercial en `/precios/`
 
-> **Estado Actual:** FASE 3: APROBAR. En espera de la aprobación explícita del Desarrollador Líder y de la recepción del Endpoint / Form ID generado por Freddy Obando.
+> **Estado Actual:** FASE 4: EJECUTADA. Formspree real (`https://formspree.io/f/mqpqqggk`) integrado con envío asíncrono, honeypot y metadatos. Pendiente verificación de recepción del lead en producción.
 
-- [ ] **Contexto:**
+- [x] **Contexto:**
   - En la vista comercial `/es/precios/` y `/en/pricing/`, además del flujo de compra directa con Stripe Checkout, existe un botón destacado *"Hablemos hoy"* ("Let's Talk Today") que abre un modal de captación de prospectos para diagnósticos a medida.
   - Actualmente dicho formulario apunta a un endpoint de prueba (`https://formspree.io/f/placeholder`).
   - Freddy Obando se encuentra configurando el formulario real en su consola de Formspree vinculado a `for@fobandor.com`.
-- [ ] **Desglose de Acciones Atómicas:**
+- [x] **Desglose de Acciones Atómicas:**
   1. **Parametrización de Entorno (12-Factor):**
      - Configurar `FORMSPREE_ENDPOINT=https://formspree.io/f/<ID_REAL>` en `.env` (desarrollo local).
      - Actualizar variable de entorno `FORMSPREE_ENDPOINT` en el servicio `fobandor_web` de EasyPanel en el VPS (`89.117.32.46`).

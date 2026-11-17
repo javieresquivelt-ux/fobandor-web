@@ -580,7 +580,15 @@ Durante la verificación inicial del despliegue en EasyPanel se presentaron tres
      - Integrar `<input type="hidden" name="_subject" value="Nuevo Diagnóstico Comercial - FOBANDOR">` para que el propietario Freddy Obando (`for@fobandor.com`) identifique y priorice inmediatamente el correo entrante con reglas de bandeja en Google Workspace.
 * **Gobernanza:**
   - Plan detallado en `task.md` (Tarea 4.8).
-  - Estado: **FASE 3: APROBAR**. Se mantiene la pausa estricta a la espera de la autorización explícita y la entrega del ID del formulario por parte del Desarrollador Líder / Freddy.
+  - Estado: **FASE 4: EJECUTADA** con endpoint real `https://formspree.io/f/mqpqqggk`.
+
+### Ejecución (Tarea 4.8)
+* **Endpoint real:** `FORMSPREE_ENDPOINT=https://formspree.io/f/mqpqqggk` en `.env` (producción vía EasyPanel `fobandor_web`).
+* **UX asíncrona (Alpine.js):** `@submit.prevent` + `fetch()` con `Accept: application/json` y `FormData` (incluye honeypot y `_subject` automáticamente). Estados reactivos: `submitting` (botón deshabilitado, "Enviando diagnóstico..."), `submitted` (mensaje de éxito) y `error` (fallback a `for@fobandor.com`). Sin redirección externa.
+* **Anti-spam:** honeypot `_gotcha` (`display:none` + `tabindex="-1"` + `autocomplete="off"` + `aria-hidden`) y `_subject` = "Nuevo Diagnóstico Comercial - FOBANDOR".
+* **Bilingüe:** mensajes ES/EN vía `{% trans %}` (catálogo EN regenerado: 51 cadenas).
+* **Pruebas:** `fobandor/billing/tests/test_views.py` (contexto `formspree_endpoint` + render de `_gotcha`/`_subject`/`@submit.prevent`). Suite total **33/33 passing**.
+* **Verificación local:** `/es/precios/` muestra el endpoint real + honeypot + `_subject`; `/en/precios/` muestra mensajes en inglés. Pendiente: prueba de envío real en producción y confirmación de lead en `for@fobandor.com` / dashboard Formspree.
 
 
 
