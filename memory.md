@@ -211,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Diagnóstico integral del VPS Hostinger (`89.117.32.46`), recursos libres (6.4GB RAM, 86GB SSD), servicios activos (Traefik, EasyPanel, n8n, barberbot), auditoría DNS en Nic.com/GoDaddy (`fobandor.com` -> `89.117.32.46`) y análisis de seguridad OWASP/WhiteNoise. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico exhaustivo de la **Etapa 4 (Tareas 4.0 a 4.5)** en `task.md` con Dockerfile multi-etapa, WhiteNoise, settings de producción, sitemaps XML bilingües, `robots.txt`, suite `test_seo.py` y checklist de despliegue en EasyPanel. |
-| **3. APROBAR** | **APROBADO** | Plan atómico de Etapa 4 aprobado por el desarrollador líder (luz verde para ejecución). |
-| **4. EJECUTAR** | **COMPLETADA (Etapa 4)** | Tareas 4.0 a 4.5 100% ejecutadas y desplegadas en vivo en EasyPanel (Hostinger VPS). Servicio `fobandor_web` y `fobandor_postgres` saludables. |
-| **5. REGISTRAR** | **COMPLETADA (Etapas 1 a 4)** | Bitácora y ADRs (ADR-001 al ADR-016) + Secciones 12 y 13 con hallazgos de ejecución y verificación en producción. |
-| **6. APRENDER** | **COMPLETADA (Release v1.0.0)** | Verificación de aceptación técnica en vivo en `https://fobandor.com/` (HTTP/2 200, SSL válido, SEO, precios, backoffice) y tag de release oficial `v1.0.0` publicado. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis de migración a Google Workspace corporativo (`@fobandor.com`) y definición de cuentas de administración dual (`for@fobandor.com` y `jet@fobandor.com`). |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.7** en `task.md` (variables EasyPanel, aprovisionamiento de superusuarios en PostgreSQL y verificación de login OAuth/password). |
+| **3. APROBAR** | **EN REVISIÓN (ACTIVA)** | **PAUSA OBLIGATORIA.** Plan atómico de la Tarea 4.7 presentado al Desarrollador Líder en espera de aprobación explícita antes de ejecutar. |
+| **4. EJECUTAR** | **PENDIENTE (Tarea 4.7)** | Aprovisionamiento de cuentas y actualización de variables en EasyPanel tras visto bueno. |
+| **5. REGISTRAR** | **COMPLETADA** | Sección 15 añadida en `memory.md` documentando la política de administradores corporativos. |
+| **6. APRENDER** | **COMPLETADA (v1.0.0)** | Plataforma estable en producción `https://fobandor.com/`. Próxima verificación con cuentas Workspace. |
 
 ---
 
@@ -541,6 +541,19 @@ Durante la verificación inicial del despliegue en EasyPanel se presentaron tres
 * **Desviación detectada:** Durante la atención del incidente en vivo, Antigravity-IDE implementó cambios de código y plantillas directamente sin formular primero la tarea atómica en `task.md` ni solicitar la aprobación previa del Desarrollador Líder en FASE 3.
 * **Medida Correctiva:** El incidente fue formalmente regularizado incorporando la **Tarea 4.6 en `task.md`** y este registro en `memory.md`.
 * **Regla Inmutable:** Se ratifica que cualquier intervención técnica (incluyendo hotfixes de producción o ajustes de configuración) debe ceñirse sin excepciones al ciclo HARNESS: Análisis → Tarea Atómica → Aprobación Explícita del Desarrollador Líder → Ejecución → Registro.
+
+---
+
+## 15. Transición a Google Workspace Corporativo y Gobierno de Cuentas Oficiales (@fobandor.com)
+
+* **Contexto:** Freddy Obando activó el servicio oficial de Google Workspace para el dominio `fobandor.com`, superando la fase de cuentas provisionales de Gmail (`fobandorgcp@gmail.com`). Se habilitaron nuevas credenciales OAuth 2.0 en Google Cloud asociadas a la organización oficial.
+* **Política de Cuentas de Administración (Staff & Superuser):**
+  1. **`for@fobandor.com`:** Propietario y Director General (Freddy Obando).
+  2. **`jet@fobandor.com`:** Desarrollador Líder y Arquitecto Técnico.
+* **Mecanismo Técnico de Autenticación:**
+  - Se utiliza la auto-vinculación transparente habilitada en la Tarea 4.6 (`SOCIALACCOUNT_EMAIL_AUTHENTICATION = True` y `AUTO_CONNECT = True`).
+  - Al registrarse previamente ambos usuarios en PostgreSQL de producción con `is_staff=True`, `is_superuser=True` y contraseña inicial de respaldo (`Fobandor2026Admin!`), el inicio de sesión vía Google OAuth con sus cuentas corporativas `@fobandor.com` funcionará inmediatamente en 1 solo clic.
+* **Estado HARNESS Actual:** Tarea 4.7 formulada en `task.md` y documentada en `memory.md` en **FASE 3: APROBAR** (en espera de visto bueno explícito del desarrollador líder).
 
 
 

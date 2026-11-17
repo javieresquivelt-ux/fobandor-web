@@ -2322,3 +2322,43 @@ fobandor/
   - Linter: `flake8 config fobandor scripts` sin errores.
   - Login verificado en `/es/admin` para `fobandorgcp@gmail.com` con `Fobandor2026Admin!`.
   - Redirección OAuth directa sin pantallas intermedias.
+
+---
+
+### Tarea 4.7: Transición a Google Workspace Corporativo y Gestión de Administradores Oficiales (`for@fobandor.com` y `jet@fobandor.com`)
+
+> **Estado Actual:** FASE 3: APROBAR — Plan presentado al Desarrollador Líder. En pausa obligatoria a la espera de aprobación explícita antes de ejecutar en producción.
+
+- [ ] **Contexto:**
+  - Freddy Obando adquirió el dominio oficial en Google Workspace (`fobandor.com`).
+  - Se definen dos cuentas de administración corporativa:
+    1. `for@fobandor.com` (Freddy Obando / Propietario).
+    2. `jet@fobandor.com` (Desarrollador Fullstack Líder / Arquitecto).
+  - Se generaron nuevas credenciales en Google Cloud Console vinculadas al proyecto de Workspace:
+    - `GOOGLE_OAUTH_CLIENT_ID`: (valor generado para Workspace en `.env`)
+    - `GOOGLE_OAUTH_CLIENT_SECRET`: (valor generado para Workspace en `.env`)
+- [ ] **Desglose de Acciones Atómicas:**
+  1. **Actualización de Entorno en EasyPanel (Hostinger VPS):**
+     - Actualizar en el servicio `web` (`Entorno`) las variables `GOOGLE_OAUTH_CLIENT_ID` y `GOOGLE_OAUTH_CLIENT_SECRET` con los valores de Google Workspace.
+     - Desplegar (`Deploy`) para que el contenedor tome las nuevas claves.
+  2. **Creación / Registro de Superusuarios en PostgreSQL de Producción:**
+     - Ejecutar comando de aprovisionamiento en la base de datos de producción para crear ambos administradores:
+       ```python
+       from fobandor.users.models import User
+       admins = [
+           ("for@fobandor.com", "Fobandor2026Admin!"),
+           ("jet@fobandor.com", "Fobandor2026Admin!"),
+       ]
+       for email, pwd in admins:
+           user, created = User.objects.get_or_create(email=email)
+           user.set_password(pwd)
+           user.is_staff = True
+           user.is_superuser = True
+           user.is_email_verified = True
+           user.is_active = True
+           user.save()
+       ```
+  3. **Verificación de Criterios de Aceptación:**
+     - Ambas cuentas creadas con `is_staff=True`, `is_superuser=True`, `is_email_verified=True`.
+     - Login exitoso con contraseña temporal `Fobandor2026Admin!` en `/es/admin`.
+     - Login exitoso vía Google OAuth con auto-vinculación transparente en 1 clic para ambas cuentas corporativas en `https://www.fobandor.com/accounts/login/`.
