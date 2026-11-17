@@ -20,9 +20,10 @@ if [ -n "$DJANGO_SUPERUSER_EMAIL" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
     python manage.py createsuperuser --noinput || true
 fi
 
-echo "==> Iniciando servidor Gunicorn en el puerto ${PORT:-8000}..."
+PORT=8000
+echo "==> Iniciando servidor Gunicorn en el puerto ${PORT}..."
 exec gunicorn config.wsgi:application \
-    --bind 0.0.0.0:${PORT:-8000} \
+    --bind 0.0.0.0:${PORT} \
     --workers 3 \
     --timeout 120 \
     --access-logfile - \
