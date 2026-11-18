@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 3: APROBAR (Tarea 4.9 — Correcciones de Textos del Modal de Diagnóstico e Integración al CMS). En espera de visto bueno del Desarrollador Líder.
+> * **Estado Actual:** FASE 4: EJECUTADA Y VALIDADA. Pasarela Stripe en Modo Test 100% operativa en producción (Tarea 4.10). Modal de diagnóstico y CMS 100% funcionales (Tareas 4.8 y 4.9).
 
 ---
 
@@ -2489,4 +2489,36 @@ fobandor/
      - `python manage.py check` → 0 issues.
      - Verificar en `/es/backoffice/empresa/` que los nuevos campos aparecen y se pueden editar.
      - Cambiar un valor en el Backoffice y verificar que el modal de `/es/precios/` refleja el cambio en tiempo real (sin redeploy).
+
+---
+
+### Tarea 4.10: Activación y Validación de Stripe en Modo Test con Productos y Webhook Criptográfico
+
+> **Estado Actual:** FASE 4: EJECUTADA Y VALIDADA. Credenciales de Stripe Sandbox activas en EasyPanel y VPS Swarm, Webhook configurado en Stripe Workbench, mapeo de Price IDs y tax code SaaS resuelto. Checkout funcional en `https://www.fobandor.com/es/precios/`.
+
+- [x] **Contexto:**
+  - Se acordó con el Desarrollador Líder probar primero la pasarela de pagos en Modo Test (Sandbox) de Stripe antes de realizar transacciones comerciales reales.
+  - Se configuró el destino de Webhook en Stripe Workbench y se generaron las credenciales de prueba (`pk_test_...`, `sk_test_...` y `whsec_...`).
+- [x] **Desglose de Acciones Atómicas Ejecutadas:**
+  1. **Configuración de Webhook en Stripe Workbench:**
+     - Destino registrado: `https://www.fobandor.com/stripe/webhook/` (formato Snapshot v1).
+     - Eventos habilitados: `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`.
+     - Signing secret obtenido e inyectado en `STRIPE_WEBHOOK_SECRET`.
+  2. **Parametrización de Entorno (12-Factor):**
+     - `.env` local y variables del servicio Swarm `fobandor_web` en EasyPanel VPS (`89.117.32.46`) actualizadas con `STRIPE_PUBLIC_KEY`, `STRIPE_SECRET_KEY` y `STRIPE_WEBHOOK_SECRET`.
+     - Servicio Swarm convergido y verificado.
+  3. **Resolución de Price IDs vs Product IDs:**
+     - Se identificó que en el Backoffice se habían cargado originalmente Product IDs (`prod_...`).
+     - A través de la API de Stripe se extrajeron los Price IDs (`price_...`) exactos asociados a la recurrencia mensual:
+       - Impulso ($697/mes): `price_1UczZNDd8zg4z4zarI1nFiTB`
+       - Conversión ($1,297/mes): `price_1UczasDd8zg4z4za8jCoZZZa`
+       - Crecimiento ($1,997/mes): `price_1UczbgDd8zg4z4zaCxHiSJao`
+     - Base de datos local y de producción actualizadas con los Price IDs correspondientes.
+  4. **Configuración de Tax Code para Stripe Managed Payments:**
+     - Al detectar requerimiento de código fiscal por Managed Payments, se asignó vía API `tax_code="txcd_10000000"` (Software as a Service) a los 3 productos en Stripe.
+  5. **Verificación de Aceptación:**
+     - Creación de Stripe Checkout Sessions validada con éxito en local y en el contenedor de producción.
+     - Suite de pruebas automatizadas: **34/34 tests pasando** (`pytest`).
+     - Botón "Comenzar" en `/es/precios/` redirige fluidamente a la pasarela de pago alojada en Stripe (`https://checkout.stripe.com/c/pay/...`).
+
 

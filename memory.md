@@ -211,15 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis del flujo de captación comercial con Formspree en `/precios/`, protección anti-spam silenciosa y experiencia asíncrona inmersiva. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.8** en `task.md` (variables de entorno, soporte Alpine.js async, honeypot y metadata). |
-| **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación del Desarrollador Líder y de la provisión del Form ID / Endpoint por Freddy Obando. |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis de correcciones textuales del modal de diagnóstico en `/precios/` y factibilidad de integración al CMS (`CompanyProfile` singleton). |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Tarea 4.9** en `task.md` (Sub-tarea A: cambios de texto inmediatos; Sub-tarea B: extensión del singleton `CompanyProfile` y backoffice). |
-| **3. APROBAR** | **EN ESPERA** | Pausa obligatoria de gobernanza: en espera de aprobación explícita del Desarrollador Líder antes de ejecutar. |
-| **4. EJECUTAR** | **PENDIENTE (Tarea 4.9)** | Implementación de correcciones, migración de BD, actualización de vistas y template tras visto bueno. |
-| **5. REGISTRAR** | **EN PROGRESO** | Sección 17 iniciada en `memory.md` con análisis de factibilidad y decisiones arquitectónicas. |
-| **6. APRENDER** | **PENDIENTE** | Verificación en `/backoffice/empresa/` y `/precios/` en producción tras despliegue. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis de integración de Stripe Checkout en Modo Test, configuración de webhook criptográfico y compatibilidad con Managed Payments. |
+| **2. PLANIFICAR** | **COMPLETADA** | Tarea 4.10 formulada para la activación de Stripe Test Mode, resolución de Product IDs a Price IDs y aprovisionamiento de claves de entorno. |
+| **3. APROBAR** | **APROBADO** | Aprobación otorgada por el Desarrollador Líder para operar en Modo Test con credenciales oficiales de Stripe Sandbox. |
+| **4. EJECUTAR** | **COMPLETADA (Tarea 4.10)** | Inyección de variables en EasyPanel/Swarm, mapeo de Price IDs reales, configuración de `tax_code` SaaS y validación de Checkout Sessions. |
+| **5. REGISTRAR** | **COMPLETADA** | Sección 18 documentada en `memory.md` con los hallazgos de Price IDs vs Product IDs y Managed Payments tax code. |
+| **6. APRENDER** | **COMPLETADA** | Pasarela Stripe 100% validada en modo prueba en el dominio productivo sin errores 500 ni fallos de pasarela. |
 
 ---
 
@@ -633,6 +630,42 @@ Con el formulario de diagnóstico operando en producción, Freddy Obando solicit
 * **Pruebas:** `test_pricing_view_uses_company_profile_diag_texts` (render dinámico desde `CompanyProfile`). Suite **34/34 passing**.
 * **Verificación local:** `/es/precios/` y `/en/precios/` muestran los textos corregidos desde CMS ("Solicitud enviada"/"Request sent", "Nos contactaremos a la brevedad"/"We will get back to you shortly").
 * **Pendiente (producción):** desplegar a EasyPanel (`fobandor_web`) y verificar que la edición en `/es/backoffice/empresa/` se refleja en `/es/precios/` sin redeploy.
+
+---
+
+## 18. Activación y Validación de Stripe en Modo Test con Productos y Webhook Criptográfico
+
+### Contexto y Decisión Operativa
+Para validar el ciclo completo de suscripción, checkout y despacho SLA de 7 días antes de realizar cobros reales a tarjetas de clientes, se acordó activar y probar la plataforma en **Modo Test (Sandbox)** de Stripe.
+
+### Credenciales y Destino de Eventos (Stripe Workbench)
+1. **Configuración de Webhook en Stripe:**
+   - Destino creado bajo Stripe Workbench: `https://www.fobandor.com/stripe/webhook/` (formato Snapshot v1).
+   - Eventos escuchados: `checkout.session.completed`, `invoice.paid`, `customer.subscription.updated`, `customer.subscription.deleted`.
+   - Secreto de firma generado e inyectado en `STRIPE_WEBHOOK_SECRET` (`whsec_...`).
+2. **Claves de API Test:**
+   - Inyectadas en `.env` local y en el servicio Swarm `fobandor_web` en EasyPanel VPS: `STRIPE_PUBLIC_KEY` (`pk_test_...`) y `STRIPE_SECRET_KEY` (`sk_test_...`).
+
+### Hallazgos Críticos y Correcciones de Pasarela
+
+1. **Diferenciación entre Product ID y Price ID:**
+   - *Incidente potencial:* Inicialmente se habían ingresado IDs con prefijo `prod_...` (`prod_VeI9...`, `prod_VeIB...`, `prod_VeIC...`) en el Backoffice.
+   - *Causa:* En Stripe, `prod_` representa el producto comercial general, mientras que `price_` representa la tarifa o frecuencia recurrente requerida por la API de Checkout Sessions (`line_items: [{'price': price_id}]`).
+   - *Solución:* Mediante la API de Stripe se resolvieron los `price_...` exactos asociados a cada producto y se actualizaron en PostgreSQL:
+     - *Plan 1 • Impulso:* `price_1UczZNDd8zg4z4zarI1nFiTB` ($697 USD / mes).
+     - *Plan 2 • Conversión:* `price_1UczasDd8zg4z4za8jCoZZZa` ($1,297 USD / mes).
+     - *Plan 3 • Crecimiento:* `price_1UczbgDd8zg4z4zaCxHiSJao` ($1,997 USD / mes).
+
+2. **Requisito de `tax_code` por Stripe Managed Payments:**
+   - *Incidente:* Al crear la primera sesión de prueba, Stripe rechazó la solicitud con error:
+     `Invalid line_items[0]: the product tax code is missing. Product tax code is required for Managed Payments, which is enabled by default on your account.`
+   - *Solución:* Se actualizaron los 3 productos de Stripe vía API asignándoles el código de impuestos de Software/SaaS: `tax_code="txcd_10000000"`.
+
+### Verificación y Aceptación
+* **Creación de Sesiones de Checkout:** Validada con éxito para los 3 planes tanto en entorno local como directamente en el contenedor de producción (`fobandor_web.1`). Las sesiones retornan URLs válidas `https://checkout.stripe.com/c/pay/cs_test_...`.
+* **Suite de Pruebas:** **34/34 passing** en `pytest`.
+* **Estado:** Pasarela Stripe 100% operativa en modo prueba en `https://www.fobandor.com/es/precios/`.
+
 
 
 
