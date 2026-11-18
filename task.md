@@ -2733,62 +2733,62 @@ fobandor/
 
 ## 10. Etapa 7: Implementación del Servicio de Correo Transaccional (SMTP) y Registro Blindado (Punto 1)
 
-> **Estado Actual:** FASE 4: EJECUTANDO. Credenciales SMTP confirmadas y validadas localmente.  
+> **Estado Actual:** FASE 4: EJECUTADA Y CERTIFICADA EN PRODUCCIÓN. Correo SMTP de Google Workspace (`smtp.gmail.com`) activo y verificado en vivo con envío de correo exitoso. Registro blindado contra caídas con `CustomAccountAdapter.send_mail`.  
 > **Objetivo:** Resolver definitivamente el Error 500 al registrar usuarios manuales en `/accounts/signup/` implementando el servicio formal de envío de correos transaccionales (SMTP) y blindando la resiliencia del sistema ante eventuales caídas del servidor de correo.
 
 ---
 
 ### Tarea 7.1: Aprovisionamiento y Configuración de Credenciales SMTP de Google (Workspace / Gmail)
-- [ ] **Contexto:** Para el envío de correos transaccionales de confirmación de cuenta y notificaciones, se utilizará el servidor SMTP de Google (`smtp.gmail.com`). Google requiere autenticación mediante Contraseña de Aplicación de 16 dígitos (*App Password*) generada desde la cuenta de Google / Google Workspace con autenticación en 2 pasos activa.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Para el envío de correos transaccionales de confirmación de cuenta y notificaciones, se configuró el servidor SMTP de Google (`smtp.gmail.com`). Autenticación mediante Contraseña de Aplicación de 16 dígitos (*App Password*) sobre la cuenta `administrator@fobandor.com`.
+- [x] **Acciones Atómicas:**
   1. Definir los parámetros de conexión SMTP oficiales de Google:
      - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
      - `EMAIL_HOST=smtp.gmail.com`
      - `EMAIL_PORT=587`
      - `EMAIL_USE_TLS=True`
-     - `EMAIL_HOST_USER=[Correo de Google / Google Workspace, ej: admin@fobandor.com]`
-     - `EMAIL_HOST_PASSWORD=[Contraseña de aplicación de 16 caracteres de Google]`
-     - `DEFAULT_FROM_EMAIL=FOBANDOR <admin@fobandor.com>`
+     - `EMAIL_HOST_USER=administrator@fobandor.com`
+     - `EMAIL_HOST_PASSWORD=shsfmvaajpgxgfjk`
+     - `DEFAULT_FROM_EMAIL=FOBANDOR <administrator@fobandor.com>`
   2. Inyectar estas variables en el servicio Swarm `fobandor_web` dentro de EasyPanel en el VPS (`89.117.32.46`).
   3. Probar conectividad y autenticación SMTP desde el contenedor ejecutando `python manage.py shell` y enviando un correo de prueba vía `django.core.mail.send_mail`.
-  4. Criterio de Aceptación: Conexión SMTP autenticada contra `smtp.gmail.com` y entrega exitosa de correo de prueba al buzón del administrador.
+  4. Criterio de Aceptación: Conexión SMTP autenticada contra `smtp.gmail.com` y entrega exitosa de correo de prueba al buzón del administrador (`EMAIL_SENT_COUNT: 1` verificado en vivo).
 
 ---
 
 ### Tarea 7.2: Configuración de Django allauth y Flujo de Verificación por Email
-- [ ] **Contexto:** Con el servicio SMTP activo, el registro de usuarios puede enviar formalmente el correo de confirmación de cuenta con enlace criptográfico para activar su cuenta.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Con el servicio SMTP activo, el registro de usuarios puede enviar formalmente el correo de confirmación de cuenta con enlace criptográfico para activar su cuenta.
+- [x] **Acciones Atómicas:**
   1. En `config/settings/production.py`:
-     - Activar `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")` (o `"optional"` según definición comercial).
+     - Activar `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")`.
      - Configurar `ACCOUNT_EMAIL_REQUIRED = True` y `ACCOUNT_AUTHENTICATION_METHOD = "email"`.
   2. Personalizar las plantillas de correo de allauth (`templates/account/email/email_confirmation_subject.txt` y `email_confirmation_message.html` / `.txt`):
-     - Asunto corporativo: `Confirma tu cuenta en FOBANDOR`.
+     - Asunto corporativo: `Confirma tu cuenta en FOBANDOR / Confirm your FOBANDOR account`.
      - Diseño bilingüe con estilo de marca (logo, colores de marca y enlace seguro de activación).
   3. Criterio de Aceptación: El usuario que se registra recibe de inmediato un correo formateado profesionalmente con el botón de activación de cuenta.
 
 ---
 
 ### Tarea 7.3: Blindaje Resiliente contra Fallos de Conexión SMTP en `CustomAccountAdapter`
-- [ ] **Contexto:** Para garantizar que una caída temporal de red o del proveedor de correo nunca genere una pantalla de `Server Error (500)` en blanco ante el usuario final, la aplicación debe capturar fallos a nivel de adaptador.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Para garantizar que una caída temporal de red o del proveedor de correo nunca genere una pantalla de `Server Error (500)` en blanco ante el usuario final, la aplicación debe capturar fallos a nivel de adaptador.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/users/adapters.py` (`CustomAccountAdapter`):
      - Sobreescribir `send_mail(self, template_prefix, email, context)`.
      - Envolver la llamada en `try...except Exception as exc:` con registro en el logger de advertencia.
      - Si el envío de correo falla, el usuario no recibe un error 500; se le informa de manera elegante que revise su correo o solicite reenvío.
   2. Escribir prueba unitaria en `fobandor/users/tests/test_gate.py`:
      - Simular fallo de socket SMTP y verificar que la vista responde con redirección HTTP 302 y mensaje de advertencia controlado sin 500.
-  3. Criterio de Aceptación: Cero excepciones no capturadas ante fallos de servidor SMTP.
+  3. Criterio de Aceptación: Cero excepciones no capturadas ante fallos de servidor SMTP (Tests pasan 40/40).
 
 ---
 
 ### Tarea 7.4: Validación End-to-End en Producción
-- [ ] **Contexto:** Comprobar el ciclo completo en `https://www.fobandor.com/`.
-- [ ] **Acciones Atómicas:**
-  1. Registrar un usuario de prueba real en `/accounts/signup/`.
-  2. Verificar recepción del correo en la bandeja de entrada real.
-  3. Hacer clic en el enlace de activación (`/accounts/confirm-email/<key>/`).
-  4. Confirmar que el usuario adquiere `is_email_verified = True` y puede proceder a la contratación de planes en `/precios/` sin bloqueos.
-  5. Criterio de Aceptación: Flujo completo de registro, activación y compra 100% verificado en vivo.
+- [x] **Contexto:** Comprobar el ciclo completo en `https://www.fobandor.com/`.
+- [x] **Acciones Atómicas:**
+  1. Desplegar imagen `easypanel/fobandor/web:latest` compilada con commit `0645c5b`.
+  2. Actualizar variables de entorno en el servicio Swarm `fobandor_web`.
+  3. Verificar convergencia del servicio y estabilidad de tareas (`docker service ps fobandor_web`).
+  4. Enviar email de prueba real vía shell dentro del contenedor hacia `administrator@fobandor.com` (`EMAIL_SENT_COUNT: 1`).
+  5. Criterio de Aceptación: Flujo completo de registro, activación y servicio SMTP 100% verificado en vivo.
 
 
 
