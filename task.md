@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 5: REGISTRAR (Etapa 5 — Auditoría y Validación de Calidad Completada / 38 Tests Pasando). Listo para Despliegue en VPS Hostinger.
+> * **Estado Actual:** FASE 3: APROBAR (Etapa 6 — Depuración de Hallazgos QA: Registro 500, Contraste de Inputs y Selector de Planes). En espera de aprobación explícita del Desarrollador Líder.
 
 ---
 
@@ -2671,6 +2671,79 @@ fobandor/
      - Permitir filtrado por estado `EN_PROCESO` en las pestañas de listado.
   5. Actualizar y ampliar pruebas unitarias en `fobandor/fulfillment/tests/test_sla.py`.
   6. Criterio de Aceptación: Las órdenes pueden asignarse formalmente y transicionar por el flujo: `Pendiente de Producción` → `En Proceso` → `Entregada`.
+
+---
+
+## 9. Etapa 6: Resolución de Hallazgos QA (Registro 500, Contraste de Inputs y Selector de Planes)
+
+> **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
+> **Objetivo:** Resolver los 3 problemas detectados en la fase de control de calidad: error 500 al registrar usuario, campos de texto con fuentes blancas sobre fondo blanco en `/accounts/signup/`, y selector interactivo con mouse/hover en las tarjetas de precios de `/precios/`.
+
+---
+
+### Tarea 6.1: Blindaje del Flujo de Registro (`/accounts/signup/`) contra Errores 500 por Ausencia de SMTP
+- [ ] **Contexto:** Al intentar registrarse vía email en producción (`/accounts/signup/`), Django allauth intenta enviar el email de verificación mediante SMTP. Como `EMAIL_HOST` está vacío por defecto en EasyPanel (o no se ha configurado servidor de correo), la llamada genera una excepción de socket no capturada que interrumpe la petición con un error HTTP 500.
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/users/adapters.py` (`CustomAccountAdapter`):
+     - Sobreescribir el método `send_mail(self, template_prefix, email, context)`.
+     - Envolver la llamada a `super().send_mail` en un bloque `try...except Exception as exc:` con registro en logger de advertencia. Si el envío de correo falla por SMTP ausente o no alcanzable, el registro del usuario concluye exitosamente sin disparar HTTP 500.
+     - En `save_user(self, request, user, form, commit=True)`: Si `not settings.EMAIL_HOST` o `ACCOUNT_EMAIL_VERIFICATION == 'none'`, auto-marcar `user.is_email_verified = True` para que el usuario no quede bloqueado del checkout (ADR-006).
+  2. En `config/settings/production.py`:
+     - Configurar `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none" if not env("EMAIL_HOST", default="") else "optional")`. De este modo, si no hay un servidor SMTP definido en EasyPanel, el sistema no intenta conectarse a un host vacío.
+  3. Escribir prueba unitaria en `fobandor/users/tests/test_gate.py`:
+     - Simular registro con backend SMTP desconectado/fallido y verificar que retorna redirección HTTP 302 y crea el usuario sin error 500.
+  4. Documentar en la guía operativa las credenciales de Hostinger Titan Email (`smtp.hostinger.com`, puerto 465 SSL o 587 TLS) para cuando Freddy desee habilitar el envío real de correos de confirmación.
+  5. Criterio de Aceptación: Registro manual en `/accounts/signup/` completado fluidamente y con redirección a onboarding/dashboard sin errores 500.
+
+---
+
+### Tarea 6.2: Estandarización de Estilos y Contraste de Inputs en Formularios de Autenticación
+- [ ] **Contexto:** En `/accounts/signup/`, `/accounts/login/` y `/accounts/password/reset/`, los campos de formulario se renderizan sin clases CSS Tailwind. En navegadores Chromium/Edge en modo oscuro, el navegador aplica fondo blanco al input mientras Tailwind hereda `color: inherit` desde el body (`#f3f4f6`, blanco), provocando que el texto tipeado y el placeholder sean blancos sobre fondo blanco (completamente invisibles).
+- [ ] **Acciones Atómicas:**
+  1. En `static/css/input.css` (en `@layer base`), agregar reglas CSS universales para inputs de formulario:
+     - Forzar fondo oscuro suave en dark mode: `.dark input[type="text"], .dark input[type="email"], .dark input[type="password"] { background-color: rgba(255, 255, 255, 0.05); color: #f3f4f6; border-color: rgba(255, 255, 255, 0.2); }`.
+     - Forzar fondo blanco y texto oscuro en light mode: `input[type="text"], input[type="email"], input[type="password"] { background-color: #ffffff; color: #111827; }`.
+  2. En `templates/account/signup.html`, `login.html` y `password_reset.html`:
+     - Aplicar clases Tailwind dedicadas a cada input:
+       `class="w-full rounded-xl border border-gray-300 dark:border-white/20 px-3.5 py-2.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-fobandor-orange focus:ring-1 focus:ring-fobandor-orange transition-colors"`.
+     - Crear filtro en `fobandor/core/templatetags/form_tags.py` (`add_class`) para inyectar limpiamente las clases a los widgets de Django allauth.
+  3. Recompilar `static/css/output.css` localmente.
+  4. Criterio de Aceptación: En cualquier navegador (Chrome, Firefox, Safari, Edge) y tanto en modo claro como oscuro, todos los campos de texto tienen fondo, bordes y texto con contraste perfecto y legible.
+
+---
+
+### Tarea 6.3: Selector Interactivo de Planes con Efecto Hover y Selección Dinámica en `/precios/`
+- [ ] **Contexto:** Las 3 tarjetas de planes en `/precios/` son estáticas. Solo la marcada como destacada (`is_highlighted` en BD) tiene estilos naranjas fijos. Los otros planes no reaccionan al mouse over ni permiten ser seleccionados con un clic previo a la compra, y si se desactiva "Destacado", ninguna tarjeta luce activa.
+- [ ] **Acciones Atómicas:**
+  1. En `templates/billing/pricing.html`, implementar componente interactivo con **Alpine.js**:
+     - Contenedor con estado reactivo:
+       `x-data="{ selectedPlan: '{{ highlighted_slug|default:plans.0.slug }}' }"`
+     - Preseleccionar el plan destacado si existe; si no, preseleccionar por defecto el primer plan (`plans.0.slug`).
+  2. Añadir efecto Hover (`on mouse over`) en cada tarjeta:
+     - `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
+  3. Selección activa al hacer clic:
+     - Al hacer clic en cualquier parte de la tarjeta: `@click="selectedPlan = '{{ plan.slug }}'"`.
+     - Tarjeta activa seleccionada dinámicamente:
+       `:class="selectedPlan === '{{ plan.slug }}' ? 'border-fobandor-orange bg-fobandor-orange/5 ring-1 ring-fobandor-orange shadow-lg' : 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5'"`
+     - Botón "Comenzar" de la tarjeta seleccionada adquiere el estilo naranja principal:
+       `:class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200'"`
+  4. Insignia visual:
+     - Mantener la insignia `"RECOMENDADO"` en el plan con `plan.is_highlighted=True`.
+     - Mostrar sutilmente un indicador o cambio de estado activo al seleccionar cualquier tarjeta con el mouse.
+  5. Escribir prueba unitaria que verifique que `pricing.html` contiene los atributos Alpine reactivos.
+  6. Criterio de Aceptación: El usuario puede pasar el mouse sobre cualquiera de los 3 planes (notando elevación y borde iluminado) y seleccionar con un clic cualquiera de ellos, viendo reflejada la selección activa de inmediato.
+
+---
+
+### Tarea 6.4: Suite de Pruebas de Regresión, Compilación y Despliegue en Producción
+- [ ] **Contexto:** Garantizar cero regresiones y despliegue convergente en Hostinger VPS.
+- [ ] **Acciones Atómicas:**
+  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (>=40 tests).
+  2. Ejecutar linter `flake8` garantizando 0 errores de estilo.
+  3. Compilar estáticos de Tailwind (`output.css`).
+  4. Realizar commit semántico y push a `origin/main`.
+  5. Verificar en caliente en `https://www.fobandor.com/` los 3 escenarios corregidos.
+  6. Criterio de Aceptación: Cero errores 500 en registro, contraste perfecto en formularios y selector interactivo de planes en producción.
 
 
 

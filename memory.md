@@ -211,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 11 hallazgos identificados en producción y mapeo con las 10 capturas de pantalla del Google Doc. |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 5 (Tareas 5.1 a 5.10)** en `task.md`, abarcando Frontend, Responsive móvil, Checkout GET y Backoffice SLA. |
-| **3. APROBAR** | **APROBADO** | Plan de la Etapa 5 aprobado por el desarrollador líder, con ajustes finales (context processor `company` y `DEFAULT_ASSIGNEE_EMAIL`). |
-| **4. EJECUTAR** | **COMPLETADA (Etapa 5)** | Tareas 5.1 a 5.10 implementadas y verificadas por OpenCode. Optimización de query select_related aplicada. |
-| **5. REGISTRAR** | **COMPLETADA** | Auditoría QA de Antigravity-IDE aprobada (38/38 tests pasando, flake8 100% limpio). Secciones 19 y 20 documentadas. |
-| **6. APRENDER** | **PENDIENTE (Despliegue)** | Despliegue en VPS EasyPanel (`fobandor_web`), migraciones en PostgreSQL y verificación en caliente de los 11 puntos en `https://www.fobandor.com/`. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 3 hallazgos de QA: Signup 500 (SMTP ausente), Contraste de inputs (Tailwind/Chromium) y Selector de precios interactivo (Alpine.js). |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 6 (Tareas 6.1 a 6.4)** en `task.md`. |
+| **3. APROBAR** | **EN REVISIÓN (PAUSA OBLIGATORIA)** | Plan de la Etapa 6 presentado al Desarrollador Líder para su aprobación explícita antes de ejecutar. |
+| **4. EJECUTAR** | **PENDIENTE (Etapa 6)** | Implementación TDD por OpenCode de Tareas 6.1 a 6.4 tras recibir visto bueno. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 21 documentada en `memory.md` con las causas raíces y diseños técnicos. |
+| **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y actualización viva de la documentación. |
 
 ---
 
@@ -763,6 +763,35 @@ Durante la revisión de producción de `https://www.fobandor.com/`, el Desarroll
 
 ### Nota
 * Resolución 100% del lado de Formspree (dashboard); **no requiere cambios de código ni redeploy**.
+
+---
+
+## 21. Análisis y Plan de Solución para Hallazgos QA (Signup 500, Contraste de Inputs y Selector Interactivo de Precios)
+
+### 1. Error HTTP 500 al Registrarse en `/accounts/signup/`
+* **Síntoma:** Al completar el formulario de registro manual y presionar *"Registrarse"*, el servidor responde con pantalla blanca `Server Error (500)`.
+* **Causa Raíz:** En `config/settings/production.py`, el backend de correo está fijado a `django.core.mail.backends.smtp.EmailBackend` con `EMAIL_HOST = ""` por defecto. Cuando el usuario se registra, `allauth` ejecuta `send_email_confirmation()`, el cual intenta conectar por SMTP a `""` (puerto 587) y lanza `smtplib.SMTPServerDisconnected: please run connect() first` o `ConnectionRefusedError`. Dado que `allauth` no captura excepciones de envío de correo, la excepción no controlada aborta la petición con un error HTTP 500.
+* **Solución Arquitectónica:**
+  1. Sobreescribir `send_mail` en `CustomAccountAdapter` (`fobandor/users/adapters.py`) con bloque `try...except` que registre una advertencia en el log en lugar de dejar caer la petición con 500 si el servidor SMTP falla o no está alcanzable.
+  2. En `save_user` de `CustomAccountAdapter`, si `EMAIL_HOST` no está configurado o `ACCOUNT_EMAIL_VERIFICATION == 'none'`, auto-marcar `user.is_email_verified = True` para permitir el checkout inmediato sin bloquear al cliente.
+  3. En `production.py`, definir `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none" if not env("EMAIL_HOST", default="") else "optional")`.
+
+### 2. Campos de Texto con Contraste Roto en Formularios de Autenticación
+* **Síntoma:** En navegadores Chromium/Edge bajo Windows en modo oscuro, el fondo de los campos de texto en `/accounts/signup/` y `/accounts/login/` aparece blanco y el texto tipeado se vuelve invisible o extremadamente tenue.
+* **Causa Raíz:** Los formularios de `django-allauth` se renderizan como `<input>` planos sin clases CSS Tailwind explícitas. El reseteo Preflight de Tailwind v3 aplica `color: inherit`, por lo que el `<input>` hereda el color del `body` en dark mode (`#f3f4f6`, blanco). Sin embargo, el user-agent stylesheet de Chromium aplica fondo blanco por defecto a los inputs si no se declara `background-color`. Como resultado: fondo blanco nativo + color de texto blanco heredado = **texto invisible**.
+* **Solución Arquitectónica:**
+  1. Reglas globales en `@layer base` dentro de `static/css/input.css` para normalizar todos los inputs, textareas y selects: fondo oscuro semitransparente (`rgba(255, 255, 255, 0.05)`), texto blanco (`#f3f4f6`) y borde sutil en modo oscuro; fondo blanco y texto oscuro en modo claro.
+  2. En las plantillas `templates/account/signup.html`, `login.html` y `password_reset.html`, inyectar clases Tailwind explícitas con filtro `add_class` para garantizar diseño dark-tech consistente con el resto del sitio.
+
+### 3. Selector Interactivo de Precios con Mouse / Hover en `/precios/`
+* **Síntoma:** Las 3 tarjetas de planes son elementos estáticos. La tarjeta destacada en base de datos (`is_highlighted`) aparece fija con estilos naranjas, mientras que las otras dos permanecen grises. El usuario no puede hacer clic sobre otra tarjeta para seleccionarla ni experimenta respuesta visual al pasar el ratón (`on mouse over`). Si se desactiva "Destacado" en el CMS, ninguna tarjeta luce activa ni seleccionable.
+* **Causa Raíz:** En `templates/billing/pricing.html`, los estilos de borde y botón dependen exclusivamente de `{% if plan.is_highlighted %}` en el render del servidor. No existe estado reactivo del lado del cliente para gestionar la selección del usuario.
+* **Solución Arquitectónica (UX/UI SaaS):**
+  1. Integrar **Alpine.js** en el contenedor de planes: `x-data="{ selectedPlan: '{{ highlighted_plan_slug|default:plans.0.slug }}' }"`.
+  2. Efecto Hover en las 3 tarjetas: `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
+  3. Selección dinámica al clic: `@click="selectedPlan = '{{ plan.slug }}'"`. La tarjeta seleccionada adquiere borde naranja, resplandor de fondo y botón principal "Comenzar" de color naranja, mientras las no seleccionadas adoptan estilo outline secundario.
+  4. La insignia `"RECOMENDADO"` se conserva en el plan con `is_highlighted=True`, permitiendo que el usuario seleccione visualmente cualquier otro plan sin perder la sugerencia editorial de la agencia.
+
 
 
 
