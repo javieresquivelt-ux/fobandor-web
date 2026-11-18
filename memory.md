@@ -214,9 +214,9 @@
 | **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 11 hallazgos identificados en producción y mapeo con las 10 capturas de pantalla del Google Doc. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 5 (Tareas 5.1 a 5.10)** en `task.md`, abarcando Frontend, Responsive móvil, Checkout GET y Backoffice SLA. |
 | **3. APROBAR** | **APROBADO** | Plan de la Etapa 5 aprobado por el desarrollador líder, con ajustes finales (context processor `company` y `DEFAULT_ASSIGNEE_EMAIL`). |
-| **4. EJECUTAR** | **EJECUTADA (Etapa 5)** | Tareas 5.1 a 5.10 implementadas y verificadas por OpenCode (38/38 tests). Pendiente despliegue y validación en vivo. |
-| **5. REGISTRAR** | **EN PROGRESO** | Sección 19 documentada en `memory.md` con razonamientos arquitectónicos, ejecución y hallazgos. |
-| **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y actualización viva de la documentación. |
+| **4. EJECUTAR** | **COMPLETADA (Etapa 5)** | Tareas 5.1 a 5.10 implementadas y verificadas por OpenCode. Optimización de query select_related aplicada. |
+| **5. REGISTRAR** | **COMPLETADA** | Auditoría QA de Antigravity-IDE aprobada (38/38 tests pasando, flake8 100% limpio). Secciones 19 y 20 documentadas. |
+| **6. APRENDER** | **PENDIENTE (Despliegue)** | Despliegue en VPS EasyPanel (`fobandor_web`), migraciones en PostgreSQL y verificación en caliente de los 11 puntos en `https://www.fobandor.com/`. |
 
 ---
 

@@ -141,7 +141,7 @@ class FulfillmentOrderListView(BackofficeMixin, ListView):
     context_object_name = 'orders'
 
     def get_queryset(self):
-        qs = FulfillmentOrder.objects.select_related('user', 'subscription').order_by('due_date')
+        qs = FulfillmentOrder.objects.select_related('user', 'subscription', 'plan', 'assigned_to').order_by('due_date')
         status = self.request.GET.get('status')
         if status:
             qs = qs.filter(status=status)
