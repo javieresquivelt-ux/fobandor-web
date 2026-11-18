@@ -211,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis de integración de Stripe Checkout en Modo Test, configuración de webhook criptográfico y compatibilidad con Managed Payments. |
-| **2. PLANIFICAR** | **COMPLETADA** | Tarea 4.10 formulada para la activación de Stripe Test Mode, resolución de Product IDs a Price IDs y aprovisionamiento de claves de entorno. |
-| **3. APROBAR** | **APROBADO** | Aprobación otorgada por el Desarrollador Líder para operar en Modo Test con credenciales oficiales de Stripe Sandbox. |
-| **4. EJECUTAR** | **COMPLETADA (Tarea 4.10)** | Inyección de variables en EasyPanel/Swarm, mapeo de Price IDs reales, configuración de `tax_code` SaaS y validación de Checkout Sessions. |
-| **5. REGISTRAR** | **COMPLETADA** | Sección 18 documentada en `memory.md` con los hallazgos de Price IDs vs Product IDs y Managed Payments tax code. |
-| **6. APRENDER** | **COMPLETADA** | Pasarela Stripe 100% validada en modo prueba en el dominio productivo sin errores 500 ni fallos de pasarela. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 11 hallazgos identificados en producción y mapeo con las 10 capturas de pantalla del Google Doc. |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 5 (Tareas 5.1 a 5.10)** en `task.md`, abarcando Frontend, Responsive móvil, Checkout GET y Backoffice SLA. |
+| **3. APROBAR** | **EN REVISIÓN (PAUSA OBLIGATORIA)** | Plan atómico de la Etapa 5 presentado al Desarrollador Líder. Pausa obligatoria a la espera de visto bueno explícito antes de codificar. |
+| **4. EJECUTAR** | **PENDIENTE (Etapa 5)** | Implementación TDD de las Tareas 5.1 a 5.10 tras recibir la aprobación del Desarrollador Líder. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 19 documentada en `memory.md` con los razonamientos arquitectónicos, modelos de datos y soluciones de UX. |
+| **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y actualización viva de la documentación. |
 
 ---
 
@@ -665,6 +665,64 @@ Para validar el ciclo completo de suscripción, checkout y despacho SLA de 7 dí
 * **Creación de Sesiones de Checkout:** Validada con éxito para los 3 planes tanto en entorno local como directamente en el contenedor de producción (`fobandor_web.1`). Las sesiones retornan URLs válidas `https://checkout.stripe.com/c/pay/cs_test_...`.
 * **Suite de Pruebas:** **34/34 passing** en `pytest`.
 * **Estado:** Pasarela Stripe 100% operativa en modo prueba en `https://www.fobandor.com/es/precios/`.
+
+---
+
+## 19. Análisis Arquitectónico y Estrategia de Solución para los 11 Hallazgos de Revisión (Etapa 5)
+
+### Contexto y Diagnóstico
+Durante la revisión de producción de `https://www.fobandor.com/`, el Desarrollador Líder y Freddy Obando documentaron 11 observaciones críticas (con 10 capturas de pantalla) distribuidas en tres áreas: Frontend/Navegación, Pasarela de Pago/Auth, y Backoffice/Flujo SLA.
+
+### Razonamiento Arquitectónico y Decisiones de Diseño
+
+#### 1. Misión, Visión y Valores en la Landing (Punto 1)
+* **Diagnóstico:** El modelo `CompanyProfile` contiene los campos `mission_es/en`, `vision_es/en` y `values_es/en` gestionables en `/backoffice/empresa/`. Sin embargo, `HomeView` no inyectaba esta información al contexto, dejando la sección `#nosotros` con textos hardcodeados de prueba.
+* **Decisión:** Inyectar `CompanyProfile.load()` en el contexto de `HomeView` y renderizar los textos dinámicamente. El campo `values_es/en` se maquetará en tarjetas modulares con estilo dark-tech y acentos neón, garantizando coherencia visual y dinamismo editorial.
+
+#### 2. Selector de Idioma: Toggle Directo 1-Clic (Punto 2)
+* **Diagnóstico:** El `<select>` nativo requiere dos interacciones (abrir dropdown + seleccionar) y en móviles resulta tosco y propenso a desbordamientos.
+* **Decisión:** Reemplazar el desplegable por un botón toggle tipo pastilla (`pill switch` con `ES` y `EN`). Al hacer clic, envía un POST inmediato al endpoint estándar `set_language` de Django, alternando el idioma sin fricción.
+
+#### 3 y 7. Enlaces Canónicos y Navegación entre Vistas (Puntos 3 y 7)
+* **Diagnóstico:** Los enlaces del navbar usaban anclas puras (`#servicios`, `#proyectos`). Al navegar a `/precios/`, el navegador intenta buscar `#servicios` dentro de esa vista y falla. Además, en la home, el botón "Precios" apuntaba a `#precios` en vez de `/precios/`.
+* **Decisión:** Todos los enlaces del navbar adoptarán URLs canónicas absolutas con ancla: `{% url 'core:home' %}#servicios`, y el enlace de precios apuntará inequívocamente a `{% url 'billing:pricing' %}`.
+
+#### 4. Formulario de Contacto Integrado en la Landing (Punto 4)
+* **Diagnóstico:** La sección `#contacto` en la home es actualmente un texto vacío.
+* **Decisión:** Reutilizar la infraestructura asíncrona de Formspree (Alpine.js + fetch JSON) para incrustar un formulario de contacto directo en el pie de página, compartiendo el asunto corporativo y el honeypot anti-spam sin necesidad de abrir modales.
+
+#### 5. Switches de Visibilidad de Secciones en CMS (Punto 5)
+* **Diagnóstico:** Secciones en construcción no deben mostrar textos de prueba si aún no tienen datos definitivos.
+* **Decisión:** Añadir campos booleanos en `CompanyProfile` (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`). Esto otorga a Freddy el control total para encender o apagar secciones de la landing desde el Backoffice sin requerir despliegues de código.
+
+#### 6. Blindaje Responsive del Navbar Móvil (Punto 6)
+* **Diagnóstico:** En pantallas móviles estrechas (Samsung A52 / iPhone de 360px a 390px), la barra superior colapsa porque intenta acomodar el logo, "Mi Cuenta", "Salir", el selector de idioma y el toggler de tema en una sola fila, generando un scroll horizontal de 20-40px que oculta el botón hamburguesa.
+* **Decisión:** 
+  - Barra superior móvil limpia: Solo Isotipo FOBANDOR a la izquierda y Botón Toggle Idioma + Botón Hamburguesa a la derecha.
+  - Los enlaces de sesión ("Mi Cuenta", "Cerrar sesión" / "Iniciar sesión") y navegación se trasladan al interior del drawer desplegable de Alpine.js.
+  - Reglas `max-w-full overflow-x-hidden` en `html`, `body` y `nav`.
+
+#### 7. Prevención del Error HTTP 405 en Stripe Checkout (Punto 8)
+* **Diagnóstico:** Un usuario no autenticado hace clic en "Comenzar" (POST a `billing:checkout`). Django redirige a `/accounts/login/?next=/es/precios/checkout/impulso/`. Tras el login con Google OAuth, Django redirige al `next` vía **GET**, pero `CreateCheckoutSessionView` solo admitía POST, disparando un HTTP 405 Method Not Allowed.
+* **Decisión:** Implementar `def get(self, request, slug): return self.post(request, slug)` en `CreateCheckoutSessionView`. De este modo, la redirección post-login genera la sesión de Stripe Checkout y envía al usuario directamente a la pasarela sin fricción.
+
+#### 8. Retorno desde Stripe Customer Portal (Punto 9)
+* **Diagnóstico:** El portal de facturación de Stripe devuelve al usuario a la URL configurada.
+* **Decisión:** Garantizar que `return_url` apunte siempre a la URL absoluta del portal del cliente con idioma activo (`/es/mi-cuenta/`).
+
+#### 9. Nombre del Plan en Órdenes SLA del Backoffice (Punto 10)
+* **Diagnóstico:** La tabla en `/backoffice/entregas/` muestra "Servicio" pero no indica qué plan compró el cliente (Impulso, Conversión o Crecimiento).
+* **Decisión:** Añadir `plan = models.ForeignKey(SubscriptionPlan)` en `FulfillmentOrder` y poblarlo en el webhook de Stripe, mostrándolo claramente en las columnas del Backoffice.
+
+#### 10. Flujo de Trabajo SLA: Estado "En Proceso" y "Asignado A" (Punto 11)
+* **Diagnóstico:** Las órdenes pasaban directo de "Pendiente" a "Entregada" y no había trazabilidad de quién es el responsable de la entrega dentro del equipo.
+* **Decisión:**
+  - Agregar estado `EN_PROCESO` a `FulfillmentOrder.STATUS_CHOICES`.
+  - Agregar campo `assigned_to = models.ForeignKey(User)` asignando por defecto a `for@fobandor.com`.
+  - El selector en el Backoffice se poblará dinámicamente con los miembros del grupo `Content_Editors` y Administradores (`is_staff=True`), y se habilitará un botón de acción para iniciar formalmente la producción.
+
+---
+
 
 
 

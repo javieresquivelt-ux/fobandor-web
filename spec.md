@@ -211,7 +211,7 @@ flowchart TD
 ### B. Módulo `fobandor.cms`
 * `ServiceCategory` y `ServiceItem`: Catálogo de las 4 líneas de negocio, descripciones bilingües (`title_es`, `title_en`, `desc_es`, `desc_en`), iconos y orden.
 * `Project`: Casos de éxito y portafolio con multimedia, etiquetas y detalles bilingües.
-* `CompanyProfile`: Información de FOBANDOR, fundadores, misión, visión y enlaces oficiales a redes sociales.
+* `CompanyProfile`: Información de FOBANDOR, fundadores, misión, visión, enlaces oficiales a redes sociales, textos del modal de diagnóstico y switches de visibilidad de secciones de la landing (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`).
 * `ContactInquiry`: Mensajes recibidos desde el formulario de contacto con trazabilidad.
 
 ### C. Módulo `fobandor.billing`
@@ -223,10 +223,13 @@ flowchart TD
 * `FulfillmentOrder`:
   * `user` (cliente ForeignKey).
   * `subscription` (ForeignKey).
+  * `plan` (SubscriptionPlan ForeignKey, nullable).
+  * `service` (ServiceItem ForeignKey).
+  * `assigned_to` (User ForeignKey, asignado del grupo `Content_Editors` o Administradores, default `for@fobandor.com`).
   * `order_type` (ej. `MENSUAL_RRSS`).
   * `paid_at` (timestamp del pago).
   * `due_date` (`paid_at + 7 días`).
-  * `status` (`PENDIENTE_PRODUCCION`, `EN_REVISION`, `ENTREGADA`, `VENCIDA`).
+  * `status` (`PENDIENTE_PRODUCCION`, `EN_PROCESO`, `EN_REVISION`, `ENTREGADA`, `VENCIDA`, `CANCELADA`).
   * `delivery_package_url` / `delivery_file` (enlace al paquete digital generado).
   * `delivered_at` (timestamp de entrega por el staff).
   * `notes` (notas internas del operador).
@@ -234,8 +237,9 @@ flowchart TD
 ---
 
 ## 7. Hoja de Ruta de Construcción (Macro Etapas)
-* **Etapa 1:** Cimientos, Branding y UI Base en `localhost` (Django 5.2 LTS, PostgreSQL, Tailwind, Montserrat, Favicons, i18n ES/EN, Dark/Light Mode).
-* **Etapa 2:** Identidad, RBAC y Backoffice CMS (`CustomUser`, Seeding inicial de 4 líneas y RRSS, panel administrativo `/backoffice/`).
-* **Etapa 3:** Registro de Clientes y Autenticación Híbrida (Email/Password + Social Login con cuentas Gmail vía Google OAuth 2.0), Formulario de Onboarding AVS para Stripe, Stripe Checkout (3 planes + cupones), Webhooks firmados, SLA de 7 días (`FulfillmentOrder`) y Portal del Cliente (`/mi-cuenta/`). *(Nota: Google Workspace SSO queda documentado pero fuera de este plan de ejecución)*.
-* **Etapa 4:** SEO Técnico, Optimización de Rendimiento, Suite de Pruebas `pytest`, Auditoría OWASP y Empaquetado Docker para VPS.
+* **Etapa 1:** Cimientos, Branding y UI Base en `localhost` (Django 5.2 LTS, PostgreSQL, Tailwind, Montserrat, Favicons, i18n ES/EN, Dark/Light Mode). ✅
+* **Etapa 2:** Identidad, RBAC y Backoffice CMS (`CustomUser`, Seeding inicial de 4 líneas y RRSS, panel administrativo `/backoffice/`). ✅
+* **Etapa 3:** Registro de Clientes y Autenticación Híbrida (Email/Password + Social Login con cuentas Gmail y Google Workspace vía Google OAuth 2.0), Formulario de Onboarding AVS para Stripe, Stripe Checkout (3 planes + cupones), Webhooks firmados, SLA de 7 días (`FulfillmentOrder`) y Portal del Cliente (`/mi-cuenta/`). ✅
+* **Etapa 4:** SEO Técnico, Optimización de Rendimiento, Suite de Pruebas `pytest`, Auditoría OWASP, Empaquetado Docker y Despliegue en VPS Hostinger con EasyPanel y Traefik. ✅
+* **Etapa 5:** Depuración de Hallazgos y Refinamiento Integral (Puntos 1 al 11: Misión/Visión/Valores en Landing, Toggle de Idioma, Enlaces Canónicos, Formulario en Contacto, Switches de Secciones, Blindaje Móvil de Navbar, Fix HTTP 405 en Checkout, Retorno de Customer Portal, Nombre del Plan y Asignación de Roles en Órdenes SLA). 🔄 (En Planificación HARNESS FASE 3)
 
