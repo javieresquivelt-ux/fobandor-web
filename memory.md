@@ -676,50 +676,50 @@ Durante la revisión de producción de `https://www.fobandor.com/`, el Desarroll
 ### Razonamiento Arquitectónico y Decisiones de Diseño
 
 #### 1. Misión, Visión y Valores en la Landing (Punto 1)
-* **Diagnóstico:** El modelo `CompanyProfile` contiene los campos `mission_es/en`, `vision_es/en` y `values_es/en` gestionables en `/backoffice/empresa/`. Sin embargo, `HomeView` no inyectaba esta información al contexto, dejando la sección `#nosotros` con textos hardcodeados de prueba.
-* **Decisión:** Inyectar `CompanyProfile.load()` en el contexto de `HomeView` y renderizar los textos dinámicamente. El campo `values_es/en` se maquetará en tarjetas modulares con estilo dark-tech y acentos neón, garantizando coherencia visual y dinamismo editorial.
+* **Diagnóstico:** El modelo `CompanyProfile` contiene los campos `mission_es/en`, `vision_es/en` y `values_es/en` gestionables en `/backoffice/empresa/`. Sin embargo, `fobandor/core/views.py:home_view(request)` no inyectaba esta información al contexto, dejando la sección `#nosotros` con textos hardcodeados de prueba.
+* **Decisión:** Inyectar `'company': CompanyProfile.load()` en el diccionario de contexto de la función `home_view(request)` y renderizar los textos dinámicamente en `templates/pages/home.html`. El campo `values_es/en` se maquetará en tarjetas modulares con estilo dark-tech y acentos neón, garantizando coherencia visual y dinamismo editorial.
 
 #### 2. Selector de Idioma: Toggle Directo 1-Clic (Punto 2)
 * **Diagnóstico:** El `<select>` nativo requiere dos interacciones (abrir dropdown + seleccionar) y en móviles resulta tosco y propenso a desbordamientos.
 * **Decisión:** Reemplazar el desplegable por un botón toggle tipo pastilla (`pill switch` con `ES` y `EN`). Al hacer clic, envía un POST inmediato al endpoint estándar `set_language` de Django, alternando el idioma sin fricción.
 
 #### 3 y 7. Enlaces Canónicos y Navegación entre Vistas (Puntos 3 y 7)
-* **Diagnóstico:** Los enlaces del navbar usaban anclas puras (`#servicios`, `#proyectos`). Al navegar a `/precios/`, el navegador intenta buscar `#servicios` dentro de esa vista y falla. Además, en la home, el botón "Precios" apuntaba a `#precios` en vez de `/precios/`.
-* **Decisión:** Todos los enlaces del navbar adoptarán URLs canónicas absolutas con ancla: `{% url 'core:home' %}#servicios`, y el enlace de precios apuntará inequívocamente a `{% url 'billing:pricing' %}`.
+* **Diagnóstico:** Los enlaces del navbar usaban anclas puras (`#servicios`, `#proyectos`). Al navegar a `/precios/`, el navegador intenta buscar `#servicios` dentro de esa vista y falla. Además, en la home, el botón "Precios" apuntaba a `#precios` en vez de `/precios/`, y subsistía una sección huérfana placeholder `#precios` en `home.html` (líneas 73-79).
+* **Decisión:** Todos los enlaces del navbar adoptarán URLs canónicas absolutas con ancla: `{% url 'core:home' %}#servicios`, y el enlace de precios apuntará inequívocamente a `{% url 'billing:pricing' %}`. Se depura la sección huérfana `#precios` en `home.html` y se estandarizan los CTAs del Hero.
 
 #### 4. Formulario de Contacto Integrado en la Landing (Punto 4)
 * **Diagnóstico:** La sección `#contacto` en la home es actualmente un texto vacío.
-* **Decisión:** Reutilizar la infraestructura asíncrona de Formspree (Alpine.js + fetch JSON) para incrustar un formulario de contacto directo en el pie de página, compartiendo el asunto corporativo y el honeypot anti-spam sin necesidad de abrir modales.
+* **Decisión:** Reutilizar la infraestructura asíncrona de Formspree (Alpine.js + fetch JSON) para incrustar un formulario de contacto directo en el pie de página, compartiendo el asunto corporativo (`company.diag_form_subject`) y el honeypot anti-spam `_gotcha` inyectando `formspree_endpoint` en `home_view(request)`.
 
 #### 5. Switches de Visibilidad de Secciones en CMS (Punto 5)
 * **Diagnóstico:** Secciones en construcción no deben mostrar textos de prueba si aún no tienen datos definitivos.
-* **Decisión:** Añadir campos booleanos en `CompanyProfile` (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`). Esto otorga a Freddy el control total para encender o apagar secciones de la landing desde el Backoffice sin requerir despliegues de código.
+* **Decisión:** Añadir campos booleanos en `CompanyProfile` (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`). Esto otorga a Freddy el control total para encender o apagar secciones de la landing desde el Backoffice sin requerir despliegues de código. En el navbar, los enlaces a secciones inactivas se ocultan para evitar anclas muertas.
 
 #### 6. Blindaje Responsive del Navbar Móvil (Punto 6)
 * **Diagnóstico:** En pantallas móviles estrechas (Samsung A52 / iPhone de 360px a 390px), la barra superior colapsa porque intenta acomodar el logo, "Mi Cuenta", "Salir", el selector de idioma y el toggler de tema en una sola fila, generando un scroll horizontal de 20-40px que oculta el botón hamburguesa.
 * **Decisión:** 
   - Barra superior móvil limpia: Solo Isotipo FOBANDOR a la izquierda y Botón Toggle Idioma + Botón Hamburguesa a la derecha.
   - Los enlaces de sesión ("Mi Cuenta", "Cerrar sesión" / "Iniciar sesión") y navegación se trasladan al interior del drawer desplegable de Alpine.js.
-  - Reglas `max-w-full overflow-x-hidden` en `html`, `body` y `nav`.
+  - Reglas de contención con `overflow-x: clip` en el body y contenedores para evitar scroll horizontal sin romper el `position: sticky` del navbar.
 
 #### 7. Prevención del Error HTTP 405 en Stripe Checkout (Punto 8)
 * **Diagnóstico:** Un usuario no autenticado hace clic en "Comenzar" (POST a `billing:checkout`). Django redirige a `/accounts/login/?next=/es/precios/checkout/impulso/`. Tras el login con Google OAuth, Django redirige al `next` vía **GET**, pero `CreateCheckoutSessionView` solo admitía POST, disparando un HTTP 405 Method Not Allowed.
-* **Decisión:** Implementar `def get(self, request, slug): return self.post(request, slug)` en `CreateCheckoutSessionView`. De este modo, la redirección post-login genera la sesión de Stripe Checkout y envía al usuario directamente a la pasarela sin fricción.
+* **Decisión:** Implementar `def get(self, request, slug): return self.post(request, slug)` en `CreateCheckoutSessionView`. De este modo, la redirección post-login genera la sesión de Stripe Checkout y envía al usuario directamente a la pasarela sin fricción. En el test suite, se mockea `services.create_checkout_session` para verificar el 302 hacia Stripe Checkout independientemente de las claves de entorno.
 
 #### 8. Retorno desde Stripe Customer Portal (Punto 9)
-* **Diagnóstico:** El portal de facturación de Stripe devuelve al usuario a la URL configurada.
-* **Decisión:** Garantizar que `return_url` apunte siempre a la URL absoluta del portal del cliente con idioma activo (`/es/mi-cuenta/`).
+* **Diagnóstico:** El portal de facturación de Stripe devuelve al usuario a la URL configurada. El código en `StripeCustomerPortalView.post` ya construye `request.build_absolute_uri(reverse("portal:dashboard"))` con el idioma activo.
+* **Decisión:** Verificar mediante test que la redirección canónica opera correctamente y proveer la guía documental para que Freddy suba el isotipo de FOBANDOR en la configuración del Customer Portal en Stripe Dashboard.
 
 #### 9. Nombre del Plan en Órdenes SLA del Backoffice (Punto 10)
 * **Diagnóstico:** La tabla en `/backoffice/entregas/` muestra "Servicio" pero no indica qué plan compró el cliente (Impulso, Conversión o Crecimiento).
-* **Decisión:** Añadir `plan = models.ForeignKey(SubscriptionPlan)` en `FulfillmentOrder` y poblarlo en el webhook de Stripe, mostrándolo claramente en las columnas del Backoffice.
+* **Decisión:** Añadir `plan = models.ForeignKey('billing.SubscriptionPlan', null=True, blank=True)` en `FulfillmentOrder` y poblarlo en el handler `handle_invoice_paid` de `billing/services.py` (donde la variable `plan` ya se resuelve). En las plantillas `order_list.html` y `order_detail.html` se renderiza `{{ order.plan.name_es|default:order.get_order_type_display }}`.
 
 #### 10. Flujo de Trabajo SLA: Estado "En Proceso" y "Asignado A" (Punto 11)
-* **Diagnóstico:** Las órdenes pasaban directo de "Pendiente" a "Entregada" y no había trazabilidad de quién es el responsable de la entrega dentro del equipo.
+* **Diagnóstico:** Las órdenes pasaban directo de "Pendiente" a "Entregada" y no había trazabilidad de quién es el responsable de la entrega dentro del equipo. El estado `EN_PROCESO` ya existe en `STATUS_CHOICES` del modelo desde la Etapa 3.
 * **Decisión:**
-  - Agregar estado `EN_PROCESO` a `FulfillmentOrder.STATUS_CHOICES`.
-  - Agregar campo `assigned_to = models.ForeignKey(User)` asignando por defecto a `for@fobandor.com`.
-  - El selector en el Backoffice se poblará dinámicamente con los miembros del grupo `Content_Editors` y Administradores (`is_staff=True`), y se habilitará un botón de acción para iniciar formalmente la producción.
+  - Agregar campo `assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', verbose_name='Asignado a')` en `FulfillmentOrder`.
+  - En `handle_invoice_paid`, asignar por defecto a `settings.DEFAULT_ASSIGNEE_EMAIL` (`for@fobandor.com`) si dicho usuario existe.
+  - El selector en el Backoffice se poblará dinámicamente con los miembros de los grupos `Fulfillment_Operators` (ADR-013) y `Content_Editors`, además de Administradores (`is_staff=True`), y se habilitará un botón de acción *"Iniciar Producción"* para transicionar formalmente al estado `EN_PROCESO`.
 
 ---
 

@@ -2526,14 +2526,15 @@ fobandor/
 ## 8. Etapa 5: Depuración de Hallazgos y Refinamiento Integral (Puntos 1 al 11)
 
 > **Estado Actual:** FASE 3: APROBAR. En espera de la aprobación explícita del Desarrollador Líder.  
-> **Objetivo:** Resolver los 11 puntos identificados en la revisión de producción de `www.fobandor.com`, optimizando el frontend, responsive en móviles, flujo de compra Stripe y control operativo en el Backoffice CMS.
+> **Objetivo:** Resolver los 11 puntos identificados en la revisión de producción de `www.fobandor.com`, optimizando el frontend, responsive en móviles, flujo de compra Stripe y control operativo en el Backoffice CMS.  
+> **Validación Técnica:** Revisado y corregido en conjunto con OpenCode (13 puntos de precisión fáctica y mejoras de robustez arquitectónica incorporados).
 
 ---
 
 ### Tarea 5.1: Renderizado Dinámico de Misión, Visión y Valores en la Landing (Punto 1)
 - [ ] **Contexto:** En `fobandor.com/en/backoffice/empresa/` Freddy cargó los textos de Misión, Visión y Valores, pero la sección `#nosotros` en `templates/pages/home.html` sigue mostrando un texto estático de prueba.
 - [ ] **Acciones Atómicas:**
-  1. En `fobandor/core/views.py` (`HomeView`), inyectar en `get_context_data` el singleton institucional: `context['company'] = CompanyProfile.load()`.
+  1. En `fobandor/core/views.py` (`home_view`), inyectar en el diccionario de contexto el singleton institucional: `'company': CompanyProfile.load()`.
   2. En `templates/pages/home.html` (sección `#nosotros`), reemplazar el bloque de prueba por una maquetación corporativa que renderice:
      - Título y subtítulo bilingües.
      - Bloque de Misión: `{{ company.mission_es }}` / `{{ company.mission_en }}`.
@@ -2555,31 +2556,34 @@ fobandor/
 
 ---
 
-### Tarea 5.3: Estandarización de Enlaces Canónicos en Navbar y Enlace a Precios (Puntos 3 y 7)
+### Tarea 5.3: Estandarización de Enlaces Canónicos en Navbar, Hero y Depuración de Ancla Precios (Puntos 3 y 7)
 - [ ] **Contexto:** 
-  - Estando en `/es/precios/`, los enlaces del navbar son anclas relativas puras (`href="#servicios"`), lo que provoca que no funcionen porque el navegador busca el ID dentro de la página de precios.
+  - Estando en `/es/precios/`, los enlaces del navbar son anclas relativas puras (`href="#servicios"`), provocando que fallen al no existir esas secciones dentro de precios.
   - En la landing page, el enlace "Precios" apunta a `#precios` (ancla obsoleta) en vez de redirigir a `/precios/`.
+  - Existe un placeholder huérfano `<section id="precios">` en `home.html` (líneas 73-79) que debe ser eliminado.
 - [ ] **Acciones Atómicas:**
-  1. En `templates/partials/navbar.html`, estandarizar los enlaces de las secciones para que naveguen a la raíz con el ancla:
+  1. En `templates/partials/navbar.html`, estandarizar los enlaces de navegación para usar la ruta canónica con ancla:
      - Servicios: `href="{% url 'core:home' %}#servicios"`
      - Proyectos: `href="{% url 'core:home' %}#proyectos"`
      - Nosotros: `href="{% url 'core:home' %}#nosotros"`
-     - Contacto: `href="{% url 'core:home' %}#contacto"`
-  2. En `navbar.html` y en `home.html`, enlazar "Precios" / "Pricing" directamente a la ruta canónica del catálogo:
-     - `href="{% url 'billing:pricing' %}"`
-  3. Criterio de Aceptación: Todos los ítems del menú funcionan correctamente sin importar en qué vista se encuentre el usuario (Home, Precios, Backoffice, Login o Mi Cuenta).
+     - Contacto: `href="{% url 'core:home' %}#contacto"` (condicionado a `{% if not company or company.show_contact_section %}`)
+     - Precios: `href="{% url 'billing:pricing' %}"`
+  2. En `templates/pages/home.html`:
+     - Eliminar el bloque huérfano `<section id="precios">` (líneas 73-79).
+     - Revisar y asegurar enlaces del Hero (`#servicios`, `#proyectos`).
+  3. Criterio de Aceptación: Navegación consistente y sin enlaces muertos desde cualquier página del sitio.
 
 ---
 
 ### Tarea 5.4: Integración del Formulario Formspree en Sección Contacto de la Landing (Punto 4)
 - [ ] **Contexto:** La sección `#contacto` de la home muestra actualmente *"Contact form coming soon"*.
 - [ ] **Acciones Atómicas:**
-  1. En `templates/pages/home.html`, maquetar en la sección `#contacto` un formulario integrado directo:
+  1. En `fobandor/core/views.py` (`home_view`), inyectar en el contexto `formspree_endpoint = getattr(settings, 'FORMSPREE_ENDPOINT', '')`.
+  2. En `templates/pages/home.html`, maquetar en la sección `#contacto` un formulario integrado directo:
      - Campos: Nombre (`name`), Email (`email`), Teléfono (`phone`), Mensaje (`message`).
      - Metadatos: Asunto `{{ company.diag_form_subject }}` y honeypot anti-spam `_gotcha`.
      - Envío asíncrono con Alpine.js (`@submit.prevent` + `fetch()` con `Accept: application/json`).
      - Estados reactivos: Botón deshabilitado durante envío ("Enviando mensaje..."), feedback de éxito en verde y mensaje de contingencia en caso de error.
-  2. Inyectar `settings.FORMSPREE_ENDPOINT` en `HomeView`.
   3. Criterio de Aceptación: Los visitantes pueden enviar consultas directamente desde el pie de la landing page sin necesidad de abrir el modal, llegando directamente a Formspree / `administrator@fobandor.com`.
 
 ---
@@ -2594,8 +2598,9 @@ fobandor/
      - `show_contact_section = models.BooleanField('Mostrar sección Contacto en Landing', default=True)`
   2. Generar y aplicar migración de base de datos (`makemigrations cms` + `migrate`).
   3. En `templates/backoffice/cms/company_profile_form.html`, agregar bloque de switches o checkboxes "Visibilidad de Secciones en Landing".
-  4. En `templates/pages/home.html`, condicionar el render de cada sección con `{% if company.show_... %}`.
-  5. Criterio de Aceptación: Desactivar una sección en `/backoffice/empresa/` oculta inmediatamente la sección en `https://www.fobandor.com/`.
+  4. En `templates/pages/home.html`, envolver cada sección con su respectivo `{% if company.show_... %}`.
+  5. En `templates/partials/navbar.html`, condicionar el enlace a la sección si está desactivada (evitando anclas muertas).
+  6. Criterio de Aceptación: Desactivar una sección en `/backoffice/empresa/` oculta inmediatamente la sección y su ancla en `https://www.fobandor.com/`.
 
 ---
 
@@ -2603,10 +2608,10 @@ fobandor/
 - [ ] **Contexto:** En teléfonos Samsung A52, iPhone y pantallas `< 768px`, el navbar genera desbordamiento horizontal (`overflow-x`). El botón hamburguesa queda fuera de la pantalla visible y enlaces como "Mi Cuenta" y "Salir" se solapan en varias líneas.
 - [ ] **Acciones Atómicas:**
   1. En `templates/partials/navbar.html`:
-     - Ocultar los enlaces de usuario ("Mi Cuenta", "Salir", "Iniciar sesión") en pantallas móviles (`hidden md:flex`).
+     - Ocultar los enlaces de usuario ("Mi Cuenta", "Salir", "Iniciar sesión") en la barra superior móvil (`hidden md:flex`).
      - Mover dichos enlaces al interior del drawer desplegable del menú móvil (`x-show="mobileMenuOpen"`), formateados como ítems de lista grandes y cómodos para tocar con el pulgar.
      - La barra superior móvil solo contendrá: Isotipo FOBANDOR (izquierda), botón de cambio de idioma compacto (derecha) y botón de menú hamburguesa (derecha).
-  2. En `templates/base.html` y `static/css/input.css`, asegurar que `body`, `html` y `nav` tengan `max-w-full overflow-x-hidden` para evitar cualquier scroll horizontal no deseado.
+  2. En `templates/base.html` y estilos base, aplicar `overflow-x: clip` en lugar de `overflow-x: hidden` en `body` y contenedores para evitar romper el `position: sticky` del navbar.
   3. Criterio de Aceptación: En emulador y dispositivos móviles reales de 360px a 430px de ancho, la barra superior se mantiene 100% contenida sin scroll horizontal y el menú hamburguesa es perfectamente accesible.
 
 ---
@@ -2620,18 +2625,17 @@ fobandor/
          return self.post(request, slug)
      ```
   2. Si el usuario llega vía GET (por redirección post-login), la vista genera directamente la sesión de Stripe Checkout y lo redirige a Stripe sin interrupción ni error 405.
-  3. Escribir test en `fobandor/billing/tests/test_views.py` verificando que una petición GET autenticada a `/precios/checkout/<slug>/` responde con redirección 302 hacia Stripe Checkout.
+  3. Escribir test en `fobandor/billing/tests/test_views.py` verificando que una petición GET autenticada a `/precios/checkout/<slug>/` responde con redirección 302 hacia Stripe Checkout, **mockeando `services.create_checkout_session`** para retornar una sesión simulada con `url="https://checkout.stripe.com/pay/test_session"`.
   4. Criterio de Aceptación: Flujo continuo desde "Comenzar" -> Login Google -> Stripe Checkout sin pantallas de error HTTP 405.
 
 ---
 
-### Tarea 5.8: Optimización de Retorno desde Stripe Customer Portal (Punto 9)
-- [ ] **Contexto:** Al salir del Portal de Facturación de Stripe, la pantalla de retorno puede resultar confusa si no está configurada la URL con el idioma adecuado.
+### Tarea 5.8: Verificación de Retorno y Personalización de Stripe Customer Portal (Punto 9)
+- [ ] **Contexto:** El retorno desde el portal de facturación de Stripe ya está implementado en `StripeCustomerPortalView.post` (`request.build_absolute_uri(reverse("portal:dashboard"))`). Falta documentar y verificar la personalización gráfica en Stripe Dashboard.
 - [ ] **Acciones Atómicas:**
-  1. En `fobandor/billing/services.py` y `fobandor/billing/views.py` (`StripeCustomerPortalView`), garantizar que el `return_url` enviado a Stripe sea la URL absoluta canónica con prefijo de idioma del usuario:
-     `request.build_absolute_uri(reverse('portal:dashboard'))` (ej. `https://www.fobandor.com/es/mi-cuenta/`).
-  2. Documentar en la guía operativa el enlace directo en Stripe Dashboard para que Freddy suba el logo corporativo de FOBANDOR en la sección de personalización del Portal del Cliente.
-  3. Criterio de Aceptación: El botón de retorno en el portal de Stripe redirige de forma inequívoca al dashboard del cliente en FOBANDOR.
+  1. Verificar en test unitario existente que `StripeCustomerPortalView.post` construye y pasa el `return_url` canónico con prefijo de idioma del usuario (`/es/mi-cuenta/`).
+  2. Documentar en la guía operativa el procedimiento en Stripe Dashboard (`Configuración > Portal de facturación > Personalización de marca`) para asegurar que Freddy suba el isotipo de FOBANDOR y colores de marca.
+  3. Criterio de Aceptación: Retorno impecable y consistencia visual entre Stripe y FOBANDOR.
 
 ---
 
@@ -2641,28 +2645,28 @@ fobandor/
   1. Modificar modelo `FulfillmentOrder` en `fobandor/fulfillment/models.py`:
      - Añadir campo: `plan = models.ForeignKey('billing.SubscriptionPlan', on_delete=models.SET_NULL, null=True, blank=True, verbose_name='Plan de Suscripción')`.
   2. Generar y aplicar migración en `fobandor/fulfillment/migrations/`.
-  3. En `fobandor/billing/services.py` (`handle_successful_payment` / webhook de Stripe), al crear la orden de fulfillment, asociar la instancia del `SubscriptionPlan` adquirido.
+  3. En `fobandor/billing/services.py` (`handle_invoice_paid`), asociar `plan` en el `defaults` del `get_or_create` de `FulfillmentOrder` (aprovechando la variable `plan` ya resuelta).
   4. En `templates/backoffice/fulfillment/order_list.html` y `order_detail.html`, mostrar en la columna Servicio:
-     - `{% if order.plan %}{{ order.plan.name_es }} — {% endif %}{{ order.service.title_es }}`.
+     - `{{ order.plan.name_es|default:order.get_order_type_display }}`.
   5. Criterio de Aceptación: El operador del Backoffice visualiza claramente el nombre del plan comercial comprado en cada orden SLA.
 
 ---
 
-### Tarea 5.10: Flujo Operativo SLA: Estado "En Proceso" y Campo "Asignado A" (Punto 11)
-- [ ] **Contexto:** Las órdenes SLA pasan directo de "Pendiente" a "Entregada" sin un estado de producción activo, y no existe un campo para definir quién del equipo es el responsable de la entrega.
+### Tarea 5.10: Flujo Operativo SLA: Botón de Estado "En Proceso" y Campo "Asignado A" (Punto 11)
+- [ ] **Contexto:** El estado `"EN_PROCESO"` ya está definido en `FulfillmentOrder.STATUS_CHOICES`, pero no existe el campo de asignación de responsable ni un botón en la interfaz para transicionar la orden a producción activa.
 - [ ] **Acciones Atómicas:**
   1. Modificar `FulfillmentOrder` en `fobandor/fulfillment/models.py`:
-     - Agregar estado `'EN_PROCESO': 'En Proceso'` en `STATUS_CHOICES`.
-     - Agregar campo: `assigned_to = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', verbose_name='Asignado a')`.
-  2. En el servicio de creación de orden (`services.py`), asignar por defecto a `for@fobandor.com` (Freddy Obando) si el usuario existe.
+     - Agregar campo: `assigned_to = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='assigned_orders', verbose_name='Asignado a')` (utilizando el `User` ya importado en el modelo).
+  2. En `fobandor/billing/services.py` (`handle_invoice_paid`), asignar por defecto a `DEFAULT_ASSIGNEE_EMAIL` (configurado en `settings`, default `'for@fobandor.com'`) si el usuario existe en BD.
   3. En `fobandor/backoffice/views.py` (`FulfillmentOrderDetailView` o formulario de orden):
-     - Poblar el combo "Asignado a" filtrando usuarios que pertenezcan al grupo `Content_Editors` o tengan `is_staff=True`.
-     - Permitir cambiar el estado de la orden a `EN_PROCESO` mediante botón de acción *"Iniciar Producción / En Proceso"*.
-  4. En `templates/backoffice/fulfillment/order_list.html`:
+     - Poblar el selector "Asignado a" filtrando usuarios que pertenezcan a los grupos `Fulfillment_Operators` o `Content_Editors`, o que tengan `is_staff=True`:
+       `User.objects.filter(Q(groups__name__in=['Fulfillment_Operators', 'Content_Editors']) | Q(is_staff=True)).distinct()`.
+     - Habilitar acción/botón para cambiar el estado a `EN_PROCESO` (*"Iniciar Producción"*).
+  4. En `templates/backoffice/fulfillment/order_list.html` y `order_detail.html`:
      - Agregar columna "Asignado a".
-     - Soporte para filtrar órdenes por estado "En Proceso" en las pestañas superiores.
-  5. Actualizar pruebas unitarias en `fobandor/fulfillment/tests/test_sla.py`.
-  6. Criterio de Aceptación: Las órdenes pueden asignarse a miembros del equipo de editores y transicionar por el flujo: `Pendiente de Producción` → `En Proceso` → `Entregada`.
+     - Permitir filtrado por estado `EN_PROCESO` en las pestañas de listado.
+  5. Actualizar y ampliar pruebas unitarias en `fobandor/fulfillment/tests/test_sla.py`.
+  6. Criterio de Aceptación: Las órdenes pueden asignarse formalmente y transicionar por el flujo: `Pendiente de Producción` → `En Proceso` → `Entregada`.
 
 
 
