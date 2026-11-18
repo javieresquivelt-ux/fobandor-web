@@ -738,6 +738,32 @@ Durante la revisión de producción de `https://www.fobandor.com/`, el Desarroll
 * **Verificación local:** home bilingüe con misión/visión/valores y formulario de contacto; navbar con toggle ES/EN y enlaces canónicos.
 * **Pendiente (producción):** desplegar en EasyPanel (`fobandor_web`) y verificar en vivo los 11 puntos.
 
+---
+
+## 20. Incidente y Resolución: Envíos "Pending" en Formspree (Formulario de Contacto)
+
+### Síntoma
+* Los envíos del formulario `#contacto` (y del modal de `/precios/`) mostraban el mensaje de éxito, pero en el dashboard de Formspree quedaban en estado **"pending"** (no en "spam"). No se reenviaban por email automáticamente; solo llegaban al liberarlos manualmente.
+* Los dos correos destino (`admin@fobandor.com` y `administrator@fobandor.com`) estaban **verificados** en la cuenta de Formspree.
+
+### Causa raíz
+* El filtro ML anti-spam **Formshield** (escaneo de machine learning de Formspree) estaba activo y retenía los envíos en estado "pending" antes de entregarlos al buzón `admin@fobandor.com`.
+
+### Solución
+* Desactivar **Formshield** en el dashboard de Formspree (form `mqpqqggk`). Se conserva el **honeypot `_gotcha`** ya implementado en los formularios como protección anti-spam ligera.
+* **Resultado:** los envíos llegan directamente al buzón (verificado por Freddy Obando).
+
+### Lección aprendida
+* Para envíos **AJAX** con `Accept: application/json`, tener **Formshield activo** puede retener los envíos en "pending". Con honeypot propio, Formshield es redundante y conviene mantenerlo desactivado.
+* Configuración recomendada para formularios FOBANDOR en Formspree:
+  1. **Formshield:** desactivado.
+  2. **reCAPTCHA:** desactivado (necesario para AJAX).
+  3. **Honeypot `_gotcha`:** activo (implementado en `pricing.html` y `home.html`).
+  4. **Destino:** correo verificado en *Account → Linked Emails*.
+
+### Nota
+* Resolución 100% del lado de Formspree (dashboard); **no requiere cambios de código ni redeploy**.
+
 
 
 
