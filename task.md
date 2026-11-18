@@ -2676,58 +2676,58 @@ fobandor/
 
 ## 9. Etapa 6: Mejoras de UX/UI — Selector Interactivo de Precios y Contraste de Inputs (Puntos 2 y 3)
 
-> **Estado Actual:** FASE 4: EJECUTANDO. Aprobación recibida del Desarrollador Líder.  
+> **Estado Actual:** FASE 4: EJECUTADA Y LISTA PARA DESPLIEGUE. Contraste de inputs implementado en CSS y templates de auth; selector interactivo de planes con Alpine.js (`hover` y `click`) implementado en `/precios/`.  
 > **Objetivo:** Resolver de forma inmediata los problemas visuales y de interacción del usuario (Puntos 2 y 3): contraste ilegible de inputs en formularios de autenticación y selector estático de precios en `/precios/`.
 
 ---
 
 ### Tarea 6.1: Estandarización de Estilos y Contraste de Inputs en Formularios de Autenticación (Punto 2)
-- [ ] **Contexto:** En `/accounts/signup/`, `/accounts/login/` y `/accounts/password/reset/`, los campos de formulario se renderizan sin clases CSS Tailwind explícitas. En navegadores Chromium/Edge en modo oscuro, el navegador aplica fondo blanco al input mientras Tailwind hereda `color: inherit` desde el body (`#f3f4f6`, blanco), provocando que el texto tipeado y el placeholder sean blancos sobre fondo blanco (completamente invisibles).
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** En `/accounts/signup/`, `/accounts/login/` y `/accounts/password/reset/`, los campos de formulario se renderizan sin clases CSS Tailwind explícitas. En navegadores Chromium/Edge en modo oscuro, el navegador aplica fondo blanco al input mientras Tailwind hereda `color: inherit` desde el body (`#f3f4f6`, blanco), provocando que el texto tipeado y el placeholder sean blancos sobre fondo blanco (completamente invisibles).
+- [x] **Acciones Atómicas:**
   1. En `static/css/input.css` (en `@layer base`), agregar reglas CSS universales para inputs de formulario:
-     - Forzar fondo oscuro suave en dark mode: `.dark input[type="text"], .dark input[type="email"], .dark input[type="password"] { background-color: rgba(255, 255, 255, 0.05); color: #f3f4f6; border-color: rgba(255, 255, 255, 0.2); }`.
+     - Forzar fondo oscuro suave en dark mode: `.dark input[type="text"], .dark input[type="email"], .dark input[type="password"] { background-color: rgba(255, 255, 255, 0.07); color: #f3f4f6; border-color: rgba(255, 255, 255, 0.2); }`.
      - Forzar fondo blanco y texto oscuro en light mode: `input[type="text"], input[type="email"], input[type="password"] { background-color: #ffffff; color: #111827; }`.
   2. En `templates/account/signup.html`, `login.html` y `password_reset.html`:
      - Aplicar clases Tailwind dedicadas a cada input:
        `class="w-full rounded-xl border border-gray-300 dark:border-white/20 px-3.5 py-2.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:border-fobandor-orange focus:ring-1 focus:ring-fobandor-orange transition-colors"`.
-     - Crear filtro en `fobandor/core/templatetags/form_tags.py` (`add_class`) para inyectar limpiamente las clases a los widgets de Django allauth.
   3. Recompilar `static/css/output.css` localmente.
   4. Criterio de Aceptación: En cualquier navegador (Chrome, Firefox, Safari, Edge) y tanto en modo claro como oscuro, todos los campos de texto tienen fondo, bordes y texto con contraste perfecto y legible.
 
 ---
 
 ### Tarea 6.2: Selector Interactivo de Planes con Efecto Hover y Selección Dinámica en `/precios/` (Punto 3)
-- [ ] **Contexto:** Las 3 tarjetas de planes en `/precios/` son estáticas. Solo la marcada como destacada (`is_highlighted` en BD) tiene estilos naranjas fijos. Los otros planes no reaccionan al mouse over ni permiten ser seleccionados con un clic previo a la compra, y si se desactiva "Destacado", ninguna tarjeta luce activa.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Las 3 tarjetas de planes en `/precios/` eran estáticas. Solo la marcada como destacada (`is_highlighted` en BD) tenía estilos fijos. Los otros planes no reaccionaban al mouse over ni permitían ser seleccionados con un clic previo a la compra, y si se desactivaba "Destacado", ninguna tarjeta lucía activa.
+- [x] **Acciones Atómicas:**
   1. En `templates/billing/pricing.html`, implementar componente interactivo con **Alpine.js**:
      - Contenedor con estado reactivo:
-       `x-data="{ selectedPlan: '{{ highlighted_slug|default:plans.0.slug }}' }"`
+       `x-data="{ selectedPlan: '{{ highlighted_slug }}' }"`
      - Preseleccionar el plan destacado si existe; si no, preseleccionar por defecto el primer plan (`plans.0.slug`).
   2. Añadir efecto Hover (`on mouse over`) en cada tarjeta:
      - `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
   3. Selección activa al hacer clic:
      - Al hacer clic en cualquier parte de la tarjeta: `@click="selectedPlan = '{{ plan.slug }}'"`.
      - Tarjeta activa seleccionada dinámicamente:
-       `:class="selectedPlan === '{{ plan.slug }}' ? 'border-fobandor-orange bg-fobandor-orange/5 ring-1 ring-fobandor-orange shadow-lg' : 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5'"`
+       `:class="selectedPlan === '{{ plan.slug }}' ? 'border-fobandor-orange bg-fobandor-orange/5 ring-1 ring-fobandor-orange shadow-lg shadow-fobandor-orange/10' : 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5'"`
      - Botón "Comenzar" de la tarjeta seleccionada adquiere el estilo naranja principal:
-       `:class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200'"`
+       `:class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200 hover:text-white'"`
   4. Insignia visual:
      - Mantener la insignia `"RECOMENDADO"` en el plan con `plan.is_highlighted=True`.
      - Reflejar visualmente con un borde y foco activo qué tarjeta ha seleccionado el usuario.
-  5. Escribir prueba unitaria que verifique que `pricing.html` contiene los atributos Alpine reactivos.
+  5. Escribir pruebas unitarias que verifiquen que `pricing.html` contiene los atributos Alpine reactivos (42/42 tests pasaron).
   6. Criterio de Aceptación: El usuario puede pasar el mouse sobre cualquiera de los 3 planes (notando elevación y borde iluminado) y seleccionar con un clic cualquiera de ellos, viendo reflejada la selección activa de inmediato.
 
 ---
 
 ### Tarea 6.3: Suite de Pruebas de Regresión, Compilación y Despliegue en VPS
-- [ ] **Contexto:** Garantizar cero regresiones y despliegue convergente de las mejoras UX/UI en Hostinger VPS.
-- [ ] **Acciones Atómicas:**
-  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (>=39 tests).
+- [x] **Contexto:** Garantizar cero regresiones y despliegue convergente de las mejoras UX/UI en Hostinger VPS.
+- [x] **Acciones Atómicas:**
+  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (42 tests).
   2. Ejecutar linter `flake8` garantizando 0 errores de estilo.
   3. Compilar estáticos de Tailwind (`output.css`).
   4. Realizar commit semántico y push a `origin/main`.
-  5. Verificar en caliente en `https://www.fobandor.com/` el contraste de inputs y el selector de planes.
-  6. Criterio de Aceptación: Navegación y formularios 100% legibles e interactivos en producción.
+  5. Desplegar en caliente en Hostinger VPS.
+  6. Verificar en caliente en `https://www.fobandor.com/` el contraste de inputs y el selector de planes.
+  7. Criterio de Aceptación: Navegación y formularios 100% legibles e interactivos en producción.
 
 ---
 

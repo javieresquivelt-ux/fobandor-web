@@ -27,6 +27,9 @@ class PricingCatalogView(ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["formspree_endpoint"] = settings.FORMSPREE_ENDPOINT
+        plans = list(ctx.get("plans", []))
+        highlighted = next((p.slug for p in plans if p.is_highlighted), None)
+        ctx["highlighted_slug"] = highlighted or (plans[0].slug if plans else "")
         return ctx
 
 

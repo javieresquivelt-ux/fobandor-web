@@ -28,6 +28,46 @@ def test_pricing_view_lists_active_plans(client):
 
 
 @pytest.mark.django_db
+def test_pricing_view_interactive_plan_selector_alpine_attributes(client):
+    """Verifica que el catálogo inyecta atributos interactivos de Alpine.js (ADR-020)."""
+    SubscriptionPlan.objects.create(
+        slug="impulso", name_es="Impulso", name_en="Impulso",
+        price_usd="697.00", order=1, is_highlighted=False)
+    SubscriptionPlan.objects.create(
+        slug="conversion", name_es="Conversión", name_en="Conversion",
+        price_usd="1297.00", order=2, is_highlighted=True)
+
+    response = client.get(reverse("billing:pricing"))
+    assert response.status_code == 200
+    content = response.content.decode()
+
+    # Contenedor reactivo con preselección del plan destacado
+    assert "selectedPlan: 'conversion'" in content
+    # Atributo click de selección en cada tarjeta
+    assert "@click=\"selectedPlan = 'impulso'\"" in content
+    assert "@click=\"selectedPlan = 'conversion'\"" in content
+    # Clases reactivas dinámicas
+    assert ":class=\"selectedPlan === 'impulso'" in content
+    assert ":class=\"selectedPlan === 'conversion'" in content
+
+
+@pytest.mark.django_db
+def test_pricing_view_fallback_to_first_plan_when_no_highlighted(client):
+    """Si ningún plan está destacado, el selector preselecciona el primero."""
+    SubscriptionPlan.objects.create(
+        slug="plan-a", name_es="Plan A", name_en="Plan A",
+        price_usd="100.00", order=1, is_highlighted=False)
+    SubscriptionPlan.objects.create(
+        slug="plan-b", name_es="Plan B", name_en="Plan B",
+        price_usd="200.00", order=2, is_highlighted=False)
+
+    response = client.get(reverse("billing:pricing"))
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "selectedPlan: 'plan-a'" in content
+
+
+@pytest.mark.django_db
 def test_pricing_view_uses_company_profile_diag_texts(client):
     profile = CompanyProfile.load()
     profile.diag_form_subject = "Asunto de prueba"
