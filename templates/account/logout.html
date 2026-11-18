@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-md mx-auto py-16 px-4">
+  <div class="rounded-3xl border border-gray-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-sm p-8 sm:p-10 text-center shadow-xl shadow-black/5 dark:shadow-black/20">
+
+    <div class="mx-auto w-16 h-16 rounded-2xl bg-fobandor-orange/10 dark:bg-fobandor-orange/20 border border-fobandor-orange/30 flex items-center justify-center text-fobandor-orange mb-6 shadow-lg shadow-fobandor-orange/10">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+      </svg>
+    </div>
+
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
+      {% trans "Cerrar sesión" %}
+    </h1>
+
+    <p class="text-gray-600 dark:text-gray-300 text-sm mb-6">
+      {% trans "¿Estás seguro de que deseas cerrar tu sesión?" %}
+    </p>
+
+    <form method="post" action="{% url 'account_logout' %}">
+      {% csrf_token %}
+      <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-2.5 font-semibold shadow-lg shadow-fobandor-orange/20 transition-all">
+          {% trans "Cerrar sesión" %}
+        </button>
+        <a href="{% url 'core:home' %}" class="rounded-xl border border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 hover:border-fobandor-orange text-gray-700 dark:text-gray-200 px-6 py-2.5 font-semibold transition-all">
+          {% trans "Cancelar" %}
+        </a>
+      </div>
+    </form>
+
+  </div>
+</div>
+{% endblock %}

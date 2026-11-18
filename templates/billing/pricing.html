@@ -23,7 +23,7 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6"
          x-data="{ selectedPlan: '{{ highlighted_slug }}' }">
       {% for plan in plans %}
-      <div class="relative rounded-2xl border p-8 flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70"
+      <div class="relative rounded-2xl border p-8 flex flex-col cursor-pointer transition-all duration-300 ease-out hover:-translate-y-2 hover:shadow-2xl hover:shadow-fobandor-orange/20 hover:border-fobandor-orange hover:bg-fobandor-orange/[0.03] dark:hover:bg-white/[0.08]"
            @click="selectedPlan = '{{ plan.slug }}'"
            :class="selectedPlan === '{{ plan.slug }}' ? 'border-fobandor-orange bg-fobandor-orange/5 ring-1 ring-fobandor-orange shadow-lg shadow-fobandor-orange/10' : 'border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5'">
         {% if plan.is_highlighted %}
@@ -56,7 +56,7 @@
           {% csrf_token %}
           <button type="submit"
                   class="w-full rounded-xl px-4 py-2.5 font-semibold transition-all duration-200"
-                  :class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200 hover:text-white'">
+                  :class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border-2 border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:border-fobandor-orange hover:bg-fobandor-orange hover:text-white hover:shadow-lg hover:shadow-fobandor-orange/25'">
             {% trans "Comenzar" %}
           </button>
         </form>

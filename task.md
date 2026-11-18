@@ -2676,8 +2676,8 @@ fobandor/
 
 ## 9. Etapa 6: Mejoras de UX/UI — Selector Interactivo de Precios y Contraste de Inputs (Puntos 2 y 3)
 
-> **Estado Actual:** FASE 4: EJECUTADA Y LISTA PARA DESPLIEGUE. Contraste de inputs implementado en CSS y templates de auth; selector interactivo de planes con Alpine.js (`hover` y `click`) implementado en `/precios/`.  
-> **Objetivo:** Resolver de forma inmediata los problemas visuales y de interacción del usuario (Puntos 2 y 3): contraste ilegible de inputs en formularios de autenticación y selector estático de precios en `/precios/`.
+> **Estado Actual:** FASE 4: EJECUTADA Y CERTIFICADA EN PRODUCCIÓN. Hover de precios con alto contraste garantizado; embudo de autenticación Allauth 100% maquetado con identidad corporativa de marca.  
+> **Objetivo:** Resolver el contraste invisible en hover sobre los botones de precios y maquetar con diseño corporativo completo las pantallas de confirmación de correo (`verification_sent.html`, `email_confirm.html`, `password_reset_done.html`, `logout.html`).
 
 ---
 
@@ -2728,6 +2728,48 @@ fobandor/
   5. Desplegar en caliente en Hostinger VPS.
   6. Verificar en caliente en `https://www.fobandor.com/` el contraste de inputs y el selector de planes.
   7. Criterio de Aceptación: Navegación y formularios 100% legibles e interactivos en producción.
+
+---
+
+### Tarea 6.4: Refinamiento de UX/UI — Efecto Hover y Contraste del Botón "Comenzar" en `/precios/` (Punto 3)
+- [x] **Contexto:** En [templates/billing/pricing.html](file:///home/jet/proyectos_lnx/proyectos/fobandor/templates/billing/pricing.html#L59), en las tarjetas no seleccionadas, el botón tiene la clase `hover:text-white` pero carece de `hover:bg-fobandor-orange`. En Modo Claro (Light Mode), al pasar el ratón por encima del botón "Comenzar", el texto cambia a color blanco sobre el fondo blanco/transparente de la tarjeta, volviéndose completamente invisible.
+- [x] **Acciones Atómicas:**
+  1. En `templates/billing/pricing.html`:
+     - Reemplazar las clases del botón no seleccionado:
+       - **Antes:** `'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200 hover:text-white'`
+       - **Ahora:** `'border-2 border-gray-300 dark:border-white/20 bg-gray-100 dark:bg-white/10 text-gray-900 dark:text-white hover:border-fobandor-orange hover:bg-fobandor-orange hover:text-white hover:shadow-lg hover:shadow-fobandor-orange/25'`
+     - Mejorar el efecto hover de la tarjeta completa con elevación `-translate-y-2`, sombra perimetral naranja `hover:shadow-fobandor-orange/20` y fondo con tinte cálido sutil `hover:bg-fobandor-orange/[0.04] dark:hover:bg-white/[0.08]`.
+  2. Criterio de Aceptación: En modo claro y oscuro, el botón no seleccionado tiene texto oscuro nítido (`text-gray-900`), y al hacer hover sobre él se rellena inmediatamente de color naranja corporativo con texto blanco en alto contraste. Cero texto blanco sobre fondo blanco.
+
+---
+
+### Tarea 6.5: Maquetación Corporativa del Embudo de Confirmación de Email y Cuenta de Allauth (Nuevo Hallazgo QA)
+- [x] **Contexto:** Al completar el registro en `/accounts/signup/`, allauth redirige a `/accounts/confirm-email/` (`EmailVerificationSentView`). Como el archivo `templates/account/verification_sent.html` no existía, el framework cae al template por defecto de allauth en texto plano sin estilos, sin navbar, sin footer y en fuente Serif (Times New Roman), generando una experiencia rota ante el usuario final.
+- [x] **Acciones Atómicas:**
+  1. Crear `templates/account/verification_sent.html` extendiendo `base.html`:
+     - Contenedor centrado y tarjeta corporativa con bordes redondeados y sombra.
+     - Ícono gráfico elegante de correo/buzón con acentos en `fobandor-orange`.
+     - Título: `Verifica tu dirección de correo electrónico`.
+     - Mensaje claro y profesional: explica que se ha despachado un correo de activación, aconseja revisar carpetas de Spam / Correo no deseado y esperar 1-2 minutos.
+     - Botones de navegación: volver al inicio (`{% url 'core:home' %}`) o ir a planes (`{% url 'billing:pricing' %}`).
+  2. Actualizar `templates/account/email_confirm.html`:
+     - Si la clave de confirmación es válida (`{% if confirmation %}`): mostrar mensaje de bienvenida y botón de acción principal "Activar mi cuenta" con estilo `bg-fobandor-orange hover:bg-fobandor-orange/90 text-white`.
+     - Si la clave expiró o no es válida: advertencia visual y botón para solicitar reenvío o ir al login.
+  3. Crear `templates/account/password_reset_done.html` y `templates/account/logout.html` asegurando que ninguna pantalla secundaria de autenticación quede sin estilos.
+  4. Criterio de Aceptación: Todas las pantallas del embudo de registro, confirmación de correo y restablecimiento de credenciales heredan `base.html` con la identidad visual completa de FOBANDOR en dark y light mode.
+
+---
+
+### Tarea 6.6: Suite de Pruebas de Regresión, Compilación y Despliegue en VPS
+- [x] **Contexto:** Validar ausencia de regresiones, compilar CSS y desplegar en Hostinger VPS.
+- [x] **Acciones Atómicas:**
+  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (43 tests).
+  2. Ejecutar linter `flake8` garantizando 0 errores.
+  3. Recompilar `static/css/output.css`.
+  4. Realizar commit semántico y push a `origin/main`.
+  5. Desplegar imagen actualizada en Docker Swarm (`fobandor_web`).
+  6. Verificar en vivo en `https://www.fobandor.com/` el hover de precios y la pantalla de verificación de correo.
+  7. Criterio de Aceptación: Despliegue convergente y verificado en producción sin fallos.
 
 ---
 

@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% load i18n %}
+
+{% block content %}
+<div class="max-w-lg mx-auto py-16 px-4 sm:px-6">
+  <div class="rounded-3xl border border-gray-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-sm p-8 sm:p-10 text-center shadow-xl shadow-black/5 dark:shadow-black/20">
+
+    <!-- Icono de Correo / Notificación -->
+    <div class="mx-auto w-16 h-16 rounded-2xl bg-fobandor-orange/10 dark:bg-fobandor-orange/20 border border-fobandor-orange/30 flex items-center justify-center text-fobandor-orange mb-6 shadow-lg shadow-fobandor-orange/10">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path>
+      </svg>
+    </div>
+
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
+      {% trans "Verifica tu dirección de correo" %}
+    </h1>
+
+    <p class="text-gray-600 dark:text-gray-300 text-sm sm:text-base leading-relaxed mb-6">
+      {% trans "Te hemos enviado un correo electrónico para verificar tu cuenta. Sigue el enlace que encontrarás en el mensaje para activar tu acceso y comenzar." %}
+    </p>
+
+    <!-- Caja de sugerencia -->
+    <div class="rounded-2xl border border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-white/[0.03] p-4 text-xs sm:text-sm text-gray-600 dark:text-gray-400 text-left space-y-2 mb-8">
+      <div class="flex items-start gap-2.5">
+        <span class="mt-0.5 text-fobandor-orange font-bold text-base leading-none">•</span>
+        <span>{% trans "Revisa tu bandeja principal y la carpeta de correo no deseado (Spam o Promociones)." %}</span>
+      </div>
+      <div class="flex items-start gap-2.5">
+        <span class="mt-0.5 text-fobandor-orange font-bold text-base leading-none">•</span>
+        <span>{% trans "El enlace de verificación es válido durante 3 días a partir del registro." %}</span>
+      </div>
+    </div>
+
+    <!-- Botones de Acción -->
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+      <a href="{% url 'billing:pricing' %}" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-2.5 font-semibold shadow-lg shadow-fobandor-orange/20 transition-all">
+        {% trans "Ver planes disponibles" %}
+      </a>
+      <a href="{% url 'core:home' %}" class="w-full sm:w-auto inline-flex justify-center items-center rounded-xl border border-gray-300 dark:border-white/20 bg-white dark:bg-white/5 hover:border-fobandor-orange text-gray-700 dark:text-gray-200 px-6 py-2.5 font-semibold transition-all">
+        {% trans "Ir al inicio" %}
+      </a>
+    </div>
+
+    <!-- Pie de soporte -->
+    <p class="mt-8 text-xs text-gray-500 dark:text-gray-400">
+      {% trans "¿No recibiste el correo? Contáctanos en" %}
+      <a href="mailto:administrator@fobandor.com" class="text-fobandor-orange hover:underline">administrator@fobandor.com</a>
+    </p>
+
+  </div>
+</div>
+{% endblock %}

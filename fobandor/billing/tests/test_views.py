@@ -49,6 +49,9 @@ def test_pricing_view_interactive_plan_selector_alpine_attributes(client):
     # Clases reactivas dinámicas
     assert ":class=\"selectedPlan === 'impulso'" in content
     assert ":class=\"selectedPlan === 'conversion'" in content
+    # Estilo de hover y alto contraste en botón no seleccionado (ADR-022)
+    assert "hover:bg-fobandor-orange hover:text-white" in content
+    assert "bg-gray-100" in content
 
 
 @pytest.mark.django_db

@@ -1,11 +1,44 @@
 {% extends 'base.html' %}
 {% load i18n %}
+{% load account %}
 
 {% block content %}
-<div class="max-w-md mx-auto py-16 px-4 text-center">
-  <h1 class="text-3xl font-extrabold mb-4">{% trans "Confirma tu correo" %}</h1>
-  <p class="text-gray-600 dark:text-gray-400">
-    {% blocktrans %}Hemos enviado un correo para verificar tu dirección de email.{% endblocktrans %}
-  </p>
+<div class="max-w-md mx-auto py-16 px-4">
+  <div class="rounded-3xl border border-gray-200 dark:border-white/10 bg-white/70 dark:bg-white/5 backdrop-blur-sm p-8 sm:p-10 text-center shadow-xl shadow-black/5 dark:shadow-black/20">
+
+    <div class="mx-auto w-16 h-16 rounded-2xl bg-fobandor-orange/10 dark:bg-fobandor-orange/20 border border-fobandor-orange/30 flex items-center justify-center text-fobandor-orange mb-6 shadow-lg shadow-fobandor-orange/10">
+      <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+      </svg>
+    </div>
+
+    <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
+      {% trans "Confirmar correo" %}
+    </h1>
+
+    {% if confirmation %}
+      {% user_display confirmation.email_address.user as user_display %}
+      <p class="text-gray-600 dark:text-gray-300 text-sm mb-6">
+        {% blocktrans with email=confirmation.email_address.email %}Por favor confirma que deseas activar la cuenta asociada a <strong>{{ email }}</strong>.{% endblocktrans %}
+      </p>
+
+      <form method="post" action="{% url 'account_confirm_email' confirmation.key %}">
+        {% csrf_token %}
+        <button type="submit" class="w-full rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-3 font-semibold shadow-lg shadow-fobandor-orange/20 transition-all">
+          {% trans "Confirmar y activar cuenta" %}
+        </button>
+      </form>
+    {% else %}
+      <p class="text-gray-600 dark:text-gray-300 text-sm mb-6">
+        {% url 'account_email' as email_url %}
+        {% blocktrans %}Este enlace de confirmación ha expirado o ya no es válido.{% endblocktrans %}
+      </p>
+
+      <a href="{% url 'account_login' %}" class="inline-flex justify-center items-center rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-2.5 font-semibold shadow-lg shadow-fobandor-orange/20 transition-all">
+        {% trans "Iniciar sesión" %}
+      </a>
+    {% endif %}
+
+  </div>
 </div>
 {% endblock %}

@@ -75,3 +75,15 @@ def test_signup_no_500_when_smtp_unavailable(client, settings):
     assert response.status_code != 500, (
         f"El endpoint de signup devolvió 500. Status: {response.status_code}"
     )
+
+
+@pytest.mark.django_db
+def test_email_verification_sent_renders_styled_template(client):
+    """La vista /accounts/confirm-email/ hereda base.html con estilos FOBANDOR."""
+    url = reverse("account_email_verification_sent")
+    response = client.get(url)
+    assert response.status_code == 200
+    content = response.content.decode()
+    assert "Verifica tu dirección de correo" in content
+    assert "bg-fobandor-orange" in content
+    assert "Ir al inicio" in content
