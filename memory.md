@@ -211,12 +211,12 @@
 
 | Fase HARNESS | Estado | Acciones Realizadas / Próximas |
 | :--- | :---: | :--- |
-| **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 3 hallazgos de QA: Signup 500 (SMTP ausente), Contraste de inputs (Tailwind/Chromium) y Selector de precios interactivo (Alpine.js). |
-| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 6 (Tareas 6.1 a 6.4)** en `task.md`. |
-| **3. APROBAR** | **EN REVISIÓN (PAUSA OBLIGATORIA)** | Plan de la Etapa 6 presentado al Desarrollador Líder para su aprobación explícita antes de ejecutar. |
-| **4. EJECUTAR** | **PENDIENTE (Etapa 6)** | Implementación TDD por OpenCode de Tareas 6.1 a 6.4 tras recibir visto bueno. |
-| **5. REGISTRAR** | **EN PROGRESO** | Sección 21 documentada en `memory.md` con las causas raíces y diseños técnicos. |
-| **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y actualización viva de la documentación. |
+| **1. ANALIZAR** | **COMPLETADA** | Análisis exhaustivo de los 3 hallazgos QA. Decisión de desacoplar en 2 planes independientes: Etapa 6 (UX/UI: Precios y Contraste) y Etapa 7 (Servicio de Correo SMTP y Registro). |
+| **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 6 (Tareas 6.1 a 6.3)** y de la **Etapa 7 (Tareas 7.1 a 7.4)** en `task.md`. |
+| **3. APROBAR** | **EN REVISIÓN (PAUSA OBLIGATORIA)** | Plan de la Etapa 6 (UX/UI inmediata) presentado al Desarrollador Líder para su aprobación explícita antes de ejecutar. |
+| **4. EJECUTAR** | **PENDIENTE (Etapa 6)** | Implementación TDD por OpenCode de Tareas 6.1 a 6.3 tras recibir visto bueno. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 21 documentada en `memory.md` con el desacoplamiento de planes y fundamentos técnicos. |
+| **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y posterior ejecución de la Etapa 7 (SMTP). |
 
 ---
 
@@ -766,31 +766,43 @@ Durante la revisión de producción de `https://www.fobandor.com/`, el Desarroll
 
 ---
 
-## 21. Análisis y Plan de Solución para Hallazgos QA (Signup 500, Contraste de Inputs y Selector Interactivo de Precios)
+## 21. Desacoplamiento de Hallazgos QA en Dos Planes Atómicos (Etapas 6 y 7)
 
-### 1. Error HTTP 500 al Registrarse en `/accounts/signup/`
-* **Síntoma:** Al completar el formulario de registro manual y presionar *"Registrarse"*, el servidor responde con pantalla blanca `Server Error (500)`.
-* **Causa Raíz:** En `config/settings/production.py`, el backend de correo está fijado a `django.core.mail.backends.smtp.EmailBackend` con `EMAIL_HOST = ""` por defecto. Cuando el usuario se registra, `allauth` ejecuta `send_email_confirmation()`, el cual intenta conectar por SMTP a `""` (puerto 587) y lanza `smtplib.SMTPServerDisconnected: please run connect() first` o `ConnectionRefusedError`. Dado que `allauth` no captura excepciones de envío de correo, la excepción no controlada aborta la petición con un error HTTP 500.
-* **Solución Arquitectónica:**
-  1. Sobreescribir `send_mail` en `CustomAccountAdapter` (`fobandor/users/adapters.py`) con bloque `try...except` que registre una advertencia en el log en lugar de dejar caer la petición con 500 si el servidor SMTP falla o no está alcanzable.
-  2. En `save_user` de `CustomAccountAdapter`, si `EMAIL_HOST` no está configurado o `ACCOUNT_EMAIL_VERIFICATION == 'none'`, auto-marcar `user.is_email_verified = True` para permitir el checkout inmediato sin bloquear al cliente.
-  3. En `production.py`, definir `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none" if not env("EMAIL_HOST", default="") else "optional")`.
+### Decisión de Gobernanza y Alcance
+Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se desacoplan en **dos etapas independientes**:
+1. **Etapa 6 (Inmediata / Frontend):** Mejoras de UX/UI para el contraste de inputs en autenticación y selector dinámico de precios con hover/mouse en `/precios/` (Puntos 2 y 3).
+2. **Etapa 7 (Posterior / Infraestructura):** Implementación formal del servicio de correo transaccional (SMTP) con Hostinger Titan Email y blindaje resiliente del registro de usuarios (Punto 1).
 
-### 2. Campos de Texto con Contraste Roto en Formularios de Autenticación
+---
+
+### Diagnóstico Técnico y Razonamiento
+
+#### 1. Campos de Texto con Contraste Roto en Formularios de Autenticación (Punto 2 → Tarea 6.1)
 * **Síntoma:** En navegadores Chromium/Edge bajo Windows en modo oscuro, el fondo de los campos de texto en `/accounts/signup/` y `/accounts/login/` aparece blanco y el texto tipeado se vuelve invisible o extremadamente tenue.
 * **Causa Raíz:** Los formularios de `django-allauth` se renderizan como `<input>` planos sin clases CSS Tailwind explícitas. El reseteo Preflight de Tailwind v3 aplica `color: inherit`, por lo que el `<input>` hereda el color del `body` en dark mode (`#f3f4f6`, blanco). Sin embargo, el user-agent stylesheet de Chromium aplica fondo blanco por defecto a los inputs si no se declara `background-color`. Como resultado: fondo blanco nativo + color de texto blanco heredado = **texto invisible**.
 * **Solución Arquitectónica:**
   1. Reglas globales en `@layer base` dentro de `static/css/input.css` para normalizar todos los inputs, textareas y selects: fondo oscuro semitransparente (`rgba(255, 255, 255, 0.05)`), texto blanco (`#f3f4f6`) y borde sutil en modo oscuro; fondo blanco y texto oscuro en modo claro.
   2. En las plantillas `templates/account/signup.html`, `login.html` y `password_reset.html`, inyectar clases Tailwind explícitas con filtro `add_class` para garantizar diseño dark-tech consistente con el resto del sitio.
 
-### 3. Selector Interactivo de Precios con Mouse / Hover en `/precios/`
+#### 2. Selector Interactivo de Precios con Mouse / Hover en `/precios/` (Punto 3 → Tarea 6.2)
 * **Síntoma:** Las 3 tarjetas de planes son elementos estáticos. La tarjeta destacada en base de datos (`is_highlighted`) aparece fija con estilos naranjas, mientras que las otras dos permanecen grises. El usuario no puede hacer clic sobre otra tarjeta para seleccionarla ni experimenta respuesta visual al pasar el ratón (`on mouse over`). Si se desactiva "Destacado" en el CMS, ninguna tarjeta luce activa ni seleccionable.
 * **Causa Raíz:** En `templates/billing/pricing.html`, los estilos de borde y botón dependen exclusivamente de `{% if plan.is_highlighted %}` en el render del servidor. No existe estado reactivo del lado del cliente para gestionar la selección del usuario.
 * **Solución Arquitectónica (UX/UI SaaS):**
   1. Integrar **Alpine.js** en el contenedor de planes: `x-data="{ selectedPlan: '{{ highlighted_plan_slug|default:plans.0.slug }}' }"`.
-  2. Efecto Hover en las 3 tarjetas: `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
+  2. Efecto Hover en las 3 tarjetas: `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
   3. Selección dinámica al clic: `@click="selectedPlan = '{{ plan.slug }}'"`. La tarjeta seleccionada adquiere borde naranja, resplandor de fondo y botón principal "Comenzar" de color naranja, mientras las no seleccionadas adoptan estilo outline secundario.
   4. La insignia `"RECOMENDADO"` se conserva en el plan con `is_highlighted=True`, permitiendo que el usuario seleccione visualmente cualquier otro plan sin perder la sugerencia editorial de la agencia.
+
+---
+
+### Fundamentos de la Etapa 7: Servicio de Correo Transaccional (SMTP) (Punto 1)
+* **¿Es implementar el servicio de correo la solución definitiva?**  
+  **Sí.** Para que un usuario se registre con correo y contraseña en producción de forma estándar, la aplicación debe enviar un correo transaccional de verificación con un token firmado. En `config/settings/production.py`, el backend `smtp.EmailBackend` no tiene servidor SMTP asignado (`EMAIL_HOST = ""`), lo que provoca que al registrarse se intente conectar a un socket vacío y falle con `smtplib.SMTPServerDisconnected` (HTTP 500).
+* **Estrategia para Etapa 7:**
+  1. **Aprovisionamiento SMTP:** Configurar las credenciales oficiales de Hostinger Titan Email (`smtp.hostinger.com`, puerto 465 SSL, usuario `admin@fobandor.com`) en EasyPanel VPS.
+  2. **Plantillas Corporativas de Email:** Diseñar plantillas bilingües con identidad FOBANDOR para confirmación de email y reseteo de contraseña.
+  3. **Blindaje Resiliente:** Sobreescribir `send_mail` en `CustomAccountAdapter` con captura de excepciones (`try...except`) para que, ante cualquier caída o bloqueo temporal del proveedor SMTP, el sistema no responda con pantalla de error 500, sino con un mensaje amigable al usuario.
+  4. **Validación E2E:** Flujo completo de registro en vivo, recepción en bandeja de entrada, clic de confirmación y pase a checkout.
 
 
 

@@ -2674,31 +2674,15 @@ fobandor/
 
 ---
 
-## 9. Etapa 6: Resolución de Hallazgos QA (Registro 500, Contraste de Inputs y Selector de Planes)
+## 9. Etapa 6: Mejoras de UX/UI — Selector Interactivo de Precios y Contraste de Inputs (Puntos 2 y 3)
 
 > **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
-> **Objetivo:** Resolver los 3 problemas detectados en la fase de control de calidad: error 500 al registrar usuario, campos de texto con fuentes blancas sobre fondo blanco en `/accounts/signup/`, y selector interactivo con mouse/hover en las tarjetas de precios de `/precios/`.
+> **Objetivo:** Resolver de forma inmediata los problemas visuales y de interacción del usuario (Puntos 2 y 3): contraste ilegible de inputs en formularios de autenticación y selector estático de precios en `/precios/`.
 
 ---
 
-### Tarea 6.1: Blindaje del Flujo de Registro (`/accounts/signup/`) contra Errores 500 por Ausencia de SMTP
-- [ ] **Contexto:** Al intentar registrarse vía email en producción (`/accounts/signup/`), Django allauth intenta enviar el email de verificación mediante SMTP. Como `EMAIL_HOST` está vacío por defecto en EasyPanel (o no se ha configurado servidor de correo), la llamada genera una excepción de socket no capturada que interrumpe la petición con un error HTTP 500.
-- [ ] **Acciones Atómicas:**
-  1. En `fobandor/users/adapters.py` (`CustomAccountAdapter`):
-     - Sobreescribir el método `send_mail(self, template_prefix, email, context)`.
-     - Envolver la llamada a `super().send_mail` en un bloque `try...except Exception as exc:` con registro en logger de advertencia. Si el envío de correo falla por SMTP ausente o no alcanzable, el registro del usuario concluye exitosamente sin disparar HTTP 500.
-     - En `save_user(self, request, user, form, commit=True)`: Si `not settings.EMAIL_HOST` o `ACCOUNT_EMAIL_VERIFICATION == 'none'`, auto-marcar `user.is_email_verified = True` para que el usuario no quede bloqueado del checkout (ADR-006).
-  2. En `config/settings/production.py`:
-     - Configurar `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="none" if not env("EMAIL_HOST", default="") else "optional")`. De este modo, si no hay un servidor SMTP definido en EasyPanel, el sistema no intenta conectarse a un host vacío.
-  3. Escribir prueba unitaria en `fobandor/users/tests/test_gate.py`:
-     - Simular registro con backend SMTP desconectado/fallido y verificar que retorna redirección HTTP 302 y crea el usuario sin error 500.
-  4. Documentar en la guía operativa las credenciales de Hostinger Titan Email (`smtp.hostinger.com`, puerto 465 SSL o 587 TLS) para cuando Freddy desee habilitar el envío real de correos de confirmación.
-  5. Criterio de Aceptación: Registro manual en `/accounts/signup/` completado fluidamente y con redirección a onboarding/dashboard sin errores 500.
-
----
-
-### Tarea 6.2: Estandarización de Estilos y Contraste de Inputs en Formularios de Autenticación
-- [ ] **Contexto:** En `/accounts/signup/`, `/accounts/login/` y `/accounts/password/reset/`, los campos de formulario se renderizan sin clases CSS Tailwind. En navegadores Chromium/Edge en modo oscuro, el navegador aplica fondo blanco al input mientras Tailwind hereda `color: inherit` desde el body (`#f3f4f6`, blanco), provocando que el texto tipeado y el placeholder sean blancos sobre fondo blanco (completamente invisibles).
+### Tarea 6.1: Estandarización de Estilos y Contraste de Inputs en Formularios de Autenticación (Punto 2)
+- [ ] **Contexto:** En `/accounts/signup/`, `/accounts/login/` y `/accounts/password/reset/`, los campos de formulario se renderizan sin clases CSS Tailwind explícitas. En navegadores Chromium/Edge en modo oscuro, el navegador aplica fondo blanco al input mientras Tailwind hereda `color: inherit` desde el body (`#f3f4f6`, blanco), provocando que el texto tipeado y el placeholder sean blancos sobre fondo blanco (completamente invisibles).
 - [ ] **Acciones Atómicas:**
   1. En `static/css/input.css` (en `@layer base`), agregar reglas CSS universales para inputs de formulario:
      - Forzar fondo oscuro suave en dark mode: `.dark input[type="text"], .dark input[type="email"], .dark input[type="password"] { background-color: rgba(255, 255, 255, 0.05); color: #f3f4f6; border-color: rgba(255, 255, 255, 0.2); }`.
@@ -2712,7 +2696,7 @@ fobandor/
 
 ---
 
-### Tarea 6.3: Selector Interactivo de Planes con Efecto Hover y Selección Dinámica en `/precios/`
+### Tarea 6.2: Selector Interactivo de Planes con Efecto Hover y Selección Dinámica en `/precios/` (Punto 3)
 - [ ] **Contexto:** Las 3 tarjetas de planes en `/precios/` son estáticas. Solo la marcada como destacada (`is_highlighted` en BD) tiene estilos naranjas fijos. Los otros planes no reaccionan al mouse over ni permiten ser seleccionados con un clic previo a la compra, y si se desactiva "Destacado", ninguna tarjeta luce activa.
 - [ ] **Acciones Atómicas:**
   1. En `templates/billing/pricing.html`, implementar componente interactivo con **Alpine.js**:
@@ -2720,7 +2704,7 @@ fobandor/
        `x-data="{ selectedPlan: '{{ highlighted_slug|default:plans.0.slug }}' }"`
      - Preseleccionar el plan destacado si existe; si no, preseleccionar por defecto el primer plan (`plans.0.slug`).
   2. Añadir efecto Hover (`on mouse over`) en cada tarjeta:
-     - `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
+     - `cursor-pointer transition-all duration-300 ease-out hover:-translate-y-1.5 hover:shadow-2xl hover:shadow-fobandor-orange/15 hover:border-fobandor-orange/70`.
   3. Selección activa al hacer clic:
      - Al hacer clic en cualquier parte de la tarjeta: `@click="selectedPlan = '{{ plan.slug }}'"`.
      - Tarjeta activa seleccionada dinámicamente:
@@ -2729,21 +2713,82 @@ fobandor/
        `:class="selectedPlan === '{{ plan.slug }}' ? 'bg-fobandor-orange hover:bg-fobandor-orange/90 text-white shadow-lg shadow-fobandor-orange/20' : 'border border-gray-300 dark:border-white/20 hover:border-fobandor-orange text-gray-700 dark:text-gray-200'"`
   4. Insignia visual:
      - Mantener la insignia `"RECOMENDADO"` en el plan con `plan.is_highlighted=True`.
-     - Mostrar sutilmente un indicador o cambio de estado activo al seleccionar cualquier tarjeta con el mouse.
+     - Reflejar visualmente con un borde y foco activo qué tarjeta ha seleccionado el usuario.
   5. Escribir prueba unitaria que verifique que `pricing.html` contiene los atributos Alpine reactivos.
   6. Criterio de Aceptación: El usuario puede pasar el mouse sobre cualquiera de los 3 planes (notando elevación y borde iluminado) y seleccionar con un clic cualquiera de ellos, viendo reflejada la selección activa de inmediato.
 
 ---
 
-### Tarea 6.4: Suite de Pruebas de Regresión, Compilación y Despliegue en Producción
-- [ ] **Contexto:** Garantizar cero regresiones y despliegue convergente en Hostinger VPS.
+### Tarea 6.3: Suite de Pruebas de Regresión, Compilación y Despliegue en VPS
+- [ ] **Contexto:** Garantizar cero regresiones y despliegue convergente de las mejoras UX/UI en Hostinger VPS.
 - [ ] **Acciones Atómicas:**
-  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (>=40 tests).
+  1. Ejecutar suite completa `pytest` asegurando que todos los tests pasen (>=39 tests).
   2. Ejecutar linter `flake8` garantizando 0 errores de estilo.
   3. Compilar estáticos de Tailwind (`output.css`).
   4. Realizar commit semántico y push a `origin/main`.
-  5. Verificar en caliente en `https://www.fobandor.com/` los 3 escenarios corregidos.
-  6. Criterio de Aceptación: Cero errores 500 en registro, contraste perfecto en formularios y selector interactivo de planes en producción.
+  5. Verificar en caliente en `https://www.fobandor.com/` el contraste de inputs y el selector de planes.
+  6. Criterio de Aceptación: Navegación y formularios 100% legibles e interactivos en producción.
+
+---
+
+## 10. Etapa 7: Implementación del Servicio de Correo Transaccional (SMTP) y Registro Blindado (Punto 1)
+
+> **Estado Actual:** PENDIENTE (En espera de provisión de credenciales SMTP).  
+> **Objetivo:** Resolver definitivamente el Error 500 al registrar usuarios manuales en `/accounts/signup/` implementando el servicio formal de envío de correos transaccionales (SMTP) y blindando la resiliencia del sistema ante eventuales caídas del servidor de correo.
+
+---
+
+### Tarea 7.1: Aprovisionamiento y Configuración de Credenciales SMTP en Producción
+- [ ] **Contexto:** Hostinger ofrece servicio de correo corporativo Titan Email para el dominio `fobandor.com`. Para enviar correos de verificación y notificaciones desde la aplicación, se requiere inyectar los parámetros SMTP en las variables de entorno de EasyPanel.
+- [ ] **Acciones Atómicas:**
+  1. Definir los parámetros oficiales de conexión SMTP de Hostinger / Titan Email:
+     - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
+     - `EMAIL_HOST=smtp.hostinger.com`
+     - `EMAIL_PORT=465` (SSL) o `587` (TLS)
+     - `EMAIL_USE_SSL=True` (para puerto 465) o `EMAIL_USE_TLS=True` (para puerto 587)
+     - `EMAIL_HOST_USER=admin@fobandor.com` (o cuenta emisora autorizada)
+     - `EMAIL_HOST_PASSWORD=[Contraseña del buzón]`
+     - `DEFAULT_FROM_EMAIL=FOBANDOR <admin@fobandor.com>`
+  2. Inyectar variables en el servicio `fobandor_web` dentro de EasyPanel en el VPS (`89.117.32.46`).
+  3. Probar conectividad SMTP desde el contenedor de Django usando `django.core.mail.send_mail`.
+  4. Criterio de Aceptación: Conexión SMTP autenticada y entrega exitosa de correo de prueba al buzón del administrador.
+
+---
+
+### Tarea 7.2: Configuración de Django allauth y Flujo de Verificación por Email
+- [ ] **Contexto:** Con el servicio SMTP activo, el registro de usuarios puede enviar formalmente el correo de confirmación de cuenta con enlace criptográfico para activar su cuenta.
+- [ ] **Acciones Atómicas:**
+  1. En `config/settings/production.py`:
+     - Activar `ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")` (o `"optional"` según definición comercial).
+     - Configurar `ACCOUNT_EMAIL_REQUIRED = True` y `ACCOUNT_AUTHENTICATION_METHOD = "email"`.
+  2. Personalizar las plantillas de correo de allauth (`templates/account/email/email_confirmation_subject.txt` y `email_confirmation_message.html` / `.txt`):
+     - Asunto corporativo: `Confirma tu cuenta en FOBANDOR`.
+     - Diseño bilingüe con estilo de marca (logo, colores de marca y enlace seguro de activación).
+  3. Criterio de Aceptación: El usuario que se registra recibe de inmediato un correo formateado profesionalmente con el botón de activación de cuenta.
+
+---
+
+### Tarea 7.3: Blindaje Resiliente contra Fallos de Conexión SMTP en `CustomAccountAdapter`
+- [ ] **Contexto:** Para garantizar que una caída temporal de red o del proveedor de correo nunca genere una pantalla de `Server Error (500)` en blanco ante el usuario final, la aplicación debe capturar fallos a nivel de adaptador.
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/users/adapters.py` (`CustomAccountAdapter`):
+     - Sobreescribir `send_mail(self, template_prefix, email, context)`.
+     - Envolver la llamada en `try...except Exception as exc:` con registro en el logger de advertencia.
+     - Si el envío de correo falla, el usuario no recibe un error 500; se le informa de manera elegante que revise su correo o solicite reenvío.
+  2. Escribir prueba unitaria en `fobandor/users/tests/test_gate.py`:
+     - Simular fallo de socket SMTP y verificar que la vista responde con redirección HTTP 302 y mensaje de advertencia controlado sin 500.
+  3. Criterio de Aceptación: Cero excepciones no capturadas ante fallos de servidor SMTP.
+
+---
+
+### Tarea 7.4: Validación End-to-End en Producción
+- [ ] **Contexto:** Comprobar el ciclo completo en `https://www.fobandor.com/`.
+- [ ] **Acciones Atómicas:**
+  1. Registrar un usuario de prueba real en `/accounts/signup/`.
+  2. Verificar recepción del correo en la bandeja de entrada real.
+  3. Hacer clic en el enlace de activación (`/accounts/confirm-email/<key>/`).
+  4. Confirmar que el usuario adquiere `is_email_verified = True` y puede proceder a la contratación de planes en `/precios/` sin bloqueos.
+  5. Criterio de Aceptación: Flujo completo de registro, activación y compra 100% verificado en vivo.
 
 
 
