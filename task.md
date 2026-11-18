@@ -2738,20 +2738,20 @@ fobandor/
 
 ---
 
-### Tarea 7.1: Aprovisionamiento y Configuración de Credenciales SMTP en Producción
-- [ ] **Contexto:** Hostinger ofrece servicio de correo corporativo Titan Email para el dominio `fobandor.com`. Para enviar correos de verificación y notificaciones desde la aplicación, se requiere inyectar los parámetros SMTP en las variables de entorno de EasyPanel.
+### Tarea 7.1: Aprovisionamiento y Configuración de Credenciales SMTP de Google (Workspace / Gmail)
+- [ ] **Contexto:** Para el envío de correos transaccionales de confirmación de cuenta y notificaciones, se utilizará el servidor SMTP de Google (`smtp.gmail.com`). Google requiere autenticación mediante Contraseña de Aplicación de 16 dígitos (*App Password*) generada desde la cuenta de Google / Google Workspace con autenticación en 2 pasos activa.
 - [ ] **Acciones Atómicas:**
-  1. Definir los parámetros oficiales de conexión SMTP de Hostinger / Titan Email:
+  1. Definir los parámetros de conexión SMTP oficiales de Google:
      - `EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend`
-     - `EMAIL_HOST=smtp.hostinger.com`
-     - `EMAIL_PORT=465` (SSL) o `587` (TLS)
-     - `EMAIL_USE_SSL=True` (para puerto 465) o `EMAIL_USE_TLS=True` (para puerto 587)
-     - `EMAIL_HOST_USER=admin@fobandor.com` (o cuenta emisora autorizada)
-     - `EMAIL_HOST_PASSWORD=[Contraseña del buzón]`
+     - `EMAIL_HOST=smtp.gmail.com`
+     - `EMAIL_PORT=587`
+     - `EMAIL_USE_TLS=True`
+     - `EMAIL_HOST_USER=[Correo de Google / Google Workspace, ej: admin@fobandor.com]`
+     - `EMAIL_HOST_PASSWORD=[Contraseña de aplicación de 16 caracteres de Google]`
      - `DEFAULT_FROM_EMAIL=FOBANDOR <admin@fobandor.com>`
-  2. Inyectar variables en el servicio `fobandor_web` dentro de EasyPanel en el VPS (`89.117.32.46`).
-  3. Probar conectividad SMTP desde el contenedor de Django usando `django.core.mail.send_mail`.
-  4. Criterio de Aceptación: Conexión SMTP autenticada y entrega exitosa de correo de prueba al buzón del administrador.
+  2. Inyectar estas variables en el servicio Swarm `fobandor_web` dentro de EasyPanel en el VPS (`89.117.32.46`).
+  3. Probar conectividad y autenticación SMTP desde el contenedor ejecutando `python manage.py shell` y enviando un correo de prueba vía `django.core.mail.send_mail`.
+  4. Criterio de Aceptación: Conexión SMTP autenticada contra `smtp.gmail.com` y entrega exitosa de correo de prueba al buzón del administrador.
 
 ---
 

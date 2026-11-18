@@ -798,8 +798,8 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
 ### Fundamentos de la Etapa 7: Servicio de Correo Transaccional (SMTP) (Punto 1)
 * **¿Es implementar el servicio de correo la solución definitiva?**  
   **Sí.** Para que un usuario se registre con correo y contraseña en producción de forma estándar, la aplicación debe enviar un correo transaccional de verificación con un token firmado. En `config/settings/production.py`, el backend `smtp.EmailBackend` no tiene servidor SMTP asignado (`EMAIL_HOST = ""`), lo que provoca que al registrarse se intente conectar a un socket vacío y falle con `smtplib.SMTPServerDisconnected` (HTTP 500).
-* **Estrategia para Etapa 7:**
-  1. **Aprovisionamiento SMTP:** Configurar las credenciales oficiales de Hostinger Titan Email (`smtp.hostinger.com`, puerto 465 SSL, usuario `admin@fobandor.com`) en EasyPanel VPS.
+* **Estrategia para Etapa 7 (Servidor SMTP de Google):**
+  1. **Aprovisionamiento SMTP con Google:** Configurar las credenciales oficiales de Google Workspace / Gmail (`smtp.gmail.com`, puerto 587 TLS, usuario de Google y App Password de 16 caracteres generada en `myaccount.google.com/apppasswords`) en EasyPanel VPS.
   2. **Plantillas Corporativas de Email:** Diseñar plantillas bilingües con identidad FOBANDOR para confirmación de email y reseteo de contraseña.
   3. **Blindaje Resiliente:** Sobreescribir `send_mail` en `CustomAccountAdapter` con captura de excepciones (`try...except`) para que, ante cualquier caída o bloqueo temporal del proveedor SMTP, el sistema no responda con pantalla de error 500, sino con un mensaje amigable al usuario.
   4. **Validación E2E:** Flujo completo de registro en vivo, recepción en bandeja de entrada, clic de confirmación y pase a checkout.
