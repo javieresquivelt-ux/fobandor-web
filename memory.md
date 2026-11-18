@@ -812,3 +812,33 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
 
 
 
+
+
+---
+
+## 22. Certificación de Etapa 6 (UX/UI: Precios y Contraste) y Etapa 7 (Google SMTP)
+
+* **Fecha de Implementación y Certificación:** 18 de Noviembre de 2026.
+* **Commits Semánticos:**
+  * `0645c5b`: Soporte SMTP Google, blindaje resiliente de registro y contraste en formularios de auth.
+  * `c647fff`: Certificación de Etapa 7 en task.md.
+  * `0825891`: Selector interactivo de planes con hover y clic reactivo Alpine.js en `/precios/`.
+
+### Hallazgos Resueltos y Certificados en Producción
+
+1. **Error 500 en Registro (`/accounts/signup/`):**
+   * Configurado servicio SMTP de Google Workspace (`smtp.gmail.com`, puerto 587 TLS) con contraseña de aplicación de 16 caracteres sobre `administrator@fobandor.com`.
+   * En `CustomAccountAdapter.send_mail()` se implementó captura defensiva de errores de conexión/socket SMTP para que ante eventuales fallos de red nunca se propague un HTTP 500 al usuario.
+   * Creadas plantillas transaccionales bilingües con identidad corporativa de FOBANDOR en `templates/account/email/`.
+   * Envío verificado con éxito en vivo desde el contenedor Swarm (`EMAIL_SENT_COUNT: 1`).
+
+2. **Contraste Ilegible de Inputs en Formularios:**
+   * En `static/css/input.css` (`@layer base`) se establecieron reglas universales para que tanto en modo claro como oscuro los inputs y textareas tengan contraste nítido, evitando el texto blanco sobre fondo blanco nativo de Chromium/Edge.
+   * Atributos explícitos y clases Tailwind aplicadas en `signup.html`, `login.html` y `password_reset.html`.
+
+3. **Selector Interactivo de Planes en `/precios/`:**
+   * En `templates/billing/pricing.html` se implementó reactividad con Alpine.js (`x-data="{ selectedPlan: '{{ highlighted_slug }}' }"`).
+   * Efecto *on mouse over* suave (`hover:-translate-y-1.5`, elevación y borde iluminado con sombra suave).
+   * Selección activa con clic (`@click="selectedPlan = '{{ plan.slug }}'"`), destacando dinámicamente el borde, fondo y el botón de acción principal de la tarjeta seleccionada.
+   * Preselección dinámica del plan marcado como recomendado desde la BD (`is_highlighted`), con fallback automático al primer plan activo si no hay ninguno destacado.
+   * 42/42 tests unitarios pasando y 0 errores en `flake8`.
