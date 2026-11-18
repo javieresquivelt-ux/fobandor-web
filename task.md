@@ -2676,7 +2676,7 @@ fobandor/
 
 ## 9. Etapa 6: Mejoras de UX/UI — Selector Interactivo de Precios y Contraste de Inputs (Puntos 2 y 3)
 
-> **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
+> **Estado Actual:** FASE 4: EJECUTANDO. Aprobación recibida del Desarrollador Líder.  
 > **Objetivo:** Resolver de forma inmediata los problemas visuales y de interacción del usuario (Puntos 2 y 3): contraste ilegible de inputs en formularios de autenticación y selector estático de precios en `/precios/`.
 
 ---
@@ -2733,7 +2733,7 @@ fobandor/
 
 ## 10. Etapa 7: Implementación del Servicio de Correo Transaccional (SMTP) y Registro Blindado (Punto 1)
 
-> **Estado Actual:** PENDIENTE (En espera de provisión de credenciales SMTP).  
+> **Estado Actual:** FASE 4: EJECUTANDO. Credenciales SMTP confirmadas y validadas localmente.  
 > **Objetivo:** Resolver definitivamente el Error 500 al registrar usuarios manuales en `/accounts/signup/` implementando el servicio formal de envío de correos transaccionales (SMTP) y blindando la resiliencia del sistema ante eventuales caídas del servidor de correo.
 
 ---

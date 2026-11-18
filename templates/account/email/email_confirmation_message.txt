@@ -1,0 +1,24 @@
+Hola,
+
+Gracias por registrarte en FOBANDOR — Build. Ads. Studio.
+
+Para activar tu cuenta, visita el siguiente enlace:
+
+{{ activate_url }}
+
+Este enlace es válido por 3 días. Si no creaste esta cuenta, puedes ignorar este mensaje.
+
+---
+
+Hi,
+
+Thank you for signing up at FOBANDOR — Build. Ads. Studio.
+
+To activate your account, please visit the link below:
+
+{{ activate_url }}
+
+This link is valid for 3 days. If you didn't create this account, you can safely ignore this email.
+
+---
+FOBANDOR | administrator@fobandor.com | www.fobandor.com

@@ -63,5 +63,8 @@ EMAIL_HOST_PASSWORD = env("EMAIL_HOST_PASSWORD", default="")
 EMAIL_USE_TLS = env.bool("EMAIL_USE_TLS", default=True)
 DEFAULT_FROM_EMAIL = env("DEFAULT_FROM_EMAIL", default="FOBANDOR <noreply@fobandor.com>")
 
-# Verificación de email diferida hasta disponer de SMTP (Google OAuth queda auto-verificado)
-ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="optional")
+# Verificación de email con SMTP Google Workspace activo (ADR-021)
+EMAIL_USE_SSL = env.bool("EMAIL_USE_SSL", default=False)
+ACCOUNT_EMAIL_VERIFICATION = env("ACCOUNT_EMAIL_VERIFICATION", default="mandatory")
+ACCOUNT_EMAIL_REQUIRED = True
+ACCOUNT_AUTHENTICATION_METHOD = "email"

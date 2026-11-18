@@ -17,15 +17,28 @@
     {% if form.non_field_errors %}<div class="text-fobandor-orange text-sm">{{ form.non_field_errors }}</div>{% endif %}
     <div>
       <label class="block text-sm font-semibold mb-1">{{ form.email.label }}</label>
-      {{ form.email }}
+      <input type="email" name="{{ form.email.html_name }}" id="{{ form.email.id_for_label }}"
+             value="{{ form.email.value|default:'' }}"
+             class="w-full rounded-xl border border-gray-300 dark:border-white/20 px-3.5 py-2.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-fobandor-orange focus:ring-1 focus:ring-fobandor-orange transition-colors"
+             placeholder="{{ form.email.label }}"
+             {% if form.email.field.required %}required{% endif %} autocomplete="email">
+      {% if form.email.errors %}<p class="mt-1 text-xs text-fobandor-orange">{{ form.email.errors|join:", " }}</p>{% endif %}
     </div>
     <div>
       <label class="block text-sm font-semibold mb-1">{{ form.password1.label }}</label>
-      {{ form.password1 }}
+      <input type="password" name="{{ form.password1.html_name }}" id="{{ form.password1.id_for_label }}"
+             class="w-full rounded-xl border border-gray-300 dark:border-white/20 px-3.5 py-2.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-fobandor-orange focus:ring-1 focus:ring-fobandor-orange transition-colors"
+             placeholder="{{ form.password1.label }}"
+             {% if form.password1.field.required %}required{% endif %} autocomplete="new-password">
+      {% if form.password1.errors %}<p class="mt-1 text-xs text-fobandor-orange">{{ form.password1.errors|join:", " }}</p>{% endif %}
     </div>
     <div>
       <label class="block text-sm font-semibold mb-1">{{ form.password2.label }}</label>
-      {{ form.password2 }}
+      <input type="password" name="{{ form.password2.html_name }}" id="{{ form.password2.id_for_label }}"
+             class="w-full rounded-xl border border-gray-300 dark:border-white/20 px-3.5 py-2.5 bg-white dark:bg-white/5 text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-fobandor-orange focus:ring-1 focus:ring-fobandor-orange transition-colors"
+             placeholder="{{ form.password2.label }}"
+             {% if form.password2.field.required %}required{% endif %} autocomplete="new-password">
+      {% if form.password2.errors %}<p class="mt-1 text-xs text-fobandor-orange">{{ form.password2.errors|join:", " }}</p>{% endif %}
     </div>
     {% if redirect_field_value %}
       <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}">

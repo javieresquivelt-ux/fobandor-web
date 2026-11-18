@@ -25,4 +25,43 @@
     font-family: 'Montserrat', sans-serif;
     scroll-behavior: smooth;
   }
+
+  /* -------------------------------------------------------------------------
+   * Etapa 6 — Contraste universal de inputs en formularios de autenticación
+   * Chromium aplica background-color blanco nativo en inputs; Tailwind hereda
+   * color: white desde el body en dark mode → texto blanco sobre fondo blanco.
+   * Esta regla base corrige el contraste en todos los navegadores / modos.
+   * ------------------------------------------------------------------------- */
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="search"],
+  input[type="tel"],
+  input[type="url"],
+  textarea,
+  select {
+    background-color: #ffffff;
+    color: #111827;
+    border-color: #d1d5db;
+  }
+
+  .dark input[type="text"],
+  .dark input[type="email"],
+  .dark input[type="password"],
+  .dark input[type="number"],
+  .dark input[type="search"],
+  .dark input[type="tel"],
+  .dark input[type="url"],
+  .dark textarea,
+  .dark select {
+    background-color: rgba(255, 255, 255, 0.07);
+    color: #f3f4f6;
+    border-color: rgba(255, 255, 255, 0.2);
+  }
+
+  .dark input::placeholder,
+  .dark textarea::placeholder {
+    color: rgba(156, 163, 175, 0.8);
+  }
 }

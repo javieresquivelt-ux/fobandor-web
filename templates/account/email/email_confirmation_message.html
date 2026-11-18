@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirma tu cuenta — FOBANDOR</title>
+  <style>
+    body { margin: 0; padding: 0; background-color: #0d0d0d; font-family: Arial, sans-serif; color: #f3f4f6; }
+    .wrapper { max-width: 580px; margin: 40px auto; background-color: #161616; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); }
+    .header { background-color: #111827; padding: 32px 40px; text-align: center; border-bottom: 1px solid rgba(255,255,255,0.08); }
+    .header .brand { font-size: 22px; font-weight: 800; color: #f3f4f6; letter-spacing: 2px; }
+    .header .brand span { color: #f97316; }
+    .body { padding: 40px; }
+    .body h1 { font-size: 24px; font-weight: 700; margin: 0 0 16px; color: #f3f4f6; }
+    .body p { font-size: 15px; line-height: 1.6; color: #9ca3af; margin: 0 0 20px; }
+    .btn { display: inline-block; background-color: #f97316; color: #ffffff; text-decoration: none; font-weight: 700; font-size: 15px; padding: 14px 32px; border-radius: 12px; margin: 8px 0 24px; }
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,0.08); margin: 32px 0; }
+    .footer { padding: 24px 40px; text-align: center; font-size: 12px; color: #6b7280; }
+    .footer a { color: #f97316; text-decoration: none; }
+  </style>
+</head>
+<body>
+  <div class="wrapper">
+    <div class="header">
+      <div class="brand">F<span>O</span>BANDOR</div>
+      <div style="font-size:11px; color:#6b7280; margin-top:4px; letter-spacing:1px;">BUILD · ADS · STUDIO</div>
+    </div>
+    <div class="body">
+      <h1>Activa tu cuenta</h1>
+      <p>Gracias por registrarte en <strong>FOBANDOR</strong>. Para completar tu registro y acceder a la plataforma, confirma tu dirección de correo haciendo clic en el botón de abajo.</p>
+      <p style="text-align:center;">
+        <a href="{{ activate_url }}" class="btn">Confirmar mi cuenta</a>
+      </p>
+      <p style="font-size:13px; color:#6b7280;">Si el botón no funciona, copia y pega este enlace en tu navegador:<br>
+        <a href="{{ activate_url }}" style="color:#f97316; word-break:break-all;">{{ activate_url }}</a>
+      </p>
+      <p style="font-size:13px; color:#6b7280;">Este enlace expira en <strong>3 días</strong>. Si no creaste esta cuenta, puedes ignorar este mensaje con seguridad.</p>
+
+      <hr class="divider">
+
+      <p style="font-size:13px; color:#9ca3af;"><strong>Activate your account</strong><br>
+        Thank you for signing up at FOBANDOR. Click the button above to confirm your email address and access the platform. This link is valid for 3 days.
+      </p>
+    </div>
+    <div class="footer">
+      <p>FOBANDOR — Build. Ads. Studio.<br>
+        <a href="https://www.fobandor.com">www.fobandor.com</a> &nbsp;·&nbsp;
+        <a href="mailto:administrator@fobandor.com">administrator@fobandor.com</a>
+      </p>
+      <p style="margin-top:8px; color:#4b5563;">© 2025 FOBANDOR. Todos los derechos reservados.</p>
+    </div>
+  </div>
+</body>
+</html>
