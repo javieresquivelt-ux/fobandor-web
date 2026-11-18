@@ -1,6 +1,7 @@
 {% load i18n %}
+{% get_current_language as CURRENT_LANGUAGE %}
 <header class="sticky top-0 z-50 backdrop-blur-md bg-white/70 dark:bg-fobandor-dark/70 border-b border-gray-200 dark:border-white/10">
-  <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+  <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 overflow-x-clip">
     <div class="flex items-center justify-between h-16">
 
       <!-- Logo -->
@@ -11,40 +12,52 @@
 
       <!-- Enlaces desktop -->
       <div class="hidden md:flex items-center gap-6 text-sm font-medium">
-        <a href="#inicio" class="hover:text-fobandor-orange transition-colors">{% trans "Inicio" %}</a>
-        <a href="#servicios" class="hover:text-fobandor-orange transition-colors">{% trans "Servicios" %}</a>
-        <a href="#proyectos" class="hover:text-fobandor-orange transition-colors">{% trans "Proyectos" %}</a>
+        <a href="{% url 'core:home' %}" class="hover:text-fobandor-orange transition-colors">{% trans "Inicio" %}</a>
+        {% if company.show_services_section %}
+        <a href="{% url 'core:home' %}#servicios" class="hover:text-fobandor-orange transition-colors">{% trans "Servicios" %}</a>
+        {% endif %}
+        {% if company.show_projects_section %}
+        <a href="{% url 'core:home' %}#proyectos" class="hover:text-fobandor-orange transition-colors">{% trans "Proyectos" %}</a>
+        {% endif %}
         <a href="{% url 'billing:pricing' %}" class="hover:text-fobandor-orange transition-colors">{% trans "Precios" %}</a>
-        <a href="#nosotros" class="hover:text-fobandor-orange transition-colors">{% trans "Nosotros" %}</a>
-        <a href="#contacto" class="hover:text-fobandor-orange transition-colors">{% trans "Contacto" %}</a>
+        {% if company.show_about_section %}
+        <a href="{% url 'core:home' %}#nosotros" class="hover:text-fobandor-orange transition-colors">{% trans "Nosotros" %}</a>
+        {% endif %}
+        {% if company.show_contact_section %}
+        <a href="{% url 'core:home' %}#contacto" class="hover:text-fobandor-orange transition-colors">{% trans "Contacto" %}</a>
+        {% endif %}
       </div>
 
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-2 sm:gap-3">
 
-        {% if request.user.is_authenticated %}
-        <a href="{% url 'portal:dashboard' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Mi Cuenta" %}</a>
-        <form action="{% url 'account_logout' %}" method="post" class="m-0">
-          {% csrf_token %}
-          <button type="submit" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Salir" %}</button>
-        </form>
-        {% else %}
-        <a href="{% url 'account_login' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Ingresar" %}</a>
-        {% endif %}
+        <!-- Enlaces de sesión (desktop) -->
+        <div class="hidden md:flex items-center gap-3">
+          {% if request.user.is_authenticated %}
+          <a href="{% url 'portal:dashboard' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Mi Cuenta" %}</a>
+          <form action="{% url 'account_logout' %}" method="post" class="m-0">
+            {% csrf_token %}
+            <button type="submit" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Salir" %}</button>
+          </form>
+          {% else %}
+          <a href="{% url 'account_login' %}" class="text-sm font-semibold hover:text-fobandor-orange transition-colors">{% trans "Ingresar" %}</a>
+          {% endif %}
+        </div>
 
-        <!-- Switcher de idioma -->
-        <form action="{% url 'set_language' %}" method="post" class="flex items-center">
-          {% csrf_token %}
-          <input name="next" type="hidden" value="{{ redirect_to }}">
-          <select name="language"
-                  onchange="this.form.submit()"
-                  class="bg-transparent text-sm font-semibold border border-gray-300 dark:border-white/20 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-fobandor-orange">
-            {% get_current_language as CURRENT_LANGUAGE %}
-            {% get_available_languages as AVAILABLE_LANGUAGES %}
-            {% for code, name in AVAILABLE_LANGUAGES %}
-              <option value="{{ code }}" {% if code == CURRENT_LANGUAGE %}selected{% endif %} class="text-gray-900">{{ name }}</option>
-            {% endfor %}
-          </select>
-        </form>
+        <!-- Switcher de idioma (toggle 1-clic) -->
+        <div class="inline-flex items-center rounded-lg border border-gray-300 dark:border-white/20 overflow-hidden text-xs font-bold">
+          <form action="{% url 'set_language' %}" method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="language" value="es">
+            <input type="hidden" name="next" value="{{ redirect_to }}">
+            <button type="submit" class="px-2 py-1.5 {% if CURRENT_LANGUAGE == 'es' %}bg-fobandor-orange text-white{% else %}hover:text-fobandor-orange{% endif %}">ES</button>
+          </form>
+          <form action="{% url 'set_language' %}" method="post" class="m-0">
+            {% csrf_token %}
+            <input type="hidden" name="language" value="en">
+            <input type="hidden" name="next" value="{{ redirect_to }}">
+            <button type="submit" class="px-2 py-1.5 {% if CURRENT_LANGUAGE == 'en' %}bg-fobandor-orange text-white{% else %}hover:text-fobandor-orange{% endif %}">EN</button>
+          </form>
+        </div>
 
         <!-- Toggle Dark/Light -->
         <button type="button"
@@ -59,7 +72,7 @@
           </svg>
         </button>
 
-        <!-- CTA -->
+        <!-- CTA (desktop) -->
         <a href="{% url 'billing:pricing' %}" class="hidden sm:inline-flex items-center rounded-lg bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-4 py-2 text-sm font-semibold transition-colors">
           {% trans "Comenzar" %}
         </a>
@@ -75,17 +88,31 @@
 
     <!-- Menú móvil -->
     <div x-show="mobileOpen" x-cloak @click.away="mobileOpen = false" class="md:hidden pb-4">
-      <div class="flex flex-col gap-2 text-sm font-medium">
-        <a href="#inicio" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Inicio" %}</a>
-        <a href="#servicios" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Servicios" %}</a>
-        <a href="#proyectos" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Proyectos" %}</a>
-        <a href="{% url 'billing:pricing' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Precios" %}</a>
-        <a href="#nosotros" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Nosotros" %}</a>
-        <a href="#contacto" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Contacto" %}</a>
+      <div class="flex flex-col gap-1 text-base font-medium">
+        <a href="{% url 'core:home' %}" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Inicio" %}</a>
+        {% if company.show_services_section %}
+        <a href="{% url 'core:home' %}#servicios" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Servicios" %}</a>
+        {% endif %}
+        {% if company.show_projects_section %}
+        <a href="{% url 'core:home' %}#proyectos" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Proyectos" %}</a>
+        {% endif %}
+        <a href="{% url 'billing:pricing' %}" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Precios" %}</a>
+        {% if company.show_about_section %}
+        <a href="{% url 'core:home' %}#nosotros" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Nosotros" %}</a>
+        {% endif %}
+        {% if company.show_contact_section %}
+        <a href="{% url 'core:home' %}#contacto" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Contacto" %}</a>
+        {% endif %}
+
+        <div class="my-2 border-t border-gray-200 dark:border-white/10"></div>
         {% if request.user.is_authenticated %}
-        <a href="{% url 'portal:dashboard' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Mi Cuenta" %}</a>
+        <a href="{% url 'portal:dashboard' %}" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Mi Cuenta" %}</a>
+        <form action="{% url 'account_logout' %}" method="post" class="m-0">
+          {% csrf_token %}
+          <button type="submit" class="w-full text-left px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Salir" %}</button>
+        </form>
         {% else %}
-        <a href="{% url 'account_login' %}" class="px-2 py-2 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Ingresar" %}</a>
+        <a href="{% url 'account_login' %}" class="px-2 py-3 rounded hover:bg-gray-100 dark:hover:bg-white/5">{% trans "Ingresar" %}</a>
         {% endif %}
       </div>
     </div>

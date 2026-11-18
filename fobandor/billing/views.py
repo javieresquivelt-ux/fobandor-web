@@ -13,7 +13,6 @@ from django.views.generic import ListView
 
 from fobandor.billing import services
 from fobandor.billing.models import SubscriptionPlan
-from fobandor.cms.models import CompanyProfile
 from fobandor.users.mixins import EmailVerifiedRequiredMixin
 
 
@@ -28,11 +27,13 @@ class PricingCatalogView(ListView):
     def get_context_data(self, **kwargs):
         ctx = super().get_context_data(**kwargs)
         ctx["formspree_endpoint"] = settings.FORMSPREE_ENDPOINT
-        ctx["company"] = CompanyProfile.load()
         return ctx
 
 
 class CreateCheckoutSessionView(LoginRequiredMixin, EmailVerifiedRequiredMixin, View):
+    def get(self, request, slug):
+        return self.post(request, slug)
+
     def post(self, request, slug):
         plan = get_object_or_404(SubscriptionPlan, slug=slug, is_active=True)
         if not settings.STRIPE_SECRET_KEY or not plan.stripe_price_id:

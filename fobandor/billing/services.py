@@ -106,11 +106,17 @@ def handle_invoice_paid(invoice):
     )
 
     order_type = plan.order_type if plan else "WEB_DEV"
+    assignee = None
+    default_email = getattr(settings, "DEFAULT_ASSIGNEE_EMAIL", "for@fobandor.com")
+    if default_email:
+        assignee = User.objects.filter(email=default_email).first()
     FulfillmentOrder.objects.get_or_create(
         stripe_invoice_id=invoice_id,
         defaults={
             "user": user,
             "subscription": subscription,
+            "plan": plan,
+            "assigned_to": assignee,
             "order_type": order_type,
             "paid_at": timezone.now(),
             "status": "PENDIENTE_PRODUCCION",

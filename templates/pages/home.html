@@ -21,16 +21,19 @@
       {% trans "Tu visión. Nuestra tecnología. Sin límites." %}
     </p>
     <div class="mt-10 flex flex-wrap justify-center gap-4">
-      <a href="#servicios" class="inline-flex items-center rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-3 text-base font-semibold transition-colors shadow-lg shadow-fobandor-orange/20">
+      <a href="{% url 'billing:pricing' %}" class="inline-flex items-center rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-6 py-3 text-base font-semibold transition-colors shadow-lg shadow-fobandor-orange/20">
         {% trans "Comencemos" %}
       </a>
+      {% if company.show_projects_section %}
       <a href="#proyectos" class="inline-flex items-center rounded-xl border border-gray-300 dark:border-white/20 px-6 py-3 text-base font-semibold hover:border-fobandor-blue transition-colors">
         {% trans "Ver proyectos" %}
       </a>
+      {% endif %}
     </div>
   </div>
 </section>
 
+{% if company.show_services_section %}
 <!-- SERVICIOS: 4 LÍNEAS DE NEGOCIO -->
 <section id="servicios" class="py-20">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -40,7 +43,6 @@
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-
       {% for service in services %}
       <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8 hover:border-fobandor-orange/60 transition-colors">
         <div class="w-12 h-12 rounded-xl bg-gradient-to-br {% cycle 'from-fobandor-orange to-fobandor-blue' 'from-fobandor-blue to-fobandor-cyan' 'from-fobandor-cyan to-fobandor-orange' 'from-fobandor-orange to-fobandor-cyan' %} text-white flex items-center justify-center text-2xl mb-4">{{ service.icon }}</div>
@@ -57,11 +59,12 @@
       {% empty %}
       <p class="col-span-full text-center text-gray-600 dark:text-gray-400">{% trans "Servicios próximamente." %}</p>
       {% endfor %}
-
     </div>
   </div>
 </section>
+{% endif %}
 
+{% if company.show_projects_section %}
 <!-- PROYECTOS (placeholder) -->
 <section id="proyectos" class="py-20 bg-gray-50 dark:bg-white/5">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -69,29 +72,104 @@
     <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Casos de éxito próximamente." %}</p>
   </div>
 </section>
+{% endif %}
 
-<!-- PRECIOS (placeholder) -->
-<section id="precios" class="py-20">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Precios" %}</h2>
-    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Planes de suscripción próximamente." %}</p>
-  </div>
-</section>
-
-<!-- NOSOTROS (placeholder) -->
+{% if company.show_about_section %}
+<!-- NOSOTROS: Misión, Visión y Valores -->
 <section id="nosotros" class="py-20 bg-gray-50 dark:bg-white/5">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Nosotros" %}</h2>
-    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Conoce a FOBANDOR, Orlando, Florida." %}</p>
-  </div>
-</section>
+    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-center">{% trans "Nosotros" %}</h2>
+    <p class="mt-3 text-center text-gray-600 dark:text-gray-400">{{ company.location }}</p>
 
-<!-- CONTACTO (placeholder) -->
-<section id="contacto" class="py-20">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    <h2 class="text-3xl font-extrabold tracking-tight text-center">{% trans "Contacto" %}</h2>
-    <p class="mt-4 text-center text-gray-600 dark:text-gray-400">{% trans "Formulario de contacto próximamente." %}</p>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-blue text-white flex items-center justify-center text-xl font-bold mb-4">M</div>
+        <h3 class="text-xl font-bold mb-3">{% trans "Misión" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          {% if LANGUAGE_CODE == 'es' %}{{ company.mission_es }}{% else %}{{ company.mission_en }}{% endif %}
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-blue to-fobandor-cyan text-white flex items-center justify-center text-xl font-bold mb-4">V</div>
+        <h3 class="text-xl font-bold mb-3">{% trans "Visión" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          {% if LANGUAGE_CODE == 'es' %}{{ company.vision_es }}{% else %}{{ company.vision_en }}{% endif %}
+        </p>
+      </article>
+
+      <article class="rounded-2xl border border-gray-200 dark:border-white/10 bg-white/50 dark:bg-white/5 p-8">
+        <div class="w-12 h-12 rounded-xl bg-gradient-to-br from-fobandor-cyan to-fobandor-orange text-white flex items-center justify-center text-xl font-bold mb-4">✦</div>
+        <h3 class="text-xl font-bold mb-3">{% trans "Valores" %}</h3>
+        <p class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+          {% if LANGUAGE_CODE == 'es' %}{{ company.values_es|linebreaksbr }}{% else %}{{ company.values_en|linebreaksbr }}{% endif %}
+        </p>
+      </article>
+    </div>
   </div>
 </section>
+{% endif %}
+
+{% if company.show_contact_section %}
+<!-- CONTACTO: formulario Formspree -->
+<section id="contacto" class="py-20">
+  <div class="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8"
+       x-data="{ submitting: false, submitted: false, error: false,
+                 async submitForm(event) {
+                   this.submitting = true;
+                   this.error = false;
+                   try {
+                     const res = await fetch(event.target.action, {
+                       method: 'POST',
+                       body: new FormData(event.target),
+                       headers: { 'Accept': 'application/json' },
+                     });
+                     if (res.ok) { this.submitted = true; } else { this.error = true; }
+                   } catch (e) { this.error = true; }
+                   finally { this.submitting = false; }
+                 } }">
+    <h2 class="text-3xl md:text-4xl font-extrabold tracking-tight text-center">{% trans "Contacto" %}</h2>
+    <p class="mt-3 text-center text-gray-600 dark:text-gray-400">{% trans "Cuéntanos sobre tu negocio y nos pondremos en contacto." %}</p>
+
+    <div x-show="submitted" x-cloak class="mt-8 rounded-2xl border border-green-400 bg-green-50 dark:bg-green-900/20 p-6 text-center">
+      <p class="text-green-700 dark:text-green-300 font-semibold">
+        {% if LANGUAGE_CODE == 'es' %}{{ company.diag_success_msg_es }}{% else %}{{ company.diag_success_msg_en }}{% endif %}
+      </p>
+    </div>
+
+    <form x-show="!submitted" x-cloak action="{{ formspree_endpoint }}" method="POST" class="mt-8 space-y-4" @submit.prevent="submitForm($event)">
+      <input type="hidden" name="_subject" value="{{ company.diag_form_subject }}">
+      <input type="text" name="_gotcha" style="display:none" tabindex="-1" autocomplete="off" aria-hidden="true">
+
+      <div>
+        <label class="block text-sm font-semibold mb-1">{% trans "Nombre" %}</label>
+        <input type="text" name="name" required class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{% trans "Email" %}</label>
+        <input type="email" name="email" required class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{% trans "Teléfono" %}</label>
+        <input type="tel" name="phone" class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent">
+      </div>
+      <div>
+        <label class="block text-sm font-semibold mb-1">{% trans "Mensaje" %}</label>
+        <textarea name="message" rows="4" class="w-full rounded-lg border border-gray-300 dark:border-white/20 px-3 py-2 bg-transparent"></textarea>
+      </div>
+
+      <div x-show="error" x-cloak class="text-fobandor-orange text-sm">
+        {% trans "No pudimos enviar tu solicitud. Inténtalo de nuevo o escríbenos a" %}
+        <a href="mailto:for@fobandor.com" class="underline">for@fobandor.com</a>.
+      </div>
+
+      <button type="submit" :disabled="submitting" class="w-full rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-3 font-semibold disabled:opacity-60 disabled:cursor-not-allowed">
+        <span x-show="!submitting">{% trans "Enviar" %}</span>
+        <span x-show="submitting" x-cloak>{% trans "Enviando mensaje..." %}</span>
+      </button>
+    </form>
+  </div>
+</section>
+{% endif %}
 
 {% endblock %}

@@ -46,6 +46,12 @@ TRANSLATIONS = {
     "Planes de suscripción próximamente.": "Subscription plans coming soon.",
     "Conoce a FOBANDOR, Orlando, Florida.": "Meet FOBANDOR, Orlando, Florida.",
     "Formulario de contacto próximamente.": "Contact form coming soon.",
+    "Misión": "Mission",
+    "Visión": "Vision",
+    "Valores": "Values",
+    "Cuéntanos sobre tu negocio y nos pondremos en contacto.":
+        "Tell us about your business and we will get back to you.",
+    "Enviando mensaje...": "Sending your message...",
     # billing / pricing
     "Planes de Acompañamiento": "Mentorship & Growth Plans",
     "Marketing Digital & Ventas para negocios locales.": "Digital Marketing & Sales for local businesses.",

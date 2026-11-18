@@ -80,6 +80,14 @@
       {{ form.diag_form_subject }}
     </div>
 
+    <h2 class="text-lg font-bold text-fobandor-orange pt-2">{% trans "Visibilidad de Secciones en Landing" %}</h2>
+    <div class="grid grid-cols-2 gap-4">
+      <label class="flex items-center gap-2 text-sm font-semibold">{{ form.show_services_section }} {{ form.show_services_section.label }}</label>
+      <label class="flex items-center gap-2 text-sm font-semibold">{{ form.show_projects_section }} {{ form.show_projects_section.label }}</label>
+      <label class="flex items-center gap-2 text-sm font-semibold">{{ form.show_about_section }} {{ form.show_about_section.label }}</label>
+      <label class="flex items-center gap-2 text-sm font-semibold">{{ form.show_contact_section }} {{ form.show_contact_section.label }}</label>
+    </div>
+
     <div class="flex gap-3 pt-2">
       <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-2.5 text-sm font-semibold">{% trans "Guardar" %}</button>
     </div>

@@ -30,6 +30,12 @@ class FulfillmentOrder(models.Model):
     subscription = models.ForeignKey(
         CustomerSubscription, on_delete=models.SET_NULL, null=True, blank=True,
         related_name="fulfillment_orders")
+    plan = models.ForeignKey(
+        'billing.SubscriptionPlan', on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="fulfillment_orders", verbose_name="Plan de Suscripción")
+    assigned_to = models.ForeignKey(
+        User, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name="assigned_orders", verbose_name="Asignado a")
     order_type = models.CharField(
         "Línea de servicio", max_length=20, choices=ORDER_TYPES, default="WEB_DEV")
     stripe_invoice_id = models.CharField(

@@ -99,6 +99,15 @@ class CompanyProfile(models.Model):
     diag_success_msg_en = models.TextField(
         'Success message (EN)',
         default='Thank you! We received your request. We will get back to you shortly.')
+    # Visibilidad de secciones de la landing
+    show_services_section = models.BooleanField(
+        'Mostrar sección Servicios en Landing', default=True)
+    show_projects_section = models.BooleanField(
+        'Mostrar sección Proyectos en Landing', default=True)
+    show_about_section = models.BooleanField(
+        'Mostrar sección Nosotros en Landing', default=True)
+    show_contact_section = models.BooleanField(
+        'Mostrar sección Contacto en Landing', default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 

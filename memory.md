@@ -213,9 +213,9 @@
 | :--- | :---: | :--- |
 | **1. ANALIZAR** | **COMPLETADA** | Análisis profundo de los 11 hallazgos identificados en producción y mapeo con las 10 capturas de pantalla del Google Doc. |
 | **2. PLANIFICAR** | **COMPLETADA** | Desglose atómico de la **Etapa 5 (Tareas 5.1 a 5.10)** en `task.md`, abarcando Frontend, Responsive móvil, Checkout GET y Backoffice SLA. |
-| **3. APROBAR** | **EN REVISIÓN (PAUSA OBLIGATORIA)** | Plan atómico de la Etapa 5 presentado al Desarrollador Líder. Pausa obligatoria a la espera de visto bueno explícito antes de codificar. |
-| **4. EJECUTAR** | **PENDIENTE (Etapa 5)** | Implementación TDD de las Tareas 5.1 a 5.10 tras recibir la aprobación del Desarrollador Líder. |
-| **5. REGISTRAR** | **EN PROGRESO** | Sección 19 documentada en `memory.md` con los razonamientos arquitectónicos, modelos de datos y soluciones de UX. |
+| **3. APROBAR** | **APROBADO** | Plan de la Etapa 5 aprobado por el desarrollador líder, con ajustes finales (context processor `company` y `DEFAULT_ASSIGNEE_EMAIL`). |
+| **4. EJECUTAR** | **EJECUTADA (Etapa 5)** | Tareas 5.1 a 5.10 implementadas y verificadas por OpenCode (38/38 tests). Pendiente despliegue y validación en vivo. |
+| **5. REGISTRAR** | **EN PROGRESO** | Sección 19 documentada en `memory.md` con razonamientos arquitectónicos, ejecución y hallazgos. |
 | **6. APRENDER** | **PENDIENTE** | Verificación en caliente en producción y actualización viva de la documentación. |
 
 ---
@@ -722,6 +722,21 @@ Durante la revisión de producción de `https://www.fobandor.com/`, el Desarroll
   - El selector en el Backoffice se poblará dinámicamente con los miembros de los grupos `Fulfillment_Operators` (ADR-013) y `Content_Editors`, además de Administradores (`is_staff=True`), y se habilitará un botón de acción *"Iniciar Producción"* para transicionar formalmente al estado `EN_PROCESO`.
 
 ---
+
+### Ajustes Finales de Diseño (OpenCode, pre-ejecución)
+* **`company` global por context processor:** `fobandor.core.context_processors.company` inyecta `CompanyProfile.load()` en todas las plantillas (paralelo a `social_links`). Elimina la necesidad de inyectar `company` por-vista y habilita el condicional de visibilidad de secciones en el navbar en cualquier página. `home_view` conserva solo `formspree_endpoint`; `PricingCatalogView` deja de inyectar `company` manualmente.
+* **`DEFAULT_ASSIGNEE_EMAIL`:** `getattr(settings, 'DEFAULT_ASSIGNEE_EMAIL', 'for@fobandor.com')` (sin añadir setting a `base.py`).
+
+### Ejecución (Tareas 5.1–5.10)
+* **Context processor `company`:** `fobandor.core.context_processors.company` + registro en `TEMPLATES`.
+* **Modelos:** `CompanyProfile` + `show_*_section` (4 booleanos); `FulfillmentOrder` + `plan` (FK) y `assigned_to` (FK). Migraciones `cms.0003` y `fulfillment.0003`.
+* **Landing:** `#nosotros` dinámico (misión/visión/valores bilingües), `#contacto` con formulario Formspree asíncrono (honeypot + `_subject`), sección `#precios` huérfana eliminada, CTA hero estandarizado, secciones condicionadas por `show_*`.
+* **Navbar:** toggle de idioma 1-clic (pill `ES | EN`), enlaces canónicos (`core:home#...` / `billing:pricing`), enlaces condicionados a visibilidad, blindaje móvil (`overflow-x-clip`, enlaces de sesión movidos al drawer).
+* **Billing:** `CreateCheckoutSessionView.get()` (fix HTTP 405); verificación de `return_url` canónico en Customer Portal.
+* **Fulfillment SLA:** `handle_invoice_paid` asocia `plan` y asigna `assigned_to` por defecto; backoffice con columna "Asignado a", filtro `EN_PROCESO` y botón "Iniciar Producción" (transición `PENDIENTE_PRODUCCION → EN_PROCESO → ENTREGADA`).
+* **Pruebas:** `test_checkout_get_redirects_to_stripe` (mock), `test_customer_portal_builds_canonical_return_url`, `test_webhook_invoice_paid_assigns_default_assignee`, `test_fulfillment_start_production_transitions_status`. Suite **38/38 passing**.
+* **Verificación local:** home bilingüe con misión/visión/valores y formulario de contacto; navbar con toggle ES/EN y enlaces canónicos.
+* **Pendiente (producción):** desplegar en EasyPanel (`fobandor_web`) y verificar en vivo los 11 puntos.
 
 
 

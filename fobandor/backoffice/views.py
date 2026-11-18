@@ -1,4 +1,5 @@
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse_lazy
 from django.utils import timezone
@@ -12,6 +13,7 @@ from fobandor.cms.models import (
 from fobandor.billing.forms import SubscriptionPlanForm
 from fobandor.billing.models import SubscriptionPlan
 from fobandor.fulfillment.models import FulfillmentOrder
+from fobandor.users.models import User
 
 from .mixins import StaffRequiredMixin
 
@@ -121,7 +123,9 @@ class CompanyProfileUpdateView(BackofficeMixin, UpdateView):
     fields = ['mission_es', 'mission_en', 'vision_es', 'vision_en',
               'values_es', 'values_en', 'founded_year', 'location', 'website_url',
               'diag_form_subject', 'diag_modal_title_es', 'diag_modal_title_en',
-              'diag_success_msg_es', 'diag_success_msg_en']
+              'diag_success_msg_es', 'diag_success_msg_en',
+              'show_services_section', 'show_projects_section',
+              'show_about_section', 'show_contact_section']
     success_url = reverse_lazy('backoffice:company-profile')
 
     def get_object(self, queryset=None):
@@ -153,13 +157,23 @@ class FulfillmentOrderListView(BackofficeMixin, ListView):
 class FulfillmentOrderDeliverView(BackofficeMixin, UpdateView):
     model = FulfillmentOrder
     template_name = 'backoffice/fulfillment/order_detail.html'
-    fields = ['deliverable_file', 'deliverable_url', 'internal_notes']
+    fields = ['assigned_to', 'deliverable_file', 'deliverable_url', 'internal_notes']
     success_url = reverse_lazy('backoffice:fulfillment-list')
+
+    def get_form(self, form_class=None):
+        form = super().get_form(form_class)
+        form.fields['assigned_to'].queryset = User.objects.filter(
+            Q(groups__name__in=['Fulfillment_Operators', 'Content_Editors']) | Q(is_staff=True)
+        ).distinct()
+        return form
 
     def form_valid(self, form):
         order = form.save(commit=False)
-        order.status = 'ENTREGADA'
-        order.delivered_at = timezone.now()
+        if '_start' in self.request.POST:
+            order.status = 'EN_PROCESO'
+        else:
+            order.status = 'ENTREGADA'
+            order.delivered_at = timezone.now()
         order.save()
         return redirect(self.success_url)
 

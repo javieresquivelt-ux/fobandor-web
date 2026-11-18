@@ -115,6 +115,21 @@ msgstr "Meet FOBANDOR, Orlando, Florida."
 msgid "Formulario de contacto próximamente."
 msgstr "Contact form coming soon."
 
+msgid "Misión"
+msgstr "Mission"
+
+msgid "Visión"
+msgstr "Vision"
+
+msgid "Valores"
+msgstr "Values"
+
+msgid "Cuéntanos sobre tu negocio y nos pondremos en contacto."
+msgstr "Tell us about your business and we will get back to you."
+
+msgid "Enviando mensaje..."
+msgstr "Sending your message..."
+
 msgid "Planes de Acompañamiento"
 msgstr "Mentorship & Growth Plans"
 

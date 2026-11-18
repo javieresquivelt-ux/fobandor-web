@@ -2,6 +2,7 @@ import pytest
 from django.urls import reverse
 
 from fobandor.billing.models import SubscriptionPlan
+from fobandor.fulfillment.models import FulfillmentOrder
 
 
 @pytest.mark.django_db
@@ -55,3 +56,21 @@ def test_plan_update_staff_access(client, django_user_model):
         slug='impulso', name_es='Impulso', name_en='Impulso', price_usd='697.00')
     response = client.get(reverse('backoffice:plan-update', args=[plan.pk]))
     assert response.status_code == 200
+
+
+@pytest.mark.django_db
+def test_fulfillment_start_production_transitions_status(client, django_user_model):
+    staff = django_user_model.objects.create_user(
+        email='staff@fobandor.com', password='Test1234!', is_staff=True)
+    client.force_login(staff)
+    customer = django_user_model.objects.create_user(
+        email='c@example.com', password='x')
+    order = FulfillmentOrder.objects.create(user=customer)
+
+    response = client.post(
+        reverse('backoffice:fulfillment-deliver', args=[order.pk]),
+        {'_start': '1'},
+    )
+    assert response.status_code == 302
+    order.refresh_from_db()
+    assert order.status == 'EN_PROCESO'

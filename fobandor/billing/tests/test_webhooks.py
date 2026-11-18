@@ -63,7 +63,43 @@ def test_webhook_invoice_paid_creates_order(client, settings, django_user_model)
 
     order = FulfillmentOrder.objects.get(stripe_invoice_id="in_123")
     assert order.user == user
+    assert order.plan == plan
     assert order.order_type == "WEB_DEV"
+
+
+@pytest.mark.django_db
+def test_webhook_invoice_paid_assigns_default_assignee(client, settings, django_user_model):
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    settings.DEFAULT_ASSIGNEE_EMAIL = "for@fobandor.com"
+    user = django_user_model.objects.create_user(
+        email="c@example.com", password="x", stripe_customer_id="cus_123")
+    assignee = django_user_model.objects.create_user(
+        email="for@fobandor.com", password="x")
+    plan = SubscriptionPlan.objects.create(
+        slug="starter", name_es="Starter", name_en="Starter", price_usd="199.00")
+    CustomerSubscription.objects.create(
+        user=user, plan=plan, stripe_subscription_id="sub_123")
+
+    payload = json.dumps({
+        "type": "invoice.paid",
+        "data": {"object": {
+            "id": "in_456",
+            "customer": "cus_123",
+            "subscription": "sub_123",
+            "amount_paid": 19900,
+            "currency": "usd",
+        }},
+    }).encode()
+
+    client.post(
+        reverse("stripe-webhook"),
+        data=payload,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=_sign(payload, "whsec_test"),
+    )
+
+    order = FulfillmentOrder.objects.get(stripe_invoice_id="in_456")
+    assert order.assigned_to == assignee
 
 
 @pytest.mark.django_db

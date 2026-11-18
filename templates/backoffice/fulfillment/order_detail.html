@@ -3,15 +3,21 @@
 
 {% block content %}
 <div class="max-w-xl">
-  <h1 class="text-2xl font-extrabold mb-2">{% trans "Entregar orden" %}</h1>
+  <h1 class="text-2xl font-extrabold mb-2">{% trans "Orden de entrega" %}</h1>
   <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-    {{ object.user.email }} — {{ object.get_order_type_display }} — {{ object.get_status_display }}
+    {{ object.user.email }}
+    {% if object.plan %} — {{ object.plan.name_es }}{% endif %}
+    — {{ object.get_order_type_display }} — {{ object.get_status_display }}
   </p>
 
   <form method="post" enctype="multipart/form-data" class="space-y-4">
     {% csrf_token %}
     {% if form.non_field_errors %}<div class="text-fobandor-orange text-sm">{{ form.non_field_errors }}</div>{% endif %}
 
+    <div>
+      <label class="block text-sm font-semibold mb-1">{{ form.assigned_to.label }}</label>
+      {{ form.assigned_to }}
+    </div>
     <div>
       <label class="block text-sm font-semibold mb-1">{{ form.deliverable_file.label }}</label>
       {{ form.deliverable_file }}
@@ -25,7 +31,10 @@
       {{ form.internal_notes }}
     </div>
 
-    <div class="flex gap-3">
+    <div class="flex flex-wrap gap-3">
+      {% if object.status != 'ENTREGADA' %}
+      <button type="submit" name="_start" value="1" class="rounded-xl border border-fobandor-blue text-fobandor-blue px-5 py-2.5 text-sm font-semibold hover:bg-fobandor-blue hover:text-white transition-colors">{% trans "Iniciar Producción" %}</button>
+      {% endif %}
       <button type="submit" class="rounded-xl bg-fobandor-orange hover:bg-fobandor-orange/90 text-white px-5 py-2.5 text-sm font-semibold">{% trans "Marcar como entregada" %}</button>
       <a href="{% url 'backoffice:fulfillment-list' %}" class="rounded-xl border border-gray-300 dark:border-white/20 px-5 py-2.5 text-sm font-semibold">{% trans "Cancelar" %}</a>
     </div>
