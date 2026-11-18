@@ -1,4 +1,5 @@
 from django.db import models
+from django.utils.translation import gettext_lazy as _
 
 from fobandor.users.models import User
 
@@ -7,11 +8,11 @@ class SubscriptionPlan(models.Model):
     """Catálogo de planes de suscripción mensual."""
 
     ORDER_TYPE_CHOICES = [
-        ("WEB_DEV", "Desarrollo Web con IA"),
-        ("APP_DEV", "Desarrollo de Apps con IA"),
-        ("ADS_AI", "Publicidad con IA"),
-        ("STUDIOS", "Fobandor Studios"),
-        ("MARKETING", "Acompañamiento de Marketing"),
+        ("WEB_DEV", _("Desarrollo Web con IA")),
+        ("APP_DEV", _("Desarrollo de Apps con IA")),
+        ("ADS_AI", _("Publicidad con IA")),
+        ("STUDIOS", _("Fobandor Studios")),
+        ("MARKETING", _("Acompañamiento de Marketing")),
     ]
 
     slug = models.SlugField(max_length=60, unique=True)

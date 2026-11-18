@@ -2,6 +2,7 @@ from datetime import timedelta
 
 from django.db import models
 from django.utils import timezone
+from django.utils.translation import gettext_lazy as _
 
 from fobandor.billing.models import CustomerSubscription
 from fobandor.users.models import User
@@ -11,11 +12,11 @@ class FulfillmentOrder(models.Model):
     """Orden de entrega con compromiso de servicio (SLA de 7 días)."""
 
     ORDER_TYPES = [
-        ("WEB_DEV", "Desarrollo Web con IA"),
-        ("APP_DEV", "Desarrollo de Apps con IA"),
-        ("ADS_AI", "Publicidad con IA"),
-        ("STUDIOS", "Fobandor Studios"),
-        ("MARKETING", "Acompañamiento de Marketing"),
+        ("WEB_DEV", _("Desarrollo Web con IA")),
+        ("APP_DEV", _("Desarrollo de Apps con IA")),
+        ("ADS_AI", _("Publicidad con IA")),
+        ("STUDIOS", _("Fobandor Studios")),
+        ("MARKETING", _("Acompañamiento de Marketing")),
     ]
 
     STATUS_CHOICES = [

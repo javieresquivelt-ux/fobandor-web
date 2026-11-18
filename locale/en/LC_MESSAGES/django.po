@@ -96,6 +96,9 @@ msgstr ""
 msgid "Fobandor Studios"
 msgstr "Fobandor Studios"
 
+msgid "Acompañamiento de Marketing"
+msgstr "Digital Marketing Coaching"
+
 msgid ""
 "Producción audiovisual con IA: series, películas, podcasts, trailers, "
 "cortometrajes, videoclips y contenido para YouTube."

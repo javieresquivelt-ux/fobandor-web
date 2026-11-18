@@ -4,6 +4,7 @@ import json
 import time
 
 import pytest
+import stripe
 from django.urls import reverse
 
 from fobandor.billing.models import CustomerSubscription, SubscriptionPlan
@@ -132,3 +133,50 @@ def test_webhook_invoice_paid_idempotent(client, settings, django_user_model):
         )
 
     assert FulfillmentOrder.objects.filter(stripe_invoice_id="in_123").count() == 1
+
+
+@pytest.mark.django_db
+def test_webhook_invoice_paid_resolves_plan_without_prior_subscription(
+        client, settings, django_user_model, monkeypatch):
+    """Simula la carrera: invoice.paid llega antes que checkout.session.completed."""
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    settings.STRIPE_SECRET_KEY = "sk_test_fake"
+    user = django_user_model.objects.create_user(
+        email="c@example.com", password="x", stripe_customer_id="cus_123")
+    plan = SubscriptionPlan.objects.create(
+        slug="conversion", name_es="Conversión", name_en="Conversion",
+        price_usd="1297.00", stripe_price_id="price_xyz", order_type="MARKETING")
+
+    def fake_retrieve(invoice_id, expand=None):
+        return {
+            "id": invoice_id,
+            "lines": {"data": [{"price": {"id": "price_xyz"}}]},
+        }
+
+    monkeypatch.setattr(stripe.Invoice, "retrieve", fake_retrieve)
+
+    payload = json.dumps({
+        "type": "invoice.paid",
+        "data": {"object": {
+            "id": "in_999",
+            "customer": "cus_123",
+            "subscription": "sub_999",
+            "amount_paid": 129700,
+            "currency": "usd",
+        }},
+    }).encode()
+
+    response = client.post(
+        reverse("stripe-webhook"),
+        data=payload,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=_sign(payload, "whsec_test"),
+    )
+    assert response.status_code == 200
+
+    order = FulfillmentOrder.objects.get(stripe_invoice_id="in_999")
+    assert order.user == user
+    assert order.plan == plan
+    assert order.order_type == "MARKETING"
+    assert CustomerSubscription.objects.filter(
+        stripe_subscription_id="sub_999", plan=plan).exists()

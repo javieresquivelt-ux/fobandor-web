@@ -35,7 +35,7 @@
           {% else %}<span class="inline-block w-3 h-3 rounded-full bg-gray-400"></span>{% endif %}
         </td>
         <td class="px-4 py-3 font-medium">{{ order.user.email }}</td>
-        <td class="px-4 py-3">{{ order.plan.name_es|default:"—" }}</td>
+        <td class="px-4 py-3">{% if order.plan %}{% if LANGUAGE_CODE == 'es' %}{{ order.plan.name_es }}{% else %}{{ order.plan.name_en }}{% endif %}{% else %}—{% endif %}</td>
         <td class="px-4 py-3">{{ order.get_order_type_display }}</td>
         <td class="px-4 py-3">{{ order.get_status_display }}</td>
         <td class="px-4 py-3">{{ order.assigned_to.email|default:"—" }}</td>

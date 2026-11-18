@@ -40,6 +40,7 @@ TRANSLATIONS = {
     "Campañas publicitarias, videos para redes, creatividades con IA, avatares, copywriting y automatización de marketing.":
         "Ad campaigns, social media videos, AI creatives, avatars, copywriting, and marketing automation.",
     "Fobandor Studios": "Fobandor Studios",
+    "Acompañamiento de Marketing": "Digital Marketing Coaching",
     "Producción audiovisual con IA: series, películas, podcasts, trailers, cortometrajes, videoclips y contenido para YouTube.":
         "AI audiovisual production: series, films, podcasts, trailers, short films, music videos, and YouTube content.",
     "Casos de éxito próximamente.": "Success stories coming soon.",

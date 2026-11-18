@@ -2834,3 +2834,64 @@ fobandor/
 
 
 
+
+---
+
+## 11. Etapa 8: Mapeo Resiliente de Plan y Servicio en Órdenes de Fulfillment (Punto Backoffice SLA)
+
+> **Estado Actual:** FASE 4: EJECUTADA. Corrección de carrera de webhooks implementada (resolución multi-fuente vía `invoice.lines`/subscription por API, metadata en checkout, i18n, comando de reconciliación y test de regresión). Pendiente despliegue en VPS y reconciliación de las 2 órdenes huérfanas.
+> **Nota de corrección (OpenCode):** `invoice.lines` NO viene en el payload del webhook por defecto; la resolución obtiene las líneas vía `stripe.Invoice.retrieve(expand=["lines.data.price"])` (fallback `stripe.Subscription.retrieve(expand=["items.data.price"])`).  
+> **Objetivo:** Resolver la condición de carrera entre webhooks de Stripe (`invoice.paid` vs `checkout.session.completed`) para que las órdenes de entrega (`FulfillmentOrder`) registren siempre de forma certera el Plan contratado y el Servicio correspondiente, tanto en órdenes futuras como en las ya creadas en producción.
+
+---
+
+### Tarea 8.1: Detección y Resolución Multi-Fuente de Plan en `handle_invoice_paid`
+- [x] **Contexto:** Actualmente, `handle_invoice_paid` asume que `CustomerSubscription` ya existe en base de datos. Como Stripe despacha `invoice.paid` antes o en paralelo a `checkout.session.completed`, la consulta a `CustomerSubscription` devuelve `None`, provocando que la orden se cree con `plan = None` y `order_type = "WEB_DEV"` por defecto.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/billing/services.py` (`handle_invoice_paid`):
+     - Inspeccionar los ítems de la factura (`invoice.lines.data`).
+     - Extraer el ID de precio (`line.price.id` o `line.plan.id`) y resolver el plan directamente mediante `SubscriptionPlan.objects.filter(stripe_price_id=price_id).first()`.
+     - Si `subscription_id` está presente pero la suscripción aún no existía en BD, crearla o vincularla inmediatamente con `plan` y `status="active"`.
+     - Asignar `order_type = plan.order_type` (ej. `"MARKETING"`).
+     - Si la orden ya existía pero tenía `plan = None`, actualizarla retroactivamente en caso de reintentos del webhook.
+
+---
+
+### Tarea 8.2: Sincronización Bidireccional en `handle_checkout_completed` y Metadata en Checkout
+- [x] **Contexto:** Reforzar la integridad referencial desde el evento `checkout.session.completed` y la creación de la sesión de pago.
+- [x] **Acciones Atómicas:**
+  1. En `create_checkout_session`:
+     - Agregar `subscription_data={"metadata": {"user_id": str(user.pk), "plan_id": str(plan.pk)}}` para que el objeto suscripción de Stripe herede la metadata del plan.
+  2. En `handle_checkout_completed`:
+     - Al guardar `CustomerSubscription`, buscar órdenes de fulfillment huérfanas del usuario (`FulfillmentOrder.objects.filter(user=user, plan__isnull=True)`) y vincularles el `plan`, `subscription` y `order_type`.
+
+---
+
+### Tarea 8.3: I18n de Planes y Servicios en Vistas del Backoffice
+- [x] **Contexto:** En `/en/backoffice/entregas/`, los títulos y selecciones deben responder al idioma activo del operador.
+- [x] **Acciones Atómicas:**
+  1. En `templates/backoffice/fulfillment/order_list.html`:
+     - Desplegar el nombre del plan según el idioma: `{% if LANGUAGE_CODE == 'en' %}{{ order.plan.name_en|default:order.plan.name_es|default:"—" }}{% else %}{{ order.plan.name_es|default:order.plan.name_en|default:"—" }}{% endif %}`.
+  2. En `fobandor/fulfillment/models.py`:
+     - Aplicar `gettext_lazy` a `ORDER_TYPES` para que `get_order_type_display` sea traducido adecuadamente al inglés (ej: "Marketing Coaching" / "Acompañamiento de Marketing").
+
+---
+
+### Tarea 8.4: Script de Reconciliación de Órdenes Existentes en Producción
+- [x] **Contexto:** Las órdenes existentes en producción (Order 1 para `jet@fobandor.com` y Order 2 para `fabiola.obando@cystec.global`) quedaron con `plan=None`.
+- [x] **Acciones Atómicas:**
+  1. Ejecutar comando de reconciliación en la BD de producción:
+     - Relacionar Order 1 con Subscription 1 (*Plan 2 • Conversión*, `order_type="MARKETING"`).
+     - Relacionar Order 2 con Subscription 2 (*Plan 1 • Impulso*, `order_type="MARKETING"`).
+  2. Comprobar que en `/backoffice/entregas/` ambas filas muestren sus respectivos planes y servicios de forma inmediata.
+
+---
+
+### Tarea 8.5: Suite de Pruebas de Regresión y Despliegue en VPS
+- [x] **Contexto:** Garantizar que los tests unitarios cubran la llegada desordenada de webhooks.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/billing/tests/test_webhooks.py`:
+     - Escribir test donde `invoice.paid` se procesa **sin** que exista previamente la `CustomerSubscription` en base de datos, verificando que la `FulfillmentOrder` resultante tiene asignado el `plan` correcto extraído de `invoice.lines`.
+  2. Ejecutar `pytest` (>=44 tests) y `flake8`.
+  3. Commit, push y redespliegue en caliente en VPS.
+  4. Criterio de Aceptación: El backoffice muestra siempre el plan y servicio contratado sin guiones `—` huérfanos.

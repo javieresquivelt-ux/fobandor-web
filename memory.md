@@ -842,3 +842,28 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
    * Selección activa con clic (`@click="selectedPlan = '{{ plan.slug }}'"`), destacando dinámicamente el borde, fondo y el botón de acción principal de la tarjeta seleccionada.
    * Preselección dinámica del plan marcado como recomendado desde la BD (`is_highlighted`), con fallback automático al primer plan activo si no hay ninguno destacado.
    * 42/42 tests unitarios pasando y 0 errores en `flake8`.
+
+
+---
+
+## 23. Análisis Arquitectónico: Condición de Carrera en Webhooks Stripe (`invoice.paid` vs `checkout.session.completed`)
+
+* **Diagnóstico del Hallazgo en Backoffice SLA:**
+  * Al consultar la tabla de órdenes en `/en/backoffice/entregas/`, las órdenes de entrega creadas tras una compra exitosa registraban `plan = None` (mostrando `—`) y `order_type = "WEB_DEV"` ("Desarrollo Web con IA") en lugar de `"MARKETING"` ("Acompañamiento de Marketing").
+  * **Causa Raíz:** Stripe despacha los eventos `invoice.paid` y `checkout.session.completed` concurrentemente. En la práctica, `invoice.paid` es procesado antes de que `checkout.session.completed` inserte el registro de `CustomerSubscription`. Al no existir la suscripción en base de datos al momento de correr `handle_invoice_paid`, el puntero al plan resultaba `None` y se creaba la orden desvinculada. Posteriormente, al completarse `checkout.session.completed`, la suscripción se guardaba pero la orden existente nunca se retroalimentaba.
+* **Estrategia de Solución (Resiliencia Multi-Fuente):**
+  1. **Resolución Directa desde la Factura:** Cada objeto `invoice` de Stripe contiene la colección `lines.data` con el `price.id` adquirido. Se resuelve el plan directamente contra `SubscriptionPlan.objects.filter(stripe_price_id=price_id)` sin depender del orden de llegada del evento de suscripción.
+  2. **Auto-Creación de Suscripción:** Si el evento de factura incluye un `subscription_id` que aún no está en la base de datos, `handle_invoice_paid` crea proactivamente el registro `CustomerSubscription` con el plan identificado y estado activo.
+  3. **Retroalimentación en `handle_checkout_completed`:** Como salvaguarda bidireccional, al llegar `checkout.session.completed`, se buscan órdenes huérfanas del usuario (`plan__isnull=True`) y se actualizan con el plan y suscripción.
+  4. **Reconciliación de Datos:** Reconciliar retroactivamente las órdenes históricas en la base de datos de producción para vincularlas a sus suscripciones ya existentes.
+
+### Ejecución (Tarea 8.1–8.5)
+* **`handle_invoice_paid` multi-fuente:** si la suscripción no está en BD, resuelve el plan vía `stripe.Invoice.retrieve(expand=["lines.data.price"])` → `price.id` → `SubscriptionPlan.stripe_price_id`; fallback a `stripe.Subscription.retrieve(expand=["items.data.price"])`. Si resuelve plan + hay `subscription_id`, crea la `CustomerSubscription` (`update_or_create`, idempotente) y asigna `order_type = plan.order_type`.
+* **Corrección crítica:** `invoice.lines` **no** viene en el payload del webhook por defecto; se obtiene vía API (helpers `_extract_price_id_from_invoice`/`_extract_price_id_from_subscription`).
+* **`create_checkout_session`:** añade `subscription_data={"metadata": {"user_id", "plan_id"}}` (metadata en el objeto Subscription de Stripe).
+* **`handle_checkout_completed`:** retroalimenta órdenes huérfanas (`plan__isnull=True`) del usuario con `plan`, `subscription` y `order_type`.
+* **i18n:** `gettext_lazy` en `ORDER_TYPES` (`FulfillmentOrder` y `SubscriptionPlan`) + traducción EN `Acompañamiento de Marketing` → `Digital Marketing Coaching` (catálogo regenerado: 56 cadenas); `order_list.html` muestra el nombre del plan según `LANGUAGE_CODE`.
+* **Reconciliación:** management command `reconcile_fulfillment_orders` (idempotente) + añadido a `entrypoint.sh`.
+* **Test de regresión:** `test_webhook_invoice_paid_resolves_plan_without_prior_subscription` (mock `stripe.Invoice.retrieve`). Suite **44/44 passing**.
+* **Verificación local:** `flake8` limpio, `check` 0 issues, `makemigrations --check` sin cambios (gettext_lazy no genera migración), `reconcile_fulfillment_orders` ejecuta OK (0 órdenes local).
+* **Pendiente (producción):** desplegar en EasyPanel (el `entrypoint.sh` correrá `reconcile_fulfillment_orders` automáticamente y sanará las 2 órdenes huérfanas) y verificar en `/backoffice/entregas/` que ya no hay guiones `—`.

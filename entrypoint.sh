@@ -15,6 +15,9 @@ python manage.py seed_initial_content
 python manage.py seed_subscription_plans
 python manage.py create_rbac_groups
 
+echo "==> Reconciliando órdenes SLA huérfanas (plan/subscription)..."
+python manage.py reconcile_fulfillment_orders || true
+
 if [ -n "$DJANGO_SUPERUSER_EMAIL" ] && [ -n "$DJANGO_SUPERUSER_PASSWORD" ]; then
     echo "==> Creando superusuario inicial si no existe..."
     python manage.py createsuperuser --noinput || true
