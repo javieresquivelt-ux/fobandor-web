@@ -2987,8 +2987,8 @@ fobandor/
 ## 18. Etapa 10: Resiliencia de Webhook Stripe (API Moderna StripeObject), Inyección SMTP Google en Docker Swarm y Reconciliación E2E
 
 ### Tarea 10.1: Compatibilidad de Stripe Line Items y Conversión Segura de StripeObject
-- [ ] **Contexto:** En la API moderna de Stripe, las líneas de factura almacenan el precio en `pricing.price_details.price` y los objetos retornados por el SDK son instancias de `StripeObject`, las cuales lanzan `AttributeError` al llamar a métodos de diccionario como `.get()`.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** En la API moderna de Stripe, las líneas de factura almacenan el precio en `pricing.price_details.price` y los objetos retornados por el SDK son instancias de `StripeObject`, las cuales lanzan `AttributeError` al llamar a métodos de diccionario como `.get()`.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py`:
      - Refactorizar `_price_id_from_lines()` para soportar:
        * `item.get("pricing", {}).get("price_details", {}).get("price")` (Stripe moderno).
@@ -3005,8 +3005,8 @@ fobandor/
 ---
 
 ### Tarea 10.2: Pruebas Unitarias Automatizadas (TDD)
-- [ ] **Contexto:** Certificar que la suite de tests cubra la estructura moderna de `pricing` y la compatibilidad con `StripeObject`.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Certificar que la suite de tests cubra la estructura moderna de `pricing` y la compatibilidad con `StripeObject`.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/tests/test_webhooks.py`:
      - Agregar test unitario con payload real de Stripe moderno (`{"pricing": {"price_details": {"price": "..."}}}`).
      - Validar que `handle_invoice_paid` extrae el plan, crea la `FulfillmentOrder`, la `BillingInvoice` y despacha ambos correos.
@@ -3016,8 +3016,8 @@ fobandor/
 ---
 
 ### Tarea 10.3: Inyección de Variables SMTP de Google Workspace en Docker Swarm (VPS)
-- [ ] **Contexto:** El contenedor en producción carece de las variables `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER` y `EMAIL_HOST_PASSWORD`, lo cual impide la conexión con el servidor SMTP de Google Workspace.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** El contenedor en producción carece de las variables `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER` y `EMAIL_HOST_PASSWORD`, lo cual impide la conexión con el servidor SMTP de Google Workspace.
+- [x] **Acciones Atómicas:**
   1. Actualizar la definición del servicio Swarm `fobandor_web` en el host:
      - `EMAIL_HOST=smtp.gmail.com`
      - `EMAIL_PORT=587`
@@ -3032,8 +3032,8 @@ fobandor/
 ---
 
 ### Tarea 10.4: Despliegue en Producción y Reconciliación de la Orden Pendiente
-- [ ] **Contexto:** Desplegar el código corregido en el VPS, sanar la orden de compra de `servicioydemo@gmail.com` y emitir los correos pendientes.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Desplegar el código corregido en el VPS, sanar la orden de compra de `servicioydemo@gmail.com` y emitir los correos pendientes.
+- [x] **Acciones Atómicas:**
   1. Compilar y actualizar el contenedor `fobandor_web`.
   2. Reprocesar el webhook pendiente (`evt_1UdJu5Dd8zg4z4zajMVyhFbm`) o ejecutar comando de reconciliación para `servicioydemo@gmail.com`:
      - Creación de `BillingInvoice`.
