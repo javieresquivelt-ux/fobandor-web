@@ -3042,3 +3042,46 @@ fobandor/
      - Disparo de la alerta al equipo interno (`admin@fobandor.com`, `Content_Editors`, etc.).
   3. Verificar en vivo en `https://fobandor.com/en/backoffice/entregas/`.
   4. Criterio de Aceptación: Orden visible en el Backoffice con su plan correspondiente y correos recibidos por cliente y equipo.
+
+---
+
+## 19. Etapa 11: Optimización UX de Notificaciones por Correo (Legibilidad Inline, Enlace Canónico al Portal y Simplificación Sobria)
+
+### Tarea 11.1: Rediseño Minimalista de Alta Legibilidad de la Alerta Interna
+- [x] **Contexto:** Gmail y clientes web descartan pseudo-clases CSS (`:first-child`, `:last-child`), provocando que el texto de la tabla apareciera en negro sobre fondo azul marino. Bajo el principio "menos es más", se requiere un diseño operativo limpio, con fondo claro y estilos 100% inline en cada celda.
+- [x] **Acciones Atómicas:**
+  1. En `templates/billing/email/internal_purchase_alert.html`:
+     - Sustituir el fondo oscuro por un contenedor blanco nítido (`#ffffff`) sobre marco gris suave (`#f1f5f9`).
+     - Aplicar estilos inline universales en cada elemento `<td>` (`style="color: #0f172a; padding: 10px 8px; font-weight: 600;"`) y etiquetas (`style="color: #64748b;"`).
+     - Mantener el botón de acción principal en color naranja institucional (`#f97316`) con tipografía blanca nítida, dirigiendo a `https://fobandor.com/en/backoffice/entregas/`.
+  2. Criterio de Aceptación: Legibilidad y contraste óptimos certificados en Gmail, Outlook y dispositivos móviles en modo claro y oscuro.
+
+---
+
+### Tarea 11.2: Corrección Canónica del Enlace al Portal de Cliente
+- [x] **Contexto:** El botón "Acceder a mi Portal de Cliente" dirigía a `/es/portal/dashboard/`, respondiendo con HTTP 404 debido a que la ruta canónica en el proyecto es `/es/mi-cuenta/`.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/billing/services.py`:
+     - Importar `reverse` desde `django.urls`.
+     - Construir `portal_url` dinámicamente con `site_domain + reverse("portal:dashboard")`, resolviendo a `https://fobandor.com/es/mi-cuenta/`.
+  2. Criterio de Aceptación: El botón del correo redirige sin errores al portal donde el cliente visualiza su suscripción y orden activa.
+
+---
+
+### Tarea 11.3: Simplificación Sobria del Correo del Cliente
+- [x] **Contexto:** Eliminar textos redundantes en el pie de página de `customer_purchase_invoice.html` y `.txt`, adoptando una sola línea minimalista de contacto y soporte.
+- [x] **Acciones Atómicas:**
+  1. En `templates/billing/email/customer_purchase_invoice.html` y `.txt`:
+     - Simplificar el footer a: `FOBANDOR — Build. Ads. Studio. · Soporte: admin@fobandor.com · www.fobandor.com`.
+  2. Criterio de Aceptación: Correo ligero, limpio y libre de duplicaciones.
+
+---
+
+### Tarea 11.4: Batería de Pruebas Automatizadas y Despliegue
+- [x] **Contexto:** Validación con `pytest` y despliegue al servidor de producción.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/billing/tests/test_webhooks.py`:
+     - Agregar aserciones para certificar que el cuerpo del correo incluye `/mi-cuenta/` y excluye `/portal/dashboard/`.
+  2. Ejecutar `pytest` (46/46 pasando) y `flake8` (0 errores).
+  3. Desplegar a producción mediante commit semántico, push y actualización de `fobandor_web` en el host KVM VPS.
+  4. Criterio de Aceptación: Servicio convergido en producción y verificación E2E.

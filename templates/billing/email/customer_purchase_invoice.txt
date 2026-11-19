@@ -27,6 +27,5 @@ FACTURA WEB:
 {% endif %}
 
 ---------------------------------------------
-Soporte y contacto oficial: {{ support_email }}
+Soporte: {{ support_email }} · www.fobandor.com
 FOBANDOR — Build. Ads. Studio.
-https://fobandor.com

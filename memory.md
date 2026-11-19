@@ -919,3 +919,17 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
      - `EMAIL_HOST_PASSWORD=shsfmvaajpgxgfjk`
      - `DEFAULT_FROM_EMAIL=FOBANDOR <admin@fobandor.com>`
   5. **Reconciliación y Certificación:** Reconciliar retroactivamente el evento de `servicioydemo@gmail.com`, generar su orden en `/backoffice/entregas/` y validar la recepción efectiva de los correos transaccionales.
+
+---
+
+## 27. Optimización UX de Notificaciones: Legibilidad Inline en Clientes de Correo, Enrutamiento Dinámico del Portal y Simplificación Sobria (Etapa 11)
+
+* **Fecha de Implementación:** 19 de Noviembre de 2026.
+* **Diagnóstico de los Hallazgos:**
+  1. **Contraste Ilegible en Alerta Interna (Gmail):** Gmail descarta pseudo-clases CSS (`:first-child`, `:last-child`) en bloques `<style>`. El texto de las celdas adoptaba el color negro por defecto del navegador sobre el fondo azul marino `#1e293b`.
+     - *Solución ("Menos es más"):* Rediseño minimalista sobre fondo claro `#f1f5f9` / `#ffffff`, aplicando estilos 100% inline en cada celda `<td>` (`color: #0f172a; padding: 10px; font-weight: 600;`), garantizando legibilidad total en cualquier cliente de correo y modo claro/oscuro.
+  2. **Error 404 en "Acceder a mi Portal de Cliente":** La URL estaba fija como `/es/portal/dashboard/`, ruta inexistente en `urls.py`. La ruta canónica registrada en `fobandor.portal.urls` es `mi-cuenta/` (`name="portal:dashboard"`).
+     - *Solución:* En `services.py` se implementó `reverse("portal:dashboard")`, resolviendo canónicamente a `https://fobandor.com/es/mi-cuenta/`.
+  3. **Texto `NOT_FOUND` en Firma:** Se certificó mediante inspección RFC 822 que el correo generado por Django no incluye `NOT_FOUND`. El texto proviene de la tarjeta de contacto de Google Workspace (Google People Card) del remitente en Gmail, donde el campo "Job Title / Cargo" de la cuenta fue registrado como `NOT_FOUND`.
+     - *Solución:* Simplificación del pie corporativo en el template a una sola línea sobria (`FOBANDOR — Build. Ads. Studio. · Soporte: admin@fobandor.com · www.fobandor.com`) y documentación para actualizar el perfil en Google Admin Console.
+* **Cobertura Automatizada:** 46/46 tests unitarios pasando, con validación explícita de `portal_url` y 0 errores en `flake8`.

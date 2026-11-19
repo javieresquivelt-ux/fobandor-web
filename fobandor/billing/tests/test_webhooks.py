@@ -239,6 +239,8 @@ def test_invoice_paid_sends_customer_invoice_and_internal_alert(
     assert "https://pay.stripe.com/invoice/test/pdf" in cust_mail.body
     assert "Plan 1 • Impulso" in cust_mail.body
     assert "admin@fobandor.com" in cust_mail.body
+    assert "/mi-cuenta/" in cust_mail.body
+    assert "/portal/dashboard/" not in cust_mail.body
 
     # 2. Alerta interna
     team_mail = next(m for m in mail.outbox if admin_user.email in m.to)

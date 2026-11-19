@@ -6,6 +6,7 @@ import stripe
 from django.conf import settings
 from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
+from django.urls import reverse
 from django.utils import timezone
 
 from fobandor.users.models import User
@@ -297,7 +298,8 @@ def send_customer_purchase_email(user, invoice_data, plan, order):
         site_domain = getattr(settings, "SITE_DOMAIN", "https://fobandor.com")
         if not site_domain.startswith("http"):
             site_domain = f"https://{site_domain}"
-        portal_url = f"{site_domain.rstrip('/')}/es/portal/dashboard/"
+        portal_path = reverse("portal:dashboard")
+        portal_url = f"{site_domain.rstrip('/')}{portal_path}"
         support_email = "admin@fobandor.com"
 
         context = {
