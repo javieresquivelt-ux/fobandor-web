@@ -92,32 +92,65 @@ def handle_checkout_completed(session):
         )
 
 
+def _to_plain_dict(obj):
+    if obj is None:
+        return {}
+    if hasattr(obj, "to_dict"):
+        return obj.to_dict()
+    if isinstance(obj, dict):
+        return obj
+    return {}
+
+
 def _coerce_price_id(price):
+    if not price:
+        return None
+    if isinstance(price, str):
+        return price
+    if hasattr(price, "to_dict"):
+        price = price.to_dict()
     if isinstance(price, dict):
         return price.get("id")
-    return price
+    return getattr(price, "id", None)
 
 
 def _price_id_from_lines(lines):
-    data = (lines or {}).get("data") or []
-    if data:
-        return _coerce_price_id(data[0].get("price"))
+    if not lines:
+        return None
+    lines_dict = _to_plain_dict(lines)
+    data = lines_dict.get("data") or []
+    for item in data:
+        item_dict = _to_plain_dict(item)
+        # 1. Chequeo directo de price (legacy o expandido)
+        price = item_dict.get("price")
+        price_id = _coerce_price_id(price)
+        if price_id:
+            return price_id
+        # 2. Chequeo de estructura moderna Stripe (pricing.price_details.price)
+        pricing = _to_plain_dict(item_dict.get("pricing"))
+        price_details = _to_plain_dict(pricing.get("price_details"))
+        price_id = price_details.get("price")
+        if price_id:
+            return price_id
     return None
 
 
 def _extract_price_id_from_invoice(invoice):
     """Obtiene el price_id desde las líneas de la factura (payload o vía API)."""
-    price_id = _price_id_from_lines(invoice.get("lines"))
+    invoice_dict = _to_plain_dict(invoice)
+    price_id = _price_id_from_lines(invoice_dict.get("lines"))
     if price_id:
         return price_id
-    invoice_id = invoice.get("id")
+    invoice_id = invoice_dict.get("id")
     if not invoice_id or not settings.STRIPE_SECRET_KEY:
         return None
     try:
         full = stripe.Invoice.retrieve(invoice_id, expand=["lines.data.price"])
-    except Exception:
+        full_dict = _to_plain_dict(full)
+        return _price_id_from_lines(full_dict.get("lines"))
+    except Exception as exc:
+        logger.warning("Fallo al recuperar factura Stripe %s: %s", invoice_id, exc)
         return None
-    return _price_id_from_lines(full.get("lines"))
 
 
 def _extract_price_id_from_subscription(subscription_id):
@@ -125,11 +158,16 @@ def _extract_price_id_from_subscription(subscription_id):
         return None
     try:
         sub = stripe.Subscription.retrieve(subscription_id, expand=["items.data.price"])
-    except Exception:
+        sub_dict = _to_plain_dict(sub)
+        items = _to_plain_dict(sub_dict.get("items")).get("data") or []
+        for item in items:
+            item_dict = _to_plain_dict(item)
+            price_id = _coerce_price_id(item_dict.get("price"))
+            if price_id:
+                return price_id
+    except Exception as exc:
+        logger.warning("Fallo al recuperar suscripción Stripe %s: %s", subscription_id, exc)
         return None
-    items = (sub.get("items") or {}).get("data") or []
-    if items:
-        return _coerce_price_id(items[0].get("price"))
     return None
 
 
@@ -149,65 +187,95 @@ def handle_invoice_paid(invoice):
     from fobandor.billing.models import BillingInvoice, CustomerSubscription
     from fobandor.fulfillment.models import FulfillmentOrder
 
-    invoice_id = invoice.get("id")
-    customer_id = invoice.get("customer")
-    subscription_id = invoice.get("subscription")
+    try:
+        invoice_dict = _to_plain_dict(invoice)
+        invoice_id = invoice_dict.get("id")
+        customer_id = invoice_dict.get("customer")
+        subscription_id = invoice_dict.get("subscription")
 
-    user = User.objects.filter(stripe_customer_id=customer_id).first()
-    if user is None or not invoice_id:
-        return
+        user = User.objects.filter(stripe_customer_id=customer_id).first()
+        if user is None and invoice_dict.get("customer_email"):
+            user = User.objects.filter(email=invoice_dict.get("customer_email")).first()
+            if user and customer_id and not user.stripe_customer_id:
+                user.stripe_customer_id = customer_id
+                user.save(update_fields=["stripe_customer_id"])
 
-    subscription = None
-    plan = None
-    if subscription_id:
-        subscription = CustomerSubscription.objects.filter(
-            stripe_subscription_id=subscription_id).first()
-        if subscription and subscription.plan:
-            plan = subscription.plan
+        if user is None or not invoice_id:
+            logger.warning(
+                "handle_invoice_paid: no se encontró usuario para customer %s (factura %s)",
+                customer_id,
+                invoice_id,
+            )
+            return
 
-    # Resolución multi-fuente inmune a la carrera de webhooks.
-    if plan is None:
-        plan = _resolve_plan_from_stripe(invoice, subscription_id)
+        subscription = None
+        plan = None
+        if subscription_id:
+            subscription = CustomerSubscription.objects.filter(
+                stripe_subscription_id=subscription_id).first()
+            if subscription and subscription.plan:
+                plan = subscription.plan
 
-    if plan is not None and subscription_id:
-        subscription, _ = CustomerSubscription.objects.update_or_create(
-            stripe_subscription_id=subscription_id,
-            defaults={"user": user, "plan": plan, "status": "active"},
+        # Resolución multi-fuente inmune a la carrera de webhooks.
+        if plan is None:
+            plan = _resolve_plan_from_stripe(invoice_dict, subscription_id)
+
+        # Fallback a suscripción activa del usuario si aún no se resolvió plan
+        if plan is None:
+            user_sub = CustomerSubscription.objects.filter(user=user, status="active").first()
+            if user_sub and user_sub.plan:
+                plan = user_sub.plan
+                if not subscription:
+                    subscription = user_sub
+
+        if plan is not None and subscription_id:
+            subscription, _ = CustomerSubscription.objects.update_or_create(
+                stripe_subscription_id=subscription_id,
+                defaults={"user": user, "plan": plan, "status": "active"},
+            )
+
+        amount_paid = invoice_dict.get("amount_paid", 0) or 0
+        BillingInvoice.objects.get_or_create(
+            stripe_invoice_id=invoice_id,
+            defaults={
+                "user": user,
+                "amount_paid": amount_paid / 100,
+                "currency": (invoice_dict.get("currency") or "usd").upper(),
+                "paid_at": timezone.now(),
+                "invoice_pdf_url": invoice_dict.get("invoice_pdf") or "",
+            },
         )
 
-    amount_paid = invoice.get("amount_paid", 0) or 0
-    BillingInvoice.objects.get_or_create(
-        stripe_invoice_id=invoice_id,
-        defaults={
-            "user": user,
-            "amount_paid": amount_paid / 100,
-            "currency": (invoice.get("currency") or "usd").upper(),
-            "paid_at": timezone.now(),
-            "invoice_pdf_url": invoice.get("invoice_pdf") or "",
-        },
-    )
+        order_type = plan.order_type if plan else "WEB_DEV"
+        assignee = None
+        default_email = getattr(settings, "DEFAULT_ASSIGNEE_EMAIL", "for@fobandor.com")
+        if default_email:
+            assignee = User.objects.filter(email=default_email).first()
+        order, _ = FulfillmentOrder.objects.get_or_create(
+            stripe_invoice_id=invoice_id,
+            defaults={
+                "user": user,
+                "subscription": subscription,
+                "plan": plan,
+                "assigned_to": assignee,
+                "order_type": order_type,
+                "paid_at": timezone.now(),
+                "status": "PENDIENTE_PRODUCCION",
+            },
+        )
+        if plan and (order.plan != plan or order.order_type != order_type):
+            order.plan = plan
+            order.order_type = order_type
+            order.subscription = subscription
+            order.save(update_fields=["plan", "order_type", "subscription"])
 
-    order_type = plan.order_type if plan else "WEB_DEV"
-    assignee = None
-    default_email = getattr(settings, "DEFAULT_ASSIGNEE_EMAIL", "for@fobandor.com")
-    if default_email:
-        assignee = User.objects.filter(email=default_email).first()
-    order, _ = FulfillmentOrder.objects.get_or_create(
-        stripe_invoice_id=invoice_id,
-        defaults={
-            "user": user,
-            "subscription": subscription,
-            "plan": plan,
-            "assigned_to": assignee,
-            "order_type": order_type,
-            "paid_at": timezone.now(),
-            "status": "PENDIENTE_PRODUCCION",
-        },
-    )
+        # Notificaciones transaccionales por correo (Etapa 9/10: Cliente y Equipo Interno)
+        send_customer_purchase_email(user, invoice_dict, plan, order)
+        send_internal_purchase_alert(user, invoice_dict, plan, order)
 
-    # Notificaciones transaccionales por correo (Etapa 9: Cliente y Equipo Interno)
-    send_customer_purchase_email(user, invoice, plan, order)
-    send_internal_purchase_alert(user, invoice, plan, order)
+    except Exception:
+        logger.exception("Error crítico no controlado en handle_invoice_paid para factura %s", invoice.get("id"))
+        raise
 
 
 def send_customer_purchase_email(user, invoice_data, plan, order):
@@ -357,11 +425,21 @@ def handle_subscription_deleted(subscription_obj):
 
 def process_webhook_event(event):
     """Despacha el evento de Stripe al manejador correspondiente."""
-    handlers = {
-        "checkout.session.completed": handle_checkout_completed,
-        "invoice.paid": handle_invoice_paid,
-        "customer.subscription.deleted": handle_subscription_deleted,
-    }
-    handler = handlers.get(event.get("type"))
-    if handler:
-        handler(event.get("data", {}).get("object", {}))
+    try:
+        event_dict = _to_plain_dict(event)
+        handlers = {
+            "checkout.session.completed": handle_checkout_completed,
+            "invoice.paid": handle_invoice_paid,
+            "customer.subscription.deleted": handle_subscription_deleted,
+        }
+        event_type = event_dict.get("type")
+        handler = handlers.get(event_type)
+        if handler:
+            data_obj = event_dict.get("data", {}).get("object", {})
+            handler(data_obj)
+        else:
+            logger.info("Evento Stripe no manejado o ignorado: %s", event_type)
+    except Exception:
+        event_id = event.get("id") if isinstance(event, dict) else ""
+        logger.exception("Error al procesar evento de webhook Stripe: %s", event_id)
+        raise

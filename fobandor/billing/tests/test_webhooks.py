@@ -246,3 +246,63 @@ def test_invoice_paid_sends_customer_invoice_and_internal_alert(
     assert "Nueva compra de servicios" in team_mail.subject
     assert "cliente@example.com" in team_mail.subject
     assert "https://fobandor.com/en/backoffice/entregas/" in team_mail.body
+
+
+@pytest.mark.django_db
+def test_webhook_invoice_paid_resolves_modern_stripe_pricing_structure(client, settings, django_user_model):
+    """Certifica que el webhook resuelve correctamente el formato moderno de Stripe (pricing.price_details.price)."""
+    settings.STRIPE_WEBHOOK_SECRET = "whsec_test"
+    user = django_user_model.objects.create_user(
+        email="modern@example.com", password="x", stripe_customer_id="cus_modern_123")
+    plan = SubscriptionPlan.objects.create(
+        slug="impulso-modern", name_es="Plan 1 • Impulso", name_en="Plan 1 • Boost",
+        price_usd="697.00", stripe_price_id="price_modern_697", order_type="MARKETING")
+
+    # Nótese: NO existe CustomerSubscription previa en la BD (prueba condición de carrera pura).
+    payload = json.dumps({
+        "type": "invoice.paid",
+        "data": {"object": {
+            "id": "in_modern_123",
+            "customer": "cus_modern_123",
+            "subscription": "sub_modern_123",
+            "amount_paid": 69700,
+            "currency": "usd",
+            "created": 1795050800,
+            "invoice_pdf": "https://pay.stripe.com/invoice/modern/pdf",
+            "hosted_invoice_url": "https://pay.stripe.com/invoice/modern",
+            "lines": {
+                "object": "list",
+                "data": [
+                    {
+                        "id": "il_modern_1",
+                        "price": None,  # Modern Stripe payload entrega price=null
+                        "pricing": {
+                            "type": "price_details",
+                            "price_details": {
+                                "price": "price_modern_697",
+                                "product": "prod_modern_1",
+                            },
+                        },
+                    }
+                ],
+            },
+        }},
+    }).encode()
+
+    response = client.post(
+        reverse("stripe-webhook"),
+        data=payload,
+        content_type="application/json",
+        HTTP_STRIPE_SIGNATURE=_sign(payload, "whsec_test"),
+    )
+    assert response.status_code == 200
+
+    order = FulfillmentOrder.objects.filter(user=user).first()
+    assert order is not None
+    assert order.plan == plan
+    assert order.order_type == "MARKETING"
+
+    sub = CustomerSubscription.objects.filter(user=user).first()
+    assert sub is not None
+    assert sub.plan == plan
+    assert sub.status == "active"

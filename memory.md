@@ -884,19 +884,38 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
   3. **Resiliencia de Red:** Los despachos de correo se ejecutan dentro de bloques `try...except` con logging defensivo para garantizar que un eventual fallo de socket SMTP nunca interrumpa la creación de la orden ni devuelva un código HTTP de error al webhook de Stripe.
 
 
+
 ---
 
-## 25. Certificación de Etapa 9: Notificaciones de Compra por Correo (Cliente y Equipo Interno)
+## 26. Análisis Arquitectónico y Causa Raíz: Crash de Webhook `invoice.paid` (Stripe API Moderna y Credenciales SMTP Swarm)
 
-* **Fecha de Implementación:** 18 de Noviembre de 2026.
-* **Componentes Construidos:**
-  1. `fobandor/billing/services.py`:
-     - Función `send_customer_purchase_email()` con variables dinámicas de cliente, plan, monto y enlace criptográfico al PDF emitido por Stripe (`invoice_pdf`), con soporte de contacto a `admin@fobandor.com`.
-     - Función `send_internal_purchase_alert()` con consulta dinámica a la BD de superusuarios/staff y miembros del grupo `Content_Editors`. Formateo de fecha/hora en la zona horaria oficial `America/New_York` (Florida). Asunto dinámico exacto: `Nueva compra de servicios - {fecha_hora_ny} - {cliente_email} - {servicio_y_plan}`. Enlace directo a `https://fobandor.com/en/backoffice/entregas/`.
-     - Acopladas en `handle_invoice_paid()` con manejo defensivo de excepciones SMTP.
-  2. Plantillas de Correo:
-     - `templates/billing/email/customer_purchase_invoice.html` y `.txt` (Resumen, botón a PDF Stripe, botón al portal de cliente y soporte `admin@fobandor.com`).
-     - `templates/billing/email/internal_purchase_alert.html` y `.txt` (Ficha técnica de producción SLA, fecha/hora Florida, botón directo a entregas backoffice).
-  3. Pruebas Unitarias Automatizadas:
-     - `test_invoice_paid_sends_customer_invoice_and_internal_alert` en `fobandor/billing/tests/test_webhooks.py` certificando la emisión de ambos correos, destinatarios consolidados y contenidos dinámicos.
-     - 45/45 tests pasando y 0 errores en `flake8`.
+* **Fecha de Diagnóstico:** 18 de Noviembre de 2026.
+* **Incidente:** Durante la prueba E2E de compra con el usuario `servicioydemo@gmail.com`:
+  * El usuario se registró con éxito en la plataforma.
+  * La compra fue procesada en Stripe Checkout ($697.00 USD, Plan 1 • Impulso).
+  * En `/es/mi-cuenta/` apareció la suscripción activa.
+  * En `/en/backoffice/entregas/` **NO apareció la orden de entrega**.
+  * **Ningún correo** fue recibido por el cliente ni por el equipo de administradores/editores.
+* **Diagnóstico Profundo (Evidencia en Producción):**
+  1. **Webhook `checkout.session.completed` (Éxito 200):** Se ejecutó a las 20:12:46 EST e insertó `CustomerSubscription(id=3, plan='Plan 1 • Impulso', status='active')`.
+  2. **Webhook `invoice.paid` (Error 500):** Se ejecutó en paralelo a las 20:12:46 EST y falló con HTTP 500 (reintentado por Stripe a las 20:13:03 EST volviendo a fallar con 500):
+     - **Estructura de la API Moderna de Stripe:** En la versión de API Stripe utilizada, las líneas de la factura traen el precio en `lines.data[0]['pricing']['price_details']['price']` (`price_1UczZNDd8zg4z4zarI1nFiTB`) mientras que `lines.data[0]['price']` viene en `None`.
+     - **Incompatibilidad de StripeObject:** Al resultar `None`, el código ejecutó `full = stripe.Invoice.retrieve(invoice_id)` y seguidamente `_price_id_from_lines(full.get('lines'))`. En `stripe-python` v11+, `stripe.Invoice` es un objeto `StripeObject` y no un diccionario, arrojando:
+       `AttributeError: 'get' is a dict method, but a Invoice is not a dict. Use .to_dict() to convert it.`
+     - **Consecuencia:** Al abortar la transacción con un error no controlado, nunca se ejecutaron las sentencias de creación de `BillingInvoice`, creación de `FulfillmentOrder`, ni las llamadas a `send_customer_purchase_email` ni `send_internal_purchase_alert`.
+  3. **Ausencia de Credenciales SMTP en Docker Swarm:** Al inspeccionar `docker service inspect fobandor_web`, las variables `EMAIL_HOST`, `EMAIL_PORT`, `EMAIL_HOST_USER` y `EMAIL_HOST_PASSWORD` no estaban inyectadas en el contenedor Swarm de producción (`EMAIL_HOST = ""`).
+* **Estrategia de Solución:**
+  1. **Blindaje de `_price_id_from_lines`:** Extraer el ID de precio soportando jerárquicamente:
+     - `item.get("pricing", {}).get("price_details", {}).get("price")` (Stripe 2024/2025/2026).
+     - `item.get("price")` (string directo o diccionario con clave `id`).
+     - Conversión automática de cualquier `StripeObject` a `dict` vía `.to_dict()`.
+  2. **Fallback a Suscripción Local:** Si la factura no trae líneas explícitas pero tiene `subscription_id`, resolver el plan directamente desde la `CustomerSubscription` local ya vinculada.
+  3. **Captura Exhaustiva y Trazabilidad:** Envolver la ejecución del webhook en `try...except` con `logger.exception()` para evitar que un fallo inesperado retorne 500 sin registrar traceback en consola.
+  4. **Inyección de Variables SMTP en Swarm:** Configurar en el servicio `fobandor_web`:
+     - `EMAIL_HOST=smtp.gmail.com`
+     - `EMAIL_PORT=587`
+     - `EMAIL_USE_TLS=true`
+     - `EMAIL_HOST_USER=administrator@fobandor.com`
+     - `EMAIL_HOST_PASSWORD=shsfmvaajpgxgfjk`
+     - `DEFAULT_FROM_EMAIL=FOBANDOR <admin@fobandor.com>`
+  5. **Reconciliación y Certificación:** Reconciliar retroactivamente el evento de `servicioydemo@gmail.com`, generar su orden en `/backoffice/entregas/` y validar la recepción efectiva de los correos transaccionales.
