@@ -2919,11 +2919,12 @@ fobandor/
        * `invoice_pdf_url`: Enlace directo oficial al PDF de Stripe (`invoice_data.get("invoice_pdf")`).
        * `hosted_invoice_url`: Enlace directo a la factura web de Stripe (`invoice_data.get("hosted_invoice_url")`).
        * `portal_url`: URL al portal del cliente (`/es/portal/dashboard/`).
+       * `support_email`: Correo oficial de soporte y contacto `admin@fobandor.com`.
      - Manejo de excepciones defensivo (`try...except` con logger warning) para evitar que fallos temporales de red SMTP bloqueen el retorno 200 a Stripe.
   2. Crear plantillas corporativas bilingües:
      - `templates/billing/email/customer_purchase_invoice.html` y `.txt`.
-     - Diseño responsive con la identidad FOBANDOR (Build · Ads · Studio), desglose de la compra, botón destacado "Descargar Factura Oficial en PDF" y botón secundario "Ir a mi Portal de Cliente".
-  3. Criterio de Aceptación: El cliente recibe un correo corporativo con todas las variables dinámicas de su compra y el botón directo a su factura oficial emitida por Stripe. Cero datos hardcodeados.
+     - Diseño responsive con la identidad FOBANDOR (Build · Ads · Studio), desglose de la compra, botón destacado "Descargar Factura Oficial en PDF", botón secundario "Ir a mi Portal de Cliente" y pie de contacto y soporte: `admin@fobandor.com`.
+  3. Criterio de Aceptación: El cliente recibe un correo corporativo con todas las variables dinámicas de su compra, botón directo a su factura oficial emitida por Stripe y datos de contacto de soporte apuntando a `admin@fobandor.com`. Cero datos hardcodeados.
 
 ---
 
