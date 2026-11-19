@@ -58,8 +58,16 @@
   * **Estilos:** **Tailwind CSS** compilado localmente con soporte `darkMode: 'class'` y paleta corporativa.
 * **Pasarela de Pagos:** Stripe SDK:
   * Stripe Checkout en modo suscripción con soporte para cupones (`allow_promotion_codes=True`).
-  * Stripe Customer Portal para cancelación y cambio de tarjeta.
+  * Stripe Customer Portal para cancelación y cambio de tarjeta con retorno canónico dinámico (`/es/mi-cuenta/`).
   * Webhooks firmados con verificación de firma criptográfica (`/stripe/webhook/`).
+  * **Resiliencia Multi-Fuente & Modern Stripe API:** Compatibilidad completa con la estructura de precios moderna de Stripe (`pricing.price_details.price` y `price.id`), conversión segura de `StripeObject` a dict (`.to_dict()`), y mitigación de condiciones de carrera entre `invoice.paid` y `checkout.session.completed`.
+* **Servicio de Correo Transaccional (Google Workspace SMTP):**
+  * Integración SMTP sobre `smtp.gmail.com:587` con TLS y Contraseñas de Aplicación (`administrator@fobandor.com`).
+  * Manejo defensivo en `CustomAccountAdapter` para evitar excepciones 500 ante desconexiones de socket.
+  * Notificaciones de compra automáticas:
+    * **Al Cliente:** Confirmación con enlace directo y oficial al PDF de la factura emitido por Stripe (`invoice_pdf`), enlace dinámico al portal de cliente (`/es/mi-cuenta/`) y soporte oficial (`admin@fobandor.com`).
+    * **Al Equipo Interno (Staff + Grupo `Content_Editors`):** Alerta operativa inmediata con asunto estandarizado en hora de Florida (`America/New_York`): `Nueva compra de servicios - {fecha_hora_ny} - {cliente_email} - {servicio_y_plan}`, ficha de datos y enlace directo a `https://fobandor.com/en/backoffice/entregas/`.
+    * **Formato "Menos es más" & Estilos Inline:** Diseño minimalista de alto contraste (`#ffffff` / `#0f172a`), estilos 100% inline en cada celda para compatibilidad universal con Gmail, Outlook y aplicaciones móviles.
 * **Seguridad y Cumplimiento:**
   * Estándar PCI-DSS: Cero almacenamiento de números de tarjeta, CVV o fechas de caducidad en la BD local. Todo reside en Stripe.
   * Verificación obligatoria de email (`is_email_verified=True`) antes de habilitar el botón de Checkout.
@@ -215,18 +223,19 @@ flowchart TD
 * `ContactInquiry`: Mensajes recibidos desde el formulario de contacto con trazabilidad.
 
 ### C. Módulo `fobandor.billing`
-* `SubscriptionPlan`: 3 planes de suscripción mensual con `name_es`, `name_en`, `price`, `stripe_price_id`, `features_es`, `features_en`, `is_active`, `is_highlighted`.
-* `CustomerSubscription`: Estado local sincronizado de la suscripción (`stripe_subscription_id`, `status`, `current_period_start`, `current_period_end`, `cancel_at_period_end`).
-* `PaymentHistory`: Historial de facturas y cobros (`stripe_invoice_id`, `amount`, `status`, `paid_at`).
+* `SubscriptionPlan`: 3 planes de acompañamiento mensual con `name_es`, `name_en`, `price_usd`, `stripe_price_id`, `features_es`, `features_en`, `order_type`, `is_active`, `is_highlighted`.
+* `CustomerSubscription`: Estado local sincronizado de la suscripción (`stripe_subscription_id`, `user`, `plan`, `status`, `current_period_start`, `current_period_end`, `cancel_at_period_end`).
+* `BillingInvoice`: Registro inmutable de facturas procesadas (`stripe_invoice_id`, `user`, `amount_paid`, `currency`, `invoice_pdf_url`, `paid_at`).
 
 ### D. Módulo `fobandor.fulfillment`
 * `FulfillmentOrder`:
   * `user` (cliente ForeignKey).
-  * `subscription` (ForeignKey).
+  * `subscription` (CustomerSubscription ForeignKey, nullable).
   * `plan` (SubscriptionPlan ForeignKey, nullable).
-  * `service` (ServiceItem ForeignKey).
+  * `service` (ServiceItem ForeignKey, nullable).
   * `assigned_to` (User ForeignKey, asignado del grupo `Content_Editors` o Administradores, default `for@fobandor.com`).
-  * `order_type` (ej. `MENSUAL_RRSS`).
+  * `order_type` (opciones bilingües con `gettext_lazy`: `WEB_DEV`, `APP_DEV`, `MARKETING`, `STUDIO`).
+  * `stripe_invoice_id` (identificador unívoco de la factura que originó la orden).
   * `paid_at` (timestamp del pago).
   * `due_date` (`paid_at + 7 días`).
   * `status` (`PENDIENTE_PRODUCCION`, `EN_PROCESO`, `EN_REVISION`, `ENTREGADA`, `VENCIDA`, `CANCELADA`).
@@ -236,10 +245,16 @@ flowchart TD
 
 ---
 
-## 7. Hoja de Ruta de Construcción (Macro Etapas)
+## 7. Hoja de Ruta de Construcción y Estado de Ejecución (Macro Etapas)
 * **Etapa 1:** Cimientos, Branding y UI Base en `localhost` (Django 5.2 LTS, PostgreSQL, Tailwind, Montserrat, Favicons, i18n ES/EN, Dark/Light Mode). ✅
 * **Etapa 2:** Identidad, RBAC y Backoffice CMS (`CustomUser`, Seeding inicial de 4 líneas y RRSS, panel administrativo `/backoffice/`). ✅
 * **Etapa 3:** Registro de Clientes y Autenticación Híbrida (Email/Password + Social Login con cuentas Gmail y Google Workspace vía Google OAuth 2.0), Formulario de Onboarding AVS para Stripe, Stripe Checkout (3 planes + cupones), Webhooks firmados, SLA de 7 días (`FulfillmentOrder`) y Portal del Cliente (`/mi-cuenta/`). ✅
 * **Etapa 4:** SEO Técnico, Optimización de Rendimiento, Suite de Pruebas `pytest`, Auditoría OWASP, Empaquetado Docker y Despliegue en VPS Hostinger con EasyPanel y Traefik. ✅
-* **Etapa 5:** Depuración de Hallazgos y Refinamiento Integral (Puntos 1 al 11: Misión/Visión/Valores en Landing, Toggle de Idioma, Enlaces Canónicos, Formulario en Contacto, Switches de Secciones, Blindaje Móvil de Navbar, Fix HTTP 405 en Checkout, Retorno de Customer Portal, Nombre del Plan y Asignación de Roles en Órdenes SLA). 🔄 (En Planificación HARNESS FASE 3)
+* **Etapa 5:** Refinamiento Integral de UX y CMS (Puntos 1 al 11: Misión/Visión/Valores dinámicos en Landing desde `CompanyProfile`, Selector de Idioma `/i18n/setlang/`, Enlaces Canónicos, Diagnóstico Formspree en Contacto, Switches de Secciones, Blindaje Móvil de Navbar y Retorno al Portal de Cliente). ✅
+* **Etapa 6:** Depuración de Hallazgos QA y Embudo Allauth (Contraste universal en inputs en `static/css/input.css`, selector interactivo de planes en `/precios/` con Alpine.js y maquetación corporativa del embudo de autenticación). ✅
+* **Etapa 7:** Integración de Google Workspace SMTP (`smtp.gmail.com:587` TLS) con contraseñas de aplicación para verificación obligatoria de correo y reseteo de contraseñas con manejo defensivo de red. ✅
+* **Etapa 8:** Resiliencia Multi-Fuente en Webhooks Stripe y Corrección de Órdenes SLA (Resolución de carrera entre `invoice.paid` y `checkout.session.completed`, backfill bidireccional y comando `reconcile_fulfillment_orders`). ✅
+* **Etapa 9:** Notificaciones Transaccionales de Compra por Correo (Despacho automático de factura Stripe en PDF al cliente y alerta interna dinámica con asunto en hora de Florida para Staff + grupo `Content_Editors`). ✅
+* **Etapa 10:** Blindaje de Webhooks Stripe ante API Moderna (Soporte jerárquico de precios `pricing.price_details.price` y compatibilidad con `StripeObject`, inyección SMTP en Docker Swarm VPS y reconciliación E2E). ✅
+* **Etapa 11:** Optimización UX de Notificaciones por Correo (Rediseño minimalista de alerta interna con estilos 100% inline para compatibilidad universal con Gmail, enlace canónico dinámico `reverse("portal:dashboard")` apuntando a `/es/mi-cuenta/` y simplificación sobria de firmas "menos es más"). ✅
 

@@ -38,11 +38,12 @@
 | Capa | Tecnología Seleccionada | Justificación y Notas |
 | :--- | :--- | :--- |
 | **Backend** | **Python 3.14.4** + **Django 5.2 LTS** | Estabilidad LTS, compatibilidad nativa con Python 3.14 y Clean Architecture (*Thin Models/Views*, `services.py`, `selectors.py`). |
-| **Base de Datos** | **PostgreSQL 16+** en **Docker** | Paridad Dev/Prod (12-Factor X), zona horaria UTC nativa con visualización `America/New_York`. |
+| **Base de Datos** | **PostgreSQL 16+** en **Docker** | Paridad Dev/Prod (12-Factor X), zona horaria UTC nativa con visualización `America/New_York` (Florida). |
 | **Frontend** | **100% Server-Driven** (DTL + HTMX + Alpine.js + Tailwind) | Sin frameworks SPA (React/Vue). Máximo SEO, bajo costo de mantenimiento y carga instantánea. |
 | **Estilos** | **Tailwind CSS 3.4+** | Paleta corporativa FOBANDOR, tipografía Montserrat y soporte `darkMode: 'class'`. |
-| **Pagos** | **Stripe SDK** | Stripe Checkout (suscripciones y cupones), Stripe Customer Portal y Webhooks firmados. |
-| **Infraestructura** | **Docker Compose / 12-Factor** | Desacoplamiento total vía `django-environ` (`.env`), listo para desplegar en cualquier VPS (Hostinger u otro). |
+| **Pagos** | **Stripe SDK** | Stripe Checkout (suscripciones y cupones), Customer Portal, Webhooks firmados y soporte jerárquico para API moderna de Stripe (`pricing.price_details.price`). |
+| **Email Transaccional** | **Google Workspace SMTP** | Despacho vía `smtp.gmail.com:587` (TLS), confirmaciones de compra con enlace a PDF de factura Stripe y alertas internas inmediatas para Staff + `Content_Editors`. |
+| **Infraestructura** | **Docker Swarm / Traefik / WhiteNoise** | Despliegue en KVM VPS (Hostinger), SSL automático Let's Encrypt con Traefik, WhiteNoise para compilar y servir estáticos de forma inmutable y blindaje OWASP. |
 
 ---
 
@@ -207,17 +208,31 @@ fobandor/
 │   │   ├── apps.py
 │   │   ├── urls.py
 │   │   └── views.py
-│   └── users/                # Aplicación de identidad, CustomUser y RBAC
-│       ├── admin.py          # Panel de administración bilingüe y organizado por fieldsets
-│       ├── apps.py
-│       ├── models.py         # Modelo User con UserManager personalizado (login por email)
-│       └── tests/
-│           ├── __init__.py
-│           └── test_models.py # Pruebas unitarias automatizadas del modelo User
+│   ├── users/                # Aplicación de identidad, CustomUser y RBAC
+│   │   ├── admin.py          # Panel de administración bilingüe y organizado por fieldsets
+│   │   ├── apps.py
+│   │   ├── models.py         # Modelo User con UserManager personalizado (login por email)
+│   │   └── tests/
+│   ├── cms/                  # Gestión de contenido bilingüe (4 líneas de servicio, proyectos, RRSS, empresa)
+│   │   ├── admin.py
+│   │   ├── models.py
+│   │   └── management/commands/
+│   ├── billing/              # Motor de pagos, Checkout, Webhooks y notificaciones por correo
+│   │   ├── models.py         # SubscriptionPlan, CustomerSubscription, BillingInvoice
+│   │   ├── services.py       # Lógica Stripe, webhooks idempotentes y despacho de emails
+│   │   ├── urls.py
+│   │   ├── views.py
+│   │   └── tests/            # Cobertura TDD para webhooks y pasarela
+│   ├── fulfillment/          # Motor operativo SLA a 7 días
+│   │   ├── models.py         # FulfillmentOrder con opciones de servicio bilingües
+│   │   └── management/commands/reconcile_fulfillment_orders.py # Auto-reconciliación
+│   └── portal/               # Portal de autoservicio del cliente (/mi-cuenta/)
+│       ├── urls.py
+│       └── views.py
 ├── static/
 │   ├── css/
-│   │   ├── input.css         # Directivas Tailwind y reglas @font-face locales
-│   │   └── output.css        # CSS compilado y optimizado (15 KB)
+│   │   ├── input.css         # Directivas Tailwind, reglas @font-face locales y contraste de inputs
+│   │   └── output.css        # CSS compilado y optimizado
 │   ├── fonts/
 │   │   └── montserrat/       # Archivos WOFF2 de fuente variable Montserrat
 │   ├── js/
@@ -236,8 +251,16 @@ fobandor/
     ├── partials/
     │   ├── navbar.html       # Navegación responsive, switcher de idioma y dark toggle
     │   └── footer.html       # Enlaces institucionales, redes oficiales y copyright
-    └── pages/
-        └── home.html         # Hero Section y showcase de las 4 líneas de servicio
+    ├── pages/
+    │   └── home.html         # Hero Section, misión/visión/valores y showcase de las 4 líneas
+    ├── billing/
+    │   ├── pricing.html      # Selector interactivo de planes con Alpine.js
+    │   └── email/            # Plantillas transaccionales de compra (cliente y equipo interno)
+    │       ├── customer_purchase_invoice.html / .txt
+    │       └── internal_purchase_alert.html / .txt
+    ├── backoffice/           # Panel administrativo Server-Driven (CMS, finanzas y entregas SLA)
+    ├── portal/               # Dashboard de cliente y formulario de facturación AVS
+    └── account/              # Embudo corporativo bilingüe Allauth (signup, login, confirmación)
 ```
 
 ---
@@ -345,7 +368,14 @@ flowchart LR
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
 * [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
 * [x] **Etapa 3 — Registro de Clientes, Autenticación Gmail, Stripe Checkout, Motor SLA 7 Días y Planes Reales:** Registro con verificación previa, Social Login con Gmail (Google OAuth 2.0 / `django-allauth`), formulario de facturación AVS, Planes de Acompañamiento oficiales de Freddy Obando ($697, $1,297, $1,997 USD) administrables dinámicamente desde `/backoffice/planes/`, diagnóstico Formspree, Webhooks firmados criptográficamente y motor de órdenes `FulfillmentOrder` (SLA 7 días).
-* [ ] **Etapa 4 — SEO Técnico, Auditoría OWASP y Empaquetado Producción:** Sitemap dinámico, Open Graph, suite completa de pruebas, auditoría `check --deploy` y despliegue agnóstico en VPS.
+* [x] **Etapa 4 — SEO Técnico, Auditoría OWASP y Despliegue en VPS:** Sitemap dinámico, Open Graph, suite de pruebas `pytest`, auditoría de seguridad y despliegue en KVM VPS (Hostinger) con Docker Swarm, EasyPanel y Traefik SSL.
+* [x] **Etapa 5 — Refinamiento Integral de UX y CMS:** Misión, Visión y Valores dinámicos en la landing desde `CompanyProfile`, selector de idioma `/i18n/setlang/`, enlaces canónicos, formulario en contacto, switches de visibilidad de secciones y retorno canónico al portal de cliente.
+* [x] **Etapa 6 — UX/UI de Precios y Embudo Allauth:** Contraste universal en inputs en `static/css/input.css`, selector interactivo de planes con Alpine.js en `/precios/` y maquetación corporativa bilingüe del embudo de autenticación Allauth.
+* [x] **Etapa 7 — Servidor SMTP de Google Workspace:** Integración de Google SMTP (`smtp.gmail.com:587` TLS) con contraseñas de aplicación para verificación obligatoria de correo y reseteo de claves con tolerancia a caídas de socket.
+* [x] **Etapa 8 — Resiliencia Multi-Fuente en Webhooks y Backoffice SLA:** Mitigación de la condición de carrera entre `invoice.paid` y `checkout.session.completed`, backfill bidireccional de órdenes huérfanas y comando `reconcile_fulfillment_orders`.
+* [x] **Etapa 9 — Notificaciones Transaccionales de Compra por Correo:** Envío automático de confirmación con enlace al PDF oficial de Stripe al cliente y alerta operativa en hora de Florida (`America/New_York`) para el Staff y grupo `Content_Editors`.
+* [x] **Etapa 10 — Blindaje de Webhooks ante API Moderna de Stripe:** Soporte jerárquico de precios para `pricing.price_details.price` y compatibilidad con `StripeObject`, inyección SMTP en Docker Swarm VPS y reconciliación E2E.
+* [x] **Etapa 11 — Optimización UX de Notificaciones por Correo:** Rediseño minimalista de alerta interna con estilos 100% inline (legibilidad universal en Gmail), enlace canónico al portal del cliente `reverse("portal:dashboard")` (`/es/mi-cuenta/`) y simplificación sobria de firmas.
 
 ---
 
