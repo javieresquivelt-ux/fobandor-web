@@ -867,3 +867,18 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
 * **Test de regresión:** `test_webhook_invoice_paid_resolves_plan_without_prior_subscription` (mock `stripe.Invoice.retrieve`). Suite **44/44 passing**.
 * **Verificación local:** `flake8` limpio, `check` 0 issues, `makemigrations --check` sin cambios (gettext_lazy no genera migración), `reconcile_fulfillment_orders` ejecuta OK (0 órdenes local).
 * **Pendiente (producción):** desplegar en EasyPanel (el `entrypoint.sh` correrá `reconcile_fulfillment_orders` automáticamente y sanará las 2 órdenes huérfanas) y verificar en `/backoffice/entregas/` que ya no hay guiones `—`.
+
+
+---
+
+## 24. Decisión Arquitectónica [ADR-023]: Facturación Oficial vía Stripe y Notificaciones Transaccionales
+
+* **Contexto y Cuestionamiento Comercial:**
+  * Se evaluó si la factura del cliente debe ser generada internamente por la plataforma (mediante librerías PDF en servidor) o aprovechando los artefactos oficiales emitidos por Stripe Billing.
+* **Decisión Técnica:**
+  * **Uso del PDF oficial generado por Stripe:** En plataformas SaaS de cobro recurrente, Stripe emite automáticamente para cada cobro exitoso una factura con validez fiscal internacional (`invoice_pdf` y `hosted_invoice_url`), incluyendo numeración correlativa inmutable, datos fiscales del emisor y receptor, desglose de impuestos SaaS (tax code `txcd_10000000`) y sello criptográfico.
+  * Generar un PDF duplicado en el backend generaría discrepancias contables y sobrecarga innecesaria. El estándar de la industria (OpenAI, Vercel, Shopify, Linear) consiste en despachar un correo transaccional propio con diseño corporativo de marca, incorporando el resumen de compra y el enlace directo/seguro para descargar el PDF emitido por Stripe.
+* **Estrategia de Notificaciones:**
+  1. **Correo al Cliente:** Disparado en `handle_invoice_paid`. Incluye saludo, detalles del plan contratado, periodicidad, monto pagado en USD y botón de acción destacado: *"Descargar Factura Oficial en PDF"*, más botón de acceso al Portal del Cliente.
+  2. **Alerta Interna al Equipo:** Disparado en `handle_invoice_paid`. Destinatarios consolidados sin duplicados: Superusuarios/Staff (`User.is_staff=True`) + miembros del grupo `Content_Editors`. Asunto estandarizado: `Nueva compra de servicios - [Fecha] [Hora] - [Cliente] - [Servicio adquirido]`. Cuerpo del mensaje con tabla de datos y enlace directo a `https://fobandor.com/en/backoffice/entregas/`.
+  3. **Resiliencia de Red:** Los despachos de correo se ejecutan dentro de bloques `try...except` con logging defensivo para garantizar que un eventual fallo de socket SMTP nunca interrumpa la creación de la orden ni devuelva un código HTTP de error al webhook de Stripe.

@@ -2895,3 +2895,76 @@ fobandor/
   2. Ejecutar `pytest` (>=44 tests) y `flake8`.
   3. Commit, push y redespliegue en caliente en VPS.
   4. Criterio de Aceptación: El backoffice muestra siempre el plan y servicio contratado sin guiones `—` huérfanos.
+
+---
+
+## 12. Etapa 9: Notificaciones Transaccionales por Correo Electrónico tras Compra (Cliente y Equipo Interno)
+
+> **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
+> **Objetivo:** Implementar el envío automatizado de correos transaccionales ante el evento de compra exitosa (`invoice.paid` en Stripe): (1) Correo al cliente con resumen de compra y enlace a su factura oficial en PDF emitida por Stripe, y (2) Alerta interna a administradores y grupo `Content_Editors` con el asunto estandarizado y enlace directo a `/backoffice/entregas/`.
+
+---
+
+### Tarea 9.1: Servicio de Despacho de Correo al Cliente con Factura de Stripe
+- [ ] **Contexto:** Al confirmarse el pago en Stripe, el cliente debe recibir una confirmación branded con los datos de su plan y el enlace para descargar la factura oficial en PDF generada por Stripe (`invoice_pdf`).
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/billing/services.py`:
+     - Crear función `send_customer_purchase_email(user, invoice_data, plan, order)`.
+     - Extraer `invoice_pdf = invoice_data.get("invoice_pdf")` y `hosted_invoice_url = invoice_data.get("hosted_invoice_url")`.
+     - Manejo de excepciones defensivo (try-except con logging) para no bloquear el retorno HTTP 200 al webhook de Stripe.
+  2. Crear plantillas corporativas bilingües:
+     - `templates/billing/email/customer_purchase_invoice.html` y `.txt`.
+     - Diseño responsive con paleta FOBANDOR (logo, badge del plan, monto pagado, periodicidad, botón destacado "Descargar Factura PDF" y botón "Ir a mi Portal").
+  3. Criterio de Aceptación: El cliente recibe un correo corporativo con el detalle exacto de su compra y el botón directo a su factura oficial.
+
+---
+
+### Tarea 9.2: Servicio de Alerta Interna para Administradores y Grupo `Content_Editors`
+- [ ] **Contexto:** El equipo operativo debe enterarse inmediatamente de cada nueva orden para cumplir los tiempos de entrega (SLA).
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/billing/services.py`:
+     - Crear función `send_internal_purchase_alert(user, invoice_data, plan, order)`.
+     - Obtener los destinatarios dinámicamente:
+       * Superusuarios y staff: `User.objects.filter(is_staff=True).values_list('email', flat=True)`.
+       * Miembros del grupo `Content_Editors`: `User.objects.filter(groups__name="Content_Editors").values_list('email', flat=True)`.
+       * Consolidar en lista única sin duplicados (`set`).
+     - Asunto exacto requerido:
+       `Nueva compra de servicios - [Fecha] [Hora] - [Cliente] - [Servicio adquirido]`
+       Ejemplo: `Nueva compra de servicios - 2026-11-18 19:05 - cliente@correo.com - Acompañamiento de Marketing (Plan 1 • Impulso)`
+  2. Crear plantillas internas:
+     - `templates/billing/email/internal_purchase_alert.html` y `.txt`.
+     - Incluye tabla de metadatos: fecha/hora, cliente, plan, monto pagado, estado inicial (Pendiente de Producción), fecha límite SLA.
+     - Botón destacado y enlace a: `https://fobandor.com/en/backoffice/entregas/`.
+  3. Criterio de Aceptación: Todos los administradores y miembros de Content_Editors reciben la notificación con el asunto estandarizado y enlace directo a la orden.
+
+---
+
+### Tarea 9.3: Integración en el Pipeline del Webhook `handle_invoice_paid`
+- [ ] **Contexto:** Conectar los despachos de correo en el punto exacto donde la factura y la orden de entrega han sido consolidadas.
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/billing/services.py` (`handle_invoice_paid`):
+     - Disparar `send_customer_purchase_email` y `send_internal_purchase_alert` una vez creada/actualizada la `FulfillmentOrder` y `BillingInvoice`.
+     - Guardar `invoice_pdf_url` y `hosted_invoice_url` en el modelo `BillingInvoice`.
+  2. Criterio de Aceptación: Disparo automático y desacoplado de ambos correos tras cada cobro exitoso.
+
+---
+
+### Tarea 9.4: Pruebas Automatizadas (TDD) y Validación de Regresión
+- [ ] **Contexto:** Garantizar que el webhook continúe funcionando y que los correos se construyan con los parámetros esperados.
+- [ ] **Acciones Atómicas:**
+  1. En `fobandor/billing/tests/test_webhooks.py`:
+     - Test unitario mockeando `django.core.mail.send_mail` / `EmailMultiAlternatives.send`.
+     - Verificar que se envía 1 correo al cliente con el enlace al PDF de la factura.
+     - Verificar que se envía 1 correo interno dirigido a la lista combinada (Staff + Content_Editors) con el formato de asunto requerido.
+  2. Ejecutar suite `pytest` y `flake8`.
+  3. Criterio de Aceptación: 100% de tests pasando y 0 errores de estilo.
+
+---
+
+### Tarea 9.5: Despliegue en VPS y Prueba en Vivo
+- [ ] **Contexto:** Puesta en producción y verificación E2E.
+- [ ] **Acciones Atómicas:**
+  1. Commit semántico y push a `origin/main`.
+  2. Compilar imagen en el VPS y actualizar servicio `fobandor_web`.
+  3. Ejecutar simulación de evento de prueba para certificar la llegada de ambos correos en las casillas reales.
+  4. Criterio de Aceptación: Correos entregados con éxito en bandejas de entrada reales.
