@@ -1,0 +1,27 @@
+¡Gracias por tu compra, {{ client_name }}!
+
+Tu pago ha sido procesado exitosamente en FOBANDOR.
+
+RESUMEN DE LA TRANSACCIÓN:
+---------------------------------------------
+- Plan Contratado: {{ plan_name }}
+- Línea de Servicio: {{ service_name }}
+- Total Pagado: ${{ amount_paid }} {{ currency }}
+
+FACTURA OFICIAL (PDF):
+{% if invoice_pdf_url %}
+Descarga tu factura oficial en PDF aquí:
+{{ invoice_pdf_url }}
+{% endif %}
+
+PORTAL DE CLIENTE:
+Accede a tu panel para ver tus entregables y suscripción:
+{{ portal_url }}
+
+FACTURA WEB:
+{{ hosted_invoice_url|default:invoice_pdf_url }}
+
+---------------------------------------------
+Soporte y contacto oficial: {{ support_email }}
+FOBANDOR — Build. Ads. Studio.
+https://fobandor.com

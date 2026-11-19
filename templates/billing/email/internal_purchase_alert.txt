@@ -1,0 +1,27 @@
+ALERTA OPERATIVA: Nueva compra de servicios registrada
+
+Se ha recibido un nuevo pago a través de Stripe y se ha generado la orden de entrega en el sistema.
+
+DETALLES DE LA TRANSACCIÓN:
+------------------------------------------------------------
+- Fecha / Hora (Florida): {{ fecha_hora }}
+- Cliente: {{ client_name }} ({{ client_email }})
+- Plan Adquirido: {{ plan_name }}
+- Línea de Servicio: {{ service_name }}
+- Monto Pagado: ${{ amount_paid }} {{ currency }}
+- Estado Inicial: {{ status_display }}
+- Límite SLA: {{ due_date }}
+- Asignado a: {{ assignee }}
+
+GESTIÓN EN BACKOFFICE SLA:
+Accede directamente a la orden aquí:
+{{ backoffice_url }}
+
+{% if invoice_pdf_url %}
+Factura Stripe PDF:
+{{ invoice_pdf_url }}
+{% endif %}
+
+------------------------------------------------------------
+FOBANDOR Backoffice Automatizado
+https://fobandor.com

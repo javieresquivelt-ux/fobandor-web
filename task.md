@@ -2900,14 +2900,14 @@ fobandor/
 
 ## 12. Etapa 9: Notificaciones Transaccionales por Correo Electrónico tras Compra (Cliente y Equipo Interno)
 
-> **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
+> **Estado Actual:** FASE 4: EJECUTADA Y CERTIFICADA EN PRODUCCIÓN. Envío automatizado de correos transaccionales 100% dinámicos: (1) Correo al cliente con resumen de compra y enlace oficial directo al PDF de Stripe, y (2) Alerta interna a administradores y grupo `Content_Editors` con el asunto estandarizado en zona horaria `America/New_York` (Florida) y enlace directo a `/backoffice/entregas/`.  
 > **Objetivo:** Implementar el envío automatizado de correos transaccionales 100% dinámicos (Cero Hardcoding) ante el evento de compra exitosa (`invoice.paid` en Stripe): (1) Correo al cliente con resumen de compra y enlace oficial directo al PDF de la factura generado por Stripe (`invoice_pdf`), y (2) Alerta interna a administradores y grupo `Content_Editors` con el asunto estandarizado en zona horaria `America/New_York` (Florida) y enlace directo a `/backoffice/entregas/`.
 
 ---
 
 ### Tarea 9.1: Servicio de Despacho de Correo al Cliente con Enlace Oficial al PDF de Stripe
-- [ ] **Contexto:** Al confirmarse el cobro en Stripe, el cliente debe recibir un correo transaccional branded con los datos dinámicos de su compra y el botón de acceso directo a la factura oficial en PDF emitida por Stripe (`invoice_pdf`), garantizando máxima deliverabilidad sin adjuntos pesados.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Al confirmarse el cobro en Stripe, el cliente debe recibir un correo transaccional branded con los datos dinámicos de su compra y el botón de acceso directo a la factura oficial en PDF emitida por Stripe (`invoice_pdf`), garantizando máxima deliverabilidad sin adjuntos pesados.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py`:
      - Crear función `send_customer_purchase_email(user, invoice_data, plan, order)`.
      - Variables 100% dinámicas inyectadas al contexto:
@@ -2929,8 +2929,8 @@ fobandor/
 ---
 
 ### Tarea 9.2: Servicio de Alerta Interna Dinámica para Administradores y Grupo `Content_Editors`
-- [ ] **Contexto:** El equipo operativo debe recibir una alerta inmediata ante cada nueva orden generada para gestionar el SLA. Los destinatarios y datos deben ser consultados dinámicamente de la base de datos y la fecha/hora debe expresarse en la zona horaria oficial de la empresa (`America/New_York` / Florida).
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** El equipo operativo debe recibir una alerta inmediata ante cada nueva orden generada para gestionar el SLA. Los destinatarios y datos deben ser consultados dinámicamente de la base de datos y la fecha/hora debe expresarse en la zona horaria oficial de la empresa (`America/New_York` / Florida).
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py`:
      - Crear función `send_internal_purchase_alert(user, invoice_data, plan, order)`.
      - Formateo de fecha y hora dinámicos en zona horaria `America/New_York`:
@@ -2953,8 +2953,8 @@ fobandor/
 ---
 
 ### Tarea 9.3: Integración en el Pipeline del Webhook `handle_invoice_paid`
-- [ ] **Contexto:** Disparar ambos correos transaccionales exactamente cuando la orden de entrega y el registro de facturación han sido consolidados con su plan y suscripción.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Disparar ambos correos transaccionales exactamente cuando la orden de entrega y el registro de facturación han sido consolidados con su plan y suscripción.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py` (`handle_invoice_paid`):
      - Disparar `send_customer_purchase_email` y `send_internal_purchase_alert` una vez creada/actualizada la `FulfillmentOrder` y `BillingInvoice`.
      - Persistir `invoice_pdf_url` y `hosted_invoice_url` en el modelo `BillingInvoice`.
@@ -2963,20 +2963,20 @@ fobandor/
 ---
 
 ### Tarea 9.4: Pruebas Automatizadas (TDD) y Validación de Regresión
-- [ ] **Contexto:** Garantizar que los correos se generen con las variables dinámicas esperadas, en la zona horaria correcta y sin dependencias hardcodeadas.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Garantizar que los correos se generen con las variables dinámicas esperadas, en la zona horaria correcta y sin dependencias hardcodeadas.
+- [x] **Acciones Atómicas:**
   1. En `fobandor/billing/tests/test_webhooks.py`:
      - Test unitario mockeando `django.core.mail.send_mail` / `EmailMultiAlternatives.send`.
      - Verificar que el correo al cliente se envía a su dirección real con el enlace al PDF de Stripe.
      - Verificar que el correo interno se despacha a la lista combinada (Staff + Content_Editors) con el asunto formateado en hora de `America/New_York`.
   2. Ejecutar suite `pytest` y `flake8`.
-  3. Criterio de Aceptación: 100% de tests pasando y 0 errores de estilo.
+  3. Criterio de Aceptación: 100% de tests pasando (45/45 tests) y 0 errores de estilo.
 
 ---
 
 ### Tarea 9.5: Despliegue en VPS y Prueba en Vivo
-- [ ] **Contexto:** Despliegue en producción y verificación E2E.
-- [ ] **Acciones Atómicas:**
+- [x] **Contexto:** Despliegue en producción y verificación E2E.
+- [x] **Acciones Atómicas:**
   1. Commit semántico y push a `origin/main`.
   2. Compilar imagen en el VPS y actualizar servicio `fobandor_web`.
   3. Ejecutar simulación de evento de prueba para certificar la llegada de ambos correos en las casillas reales.
