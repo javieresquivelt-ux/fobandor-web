@@ -2901,70 +2901,82 @@ fobandor/
 ## 12. Etapa 9: Notificaciones Transaccionales por Correo Electrónico tras Compra (Cliente y Equipo Interno)
 
 > **Estado Actual:** FASE 3: APROBAR. En espera de aprobación explícita del Desarrollador Líder.  
-> **Objetivo:** Implementar el envío automatizado de correos transaccionales ante el evento de compra exitosa (`invoice.paid` en Stripe): (1) Correo al cliente con resumen de compra y enlace a su factura oficial en PDF emitida por Stripe, y (2) Alerta interna a administradores y grupo `Content_Editors` con el asunto estandarizado y enlace directo a `/backoffice/entregas/`.
+> **Objetivo:** Implementar el envío automatizado de correos transaccionales 100% dinámicos (Cero Hardcoding) ante el evento de compra exitosa (`invoice.paid` en Stripe): (1) Correo al cliente con resumen de compra y enlace oficial directo al PDF de la factura generado por Stripe (`invoice_pdf`), y (2) Alerta interna a administradores y grupo `Content_Editors` con el asunto estandarizado en zona horaria `America/New_York` (Florida) y enlace directo a `/backoffice/entregas/`.
 
 ---
 
-### Tarea 9.1: Servicio de Despacho de Correo al Cliente con Factura de Stripe
-- [ ] **Contexto:** Al confirmarse el pago en Stripe, el cliente debe recibir una confirmación branded con los datos de su plan y el enlace para descargar la factura oficial en PDF generada por Stripe (`invoice_pdf`).
+### Tarea 9.1: Servicio de Despacho de Correo al Cliente con Enlace Oficial al PDF de Stripe
+- [ ] **Contexto:** Al confirmarse el cobro en Stripe, el cliente debe recibir un correo transaccional branded con los datos dinámicos de su compra y el botón de acceso directo a la factura oficial en PDF emitida por Stripe (`invoice_pdf`), garantizando máxima deliverabilidad sin adjuntos pesados.
 - [ ] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py`:
      - Crear función `send_customer_purchase_email(user, invoice_data, plan, order)`.
-     - Extraer `invoice_pdf = invoice_data.get("invoice_pdf")` y `hosted_invoice_url = invoice_data.get("hosted_invoice_url")`.
-     - Manejo de excepciones defensivo (try-except con logging) para no bloquear el retorno HTTP 200 al webhook de Stripe.
+     - Variables 100% dinámicas inyectadas al contexto:
+       * `client_name`: `user.get_full_name() or user.email`.
+       * `plan_name`: `plan.name_es` (o `plan.name_en` según idioma preferido del usuario).
+       * `service_name`: `order.get_order_type_display()`.
+       * `amount_paid`: `(invoice_data.get("amount_paid", 0) / 100)` formateado en USD.
+       * `currency`: `invoice_data.get("currency", "usd").upper()`.
+       * `invoice_pdf_url`: Enlace directo oficial al PDF de Stripe (`invoice_data.get("invoice_pdf")`).
+       * `hosted_invoice_url`: Enlace directo a la factura web de Stripe (`invoice_data.get("hosted_invoice_url")`).
+       * `portal_url`: URL al portal del cliente (`/es/portal/dashboard/`).
+     - Manejo de excepciones defensivo (`try...except` con logger warning) para evitar que fallos temporales de red SMTP bloqueen el retorno 200 a Stripe.
   2. Crear plantillas corporativas bilingües:
      - `templates/billing/email/customer_purchase_invoice.html` y `.txt`.
-     - Diseño responsive con paleta FOBANDOR (logo, badge del plan, monto pagado, periodicidad, botón destacado "Descargar Factura PDF" y botón "Ir a mi Portal").
-  3. Criterio de Aceptación: El cliente recibe un correo corporativo con el detalle exacto de su compra y el botón directo a su factura oficial.
+     - Diseño responsive con la identidad FOBANDOR (Build · Ads · Studio), desglose de la compra, botón destacado "Descargar Factura Oficial en PDF" y botón secundario "Ir a mi Portal de Cliente".
+  3. Criterio de Aceptación: El cliente recibe un correo corporativo con todas las variables dinámicas de su compra y el botón directo a su factura oficial emitida por Stripe. Cero datos hardcodeados.
 
 ---
 
-### Tarea 9.2: Servicio de Alerta Interna para Administradores y Grupo `Content_Editors`
-- [ ] **Contexto:** El equipo operativo debe enterarse inmediatamente de cada nueva orden para cumplir los tiempos de entrega (SLA).
+### Tarea 9.2: Servicio de Alerta Interna Dinámica para Administradores y Grupo `Content_Editors`
+- [ ] **Contexto:** El equipo operativo debe recibir una alerta inmediata ante cada nueva orden generada para gestionar el SLA. Los destinatarios y datos deben ser consultados dinámicamente de la base de datos y la fecha/hora debe expresarse en la zona horaria oficial de la empresa (`America/New_York` / Florida).
 - [ ] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py`:
      - Crear función `send_internal_purchase_alert(user, invoice_data, plan, order)`.
-     - Obtener los destinatarios dinámicamente:
-       * Superusuarios y staff: `User.objects.filter(is_staff=True).values_list('email', flat=True)`.
-       * Miembros del grupo `Content_Editors`: `User.objects.filter(groups__name="Content_Editors").values_list('email', flat=True)`.
-       * Consolidar en lista única sin duplicados (`set`).
-     - Asunto exacto requerido:
-       `Nueva compra de servicios - [Fecha] [Hora] - [Cliente] - [Servicio adquirido]`
-       Ejemplo: `Nueva compra de servicios - 2026-11-18 19:05 - cliente@correo.com - Acompañamiento de Marketing (Plan 1 • Impulso)`
+     - Formateo de fecha y hora dinámicos en zona horaria `America/New_York`:
+       * Usar `zoneinfo.ZoneInfo("America/New_York")`.
+       * Convertir el timestamp del pago (`invoice_data.get("created")` o `order.paid_at`) a fecha/hora local de Florida (ej: `2026-11-18 19:05 EST`).
+     - Asunto exacto requerido (100% dinámico):
+       `Nueva compra de servicios - {fecha_hora_ny} - {cliente_email} - {servicio_y_plan}`
+       *Ejemplo real evaluado en runtime:* `Nueva compra de servicios - 2026-11-18 19:05 EST - cliente@correo.com - Acompañamiento de Marketing (Plan 1 • Impulso)`
+     - Destinatarios consultados dinámicamente de la base de datos (cero correos fijos en código):
+       * `staff_emails = User.objects.filter(is_staff=True).values_list('email', flat=True)`
+       * `editors_emails = User.objects.filter(groups__name="Content_Editors").values_list('email', flat=True)`
+       * Destinatarios consolidados: `list(set(filter(None, list(staff_emails) + list(editors_emails))))`
+     - Contexto dinámico para el cuerpo del mensaje:
+       * Fecha/Hora en Florida, Cliente (email y nombre), Plan, Monto y moneda, Estado de orden inicial (Pendiente de Producción), Fecha límite SLA (calculada a 7 días), Operador asignado, Enlace directo: `https://fobandor.com/en/backoffice/entregas/`.
   2. Crear plantillas internas:
      - `templates/billing/email/internal_purchase_alert.html` y `.txt`.
-     - Incluye tabla de metadatos: fecha/hora, cliente, plan, monto pagado, estado inicial (Pendiente de Producción), fecha límite SLA.
-     - Botón destacado y enlace a: `https://fobandor.com/en/backoffice/entregas/`.
-  3. Criterio de Aceptación: Todos los administradores y miembros de Content_Editors reciben la notificación con el asunto estandarizado y enlace directo a la orden.
+     - Diseño limpio de panel operativo con tabla de variables y botón de acción directa al backoffice de entregas.
+  3. Criterio de Aceptación: Todos los administradores y miembros de `Content_Editors` registrados en la base de datos reciben la notificación con el asunto dinámico en hora de Florida y enlace a la orden.
 
 ---
 
 ### Tarea 9.3: Integración en el Pipeline del Webhook `handle_invoice_paid`
-- [ ] **Contexto:** Conectar los despachos de correo en el punto exacto donde la factura y la orden de entrega han sido consolidadas.
+- [ ] **Contexto:** Disparar ambos correos transaccionales exactamente cuando la orden de entrega y el registro de facturación han sido consolidados con su plan y suscripción.
 - [ ] **Acciones Atómicas:**
   1. En `fobandor/billing/services.py` (`handle_invoice_paid`):
      - Disparar `send_customer_purchase_email` y `send_internal_purchase_alert` una vez creada/actualizada la `FulfillmentOrder` y `BillingInvoice`.
-     - Guardar `invoice_pdf_url` y `hosted_invoice_url` en el modelo `BillingInvoice`.
-  2. Criterio de Aceptación: Disparo automático y desacoplado de ambos correos tras cada cobro exitoso.
+     - Persistir `invoice_pdf_url` y `hosted_invoice_url` en el modelo `BillingInvoice`.
+  2. Criterio de Aceptación: Disparo automático y desacoplado de ambos correos tras cada cobro exitoso procesado por el webhook.
 
 ---
 
 ### Tarea 9.4: Pruebas Automatizadas (TDD) y Validación de Regresión
-- [ ] **Contexto:** Garantizar que el webhook continúe funcionando y que los correos se construyan con los parámetros esperados.
+- [ ] **Contexto:** Garantizar que los correos se generen con las variables dinámicas esperadas, en la zona horaria correcta y sin dependencias hardcodeadas.
 - [ ] **Acciones Atómicas:**
   1. En `fobandor/billing/tests/test_webhooks.py`:
      - Test unitario mockeando `django.core.mail.send_mail` / `EmailMultiAlternatives.send`.
-     - Verificar que se envía 1 correo al cliente con el enlace al PDF de la factura.
-     - Verificar que se envía 1 correo interno dirigido a la lista combinada (Staff + Content_Editors) con el formato de asunto requerido.
+     - Verificar que el correo al cliente se envía a su dirección real con el enlace al PDF de Stripe.
+     - Verificar que el correo interno se despacha a la lista combinada (Staff + Content_Editors) con el asunto formateado en hora de `America/New_York`.
   2. Ejecutar suite `pytest` y `flake8`.
   3. Criterio de Aceptación: 100% de tests pasando y 0 errores de estilo.
 
 ---
 
 ### Tarea 9.5: Despliegue en VPS y Prueba en Vivo
-- [ ] **Contexto:** Puesta en producción y verificación E2E.
+- [ ] **Contexto:** Despliegue en producción y verificación E2E.
 - [ ] **Acciones Atómicas:**
   1. Commit semántico y push a `origin/main`.
   2. Compilar imagen en el VPS y actualizar servicio `fobandor_web`.
   3. Ejecutar simulación de evento de prueba para certificar la llegada de ambos correos en las casillas reales.
-  4. Criterio de Aceptación: Correos entregados con éxito en bandejas de entrada reales.
+  4. Criterio de Aceptación: Correos entregados con éxito en bandejas de entrada reales con datos 100% dinámicos.
