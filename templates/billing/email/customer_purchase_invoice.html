@@ -68,7 +68,11 @@
 
       <p style="font-size: 13px; color: #9ca3af; margin-top: 24px;">
         También puedes consultar tu factura web oficial y recibo de pago interactivo directamente en Stripe a través del siguiente enlace:<br>
-        <a href="{{ hosted_invoice_url|default:invoice_pdf_url }}" style="color: #f97316; word-break: break-all;">{{ hosted_invoice_url|default:invoice_pdf_url }}</a>
+        {% if hosted_invoice_url %}
+        <a href="{{ hosted_invoice_url }}" style="color: #f97316; word-break: break-all;">{{ hosted_invoice_url }}</a>
+        {% elif invoice_pdf_url %}
+        <a href="{{ invoice_pdf_url }}" style="color: #f97316; word-break: break-all;">{{ invoice_pdf_url }}</a>
+        {% endif %}
       </p>
 
       <hr class="divider">

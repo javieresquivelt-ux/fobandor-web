@@ -18,8 +18,13 @@ PORTAL DE CLIENTE:
 Accede a tu panel para ver tus entregables y suscripción:
 {{ portal_url }}
 
+{% if hosted_invoice_url %}
 FACTURA WEB:
-{{ hosted_invoice_url|default:invoice_pdf_url }}
+{{ hosted_invoice_url }}
+{% elif invoice_pdf_url %}
+FACTURA WEB:
+{{ invoice_pdf_url }}
+{% endif %}
 
 ---------------------------------------------
 Soporte y contacto oficial: {{ support_email }}
