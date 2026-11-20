@@ -68,6 +68,11 @@
     * **Al Cliente:** Confirmación con enlace directo y oficial al PDF de la factura emitido por Stripe (`invoice_pdf`), enlace dinámico al portal de cliente (`/es/mi-cuenta/`) y soporte oficial (`admin@fobandor.com`).
     * **Al Equipo Interno (Staff + Grupo `Content_Editors`):** Alerta operativa inmediata con asunto estandarizado en hora de Florida (`America/New_York`): `Nueva compra de servicios - {fecha_hora_ny} - {cliente_email} - {servicio_y_plan}`, ficha de datos y enlace directo a `https://fobandor.com/en/backoffice/entregas/`.
     * **Formato "Menos es más" & Estilos Inline:** Diseño minimalista de alto contraste (`#ffffff` / `#0f172a`), estilos 100% inline en cada celda para compatibilidad universal con Gmail, Outlook y aplicaciones móviles.
+* **Captura de Leads y Formularios de Diagnóstico (Formspree.io):**
+  * **Procesamiento Asíncrono Serverless:** Los formularios de contacto y solicitud de diagnóstico comercial en la Landing (`/es/#contacto`) y en la página de Precios (`/es/precios/`) operan de forma asíncrona mediante Alpine.js (`@submit.prevent="submitForm($event)"` y Fetch API con cabecera `Accept: application/json`).
+  * **Experiencia de Usuario In-App (Sin Redirecciones Externas):** Se evita por completo la redirección tradicional a la página externa de Formspree, respondiendo en el DOM con confirmación visual in-situ y mensajes bilingües configurables (`diag_success_msg_es` / `diag_success_msg_en` desde `CompanyProfile`).
+  * **Anti-Spam y Trazabilidad:** Implementación de campo Honeypot invisible (`_gotcha`), asunto parametrizado dinámicamente (`_subject`) y despacho directo de notificaciones hacia la casilla de Freddy Obando (`for@fobandor.com`).
+  * **Configuración 12-Factor:** Parametrizado mediante la variable `FORMSPREE_ENDPOINT` (`https://formspree.io/f/mqpqqggk` en producción) e inyectado en el contexto de vistas clave.
 * **Seguridad y Cumplimiento:**
   * Estándar PCI-DSS: Cero almacenamiento de números de tarjeta, CVV o fechas de caducidad en la BD local. Todo reside en Stripe.
   * Verificación obligatoria de email (`is_email_verified=True`) antes de habilitar el botón de Checkout.
@@ -149,9 +154,13 @@ flowchart TD
             StripeWebhook["Webhooks Firmados (checkout.session.completed, invoice.paid)"]
         end
 
-        subgraph TransactionalMail["Email Transaccional (SMTP)"]
+        subgraph TransactionalMail["Email Transaccional (Google SMTP)"]
             MailActivation["Correo de Activación Obligatoria"]
-            MailDelivery["Notificación de Paquete Digital Listo"]
+            MailDelivery["Notificaciones de Compra y Alertas SLA"]
+        end
+
+        subgraph LeadCapture["Captura de Leads (Formspree)"]
+            FormspreeAPI["Formspree.io Endpoint\n(Honeypot _gotcha, Notificación for@fobandor.com)"]
         end
 
         subgraph HostingVPS["Hosting Agnóstico (Producción)"]
@@ -195,6 +204,8 @@ flowchart TD
 
     Services -->|"Envío Token Verificación"| MailActivation
     App_Fulfillment -->|"Aviso de Entrega Completada"| MailDelivery
+    User_Public -->|"Solicitud Diagnóstico (AJAX Fetch)"| FormspreeAPI
+    FormspreeAPI -->|"Alerta de Lead por Correo"| User_Staff
 
     Core12Factor -.->|"Despliegue Idéntico Docker"| VPS
 ```
@@ -219,7 +230,7 @@ flowchart TD
 ### B. Módulo `fobandor.cms`
 * `ServiceCategory` y `ServiceItem`: Catálogo de las 4 líneas de negocio, descripciones bilingües (`title_es`, `title_en`, `desc_es`, `desc_en`), iconos y orden.
 * `Project`: Casos de éxito y portafolio con multimedia, etiquetas y detalles bilingües.
-* `CompanyProfile`: Información de FOBANDOR, fundadores, misión, visión, enlaces oficiales a redes sociales, textos del modal de diagnóstico y switches de visibilidad de secciones de la landing (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`).
+* `CompanyProfile`: Información de FOBANDOR, fundadores, misión, visión, enlaces oficiales a redes sociales, metadatos y respuestas del formulario de diagnóstico integrado con Formspree (`diag_form_subject`, `diag_modal_title_es`, `diag_modal_title_en`, `diag_success_msg_es`, `diag_success_msg_en`) y switches de visibilidad de secciones de la landing (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`).
 * `ContactInquiry`: Mensajes recibidos desde el formulario de contacto con trazabilidad.
 
 ### C. Módulo `fobandor.billing`

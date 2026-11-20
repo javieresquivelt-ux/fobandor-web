@@ -43,6 +43,7 @@
 | **Estilos** | **Tailwind CSS 3.4+** | Paleta corporativa FOBANDOR, tipografía Montserrat y soporte `darkMode: 'class'`. |
 | **Pagos** | **Stripe SDK** | Stripe Checkout (suscripciones y cupones), Customer Portal, Webhooks firmados y soporte jerárquico para API moderna de Stripe (`pricing.price_details.price`). |
 | **Email Transaccional** | **Google Workspace SMTP** | Despacho vía `smtp.gmail.com:587` (TLS), confirmaciones de compra con enlace a PDF de factura Stripe y alertas internas inmediatas para Staff + `Content_Editors`. |
+| **Captura de Leads** | **Formspree.io (AJAX Fetch)** | Formularios de contacto y diagnóstico comercial in-situ sin recarga de página, con honeypot anti-spam (`_gotcha`), asunto configurable y alerta directa a `for@fobandor.com`. |
 | **Infraestructura** | **Docker Swarm / Traefik / WhiteNoise** | Despliegue en KVM VPS (Hostinger), SSL automático Let's Encrypt con Traefik, WhiteNoise para compilar y servir estáticos de forma inmutable y blindaje OWASP. |
 
 ---
@@ -126,9 +127,13 @@ flowchart TD
             StripeWebhook["Webhooks Firmados (checkout.session.completed, invoice.paid)"]
         end
 
-        subgraph TransactionalMail["Email Transaccional (SMTP)"]
+        subgraph TransactionalMail["Email Transaccional (Google SMTP)"]
             MailActivation["Correo de Activación Obligatoria"]
-            MailDelivery["Notificación de Paquete Digital Listo"]
+            MailDelivery["Notificaciones de Compra y Alertas SLA"]
+        end
+
+        subgraph LeadCapture["Captura de Leads (Formspree)"]
+            FormspreeAPI["Formspree.io Endpoint\n(Honeypot _gotcha, Notificación for@fobandor.com)"]
         end
 
         subgraph HostingVPS["Hosting Agnóstico (Producción)"]
@@ -171,6 +176,8 @@ flowchart TD
 
     Services -->|"Envío Token Verificación"| MailActivation
     App_Fulfillment -->|"Aviso de Entrega Completada"| MailDelivery
+    User_Public -->|"Solicitud Diagnóstico (AJAX Fetch)"| FormspreeAPI
+    FormspreeAPI -->|"Alerta de Lead por Correo"| User_Staff
 
     Core12Factor -.->|"Despliegue Idéntico Docker"| VPS
 ```
@@ -269,6 +276,7 @@ fobandor/
 
 ### Secciones Públicas y Portales
 * **Web Pública (`/es/` / `/en/`):** Inicio (Hero), Servicios (4 líneas), Proyectos, Precios/Planes, Nosotros y Contacto.
+* **Captura de Leads y Diagnóstico Comercial (Formspree):** Modal de diagnóstico en `/es/precios/` y formulario de contacto en la Home procesados de forma asíncrona mediante Fetch API hacia Formspree (`FORMSPREE_ENDPOINT`), con protección honeypot invisible (`_gotcha`), confirmación in-situ con Alpine.js sin abandonar el sitio, y despacho directo a `for@fobandor.com`. Textos de éxito y asunto parametrizables desde el CMS (`CompanyProfile`).
 * **Portal de Autoservicio (`/mi-cuenta/`):** Gestión de perfil, facturación AVS, historial y descarga de entregables del SLA a 7 días, y enlace seguro al **Stripe Customer Portal**.
 * **Backoffice Administrativo (`/backoffice/`):** Panel integral Server-Driven con DTL + HTMX.
 
@@ -298,6 +306,7 @@ cd fobandor-web
 ```bash
 cp .env.example .env
 ```
+Asegúrate de definir las credenciales locales de PostgreSQL, llaves de Stripe (`STRIPE_PUBLIC_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`), configuración SMTP para despachos de correo, y el endpoint de captura de leads `FORMSPREE_ENDPOINT` (`https://formspree.io/f/mqpqqggk`).
 
 ### Paso 3: Iniciar la Base de Datos con Docker Compose
 ```bash
