@@ -1023,4 +1023,11 @@ Se estructuraron y crearon 7 skills nativas en `.agents/skills/`, extrayendo las
 * Ejecución de `pytest`: 47 pruebas exitosas (100% pasando).
 * Ejecución de `flake8`: 0 advertencias o errores de estilo.
 
+### 6. Incidente en Producción: Servicio de Medios (`MEDIA_URL`) con `DEBUG=False`
+* **Síntoma:** Al subir una imagen desde el Backoffice, el archivo se guardaba correctamente en `/app/media/branding/`, pero cualquier petición a `/media/...` devolvía error HTTP 404.
+* **Causa Raíz:** En Django, la función auxiliar `django.conf.urls.static.static()` está programada internamente para devolver una lista vacía `[]` si `DEBUG=False`. Como WhiteNoise solo sirve archivos estáticos compilados (`STATIC_ROOT`) y no medios subidos dinámicamente (`MEDIA_ROOT`), ninguna ruta atendía `/media/`.
+* **Solución Implementada:** En `config/urls.py`, se utilizó `django.views.static.serve` directamente con `re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT})`, permitiendo servir medios persistidos desde el volumen Swarm `fobandor_media`.
+* **Verificación:** Certificado HTTP/2 200 con `content-type: image/png` sirviendo `https://fobandor.com/media/branding/logo.png`.
+
+
 
