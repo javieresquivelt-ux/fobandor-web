@@ -372,7 +372,65 @@ flowchart LR
 
 ---
 
-## 9. Hoja de Ruta Macro (Roadmap)
+## 9. Metodología de CI/CD y Despliegue Continuo (GitHub ➔ Hostinger VPS)
+
+```mermaid
+flowchart LR
+    Dev["Desarrollador / Agente\n(HARNESS TDD + QA)"] -->|"git push origin main"| GitHub["GitHub Repository\n(javieresquivelt-ux/fobandor-web)"]
+    GitHub -->|"Webhook / Pull Event"| EasyPanel["EasyPanel v2.31.0\n(Hostinger KVM VPS: 89.117.32.46)"]
+    
+    subgraph BuildPipeline["Pipeline de Compilación (Multi-Stage Docker)"]
+        Stage1["Etapa 1: Frontend Builder\n(node:22-alpine, Tailwind minificado)"]
+        Stage2["Etapa 2: Runtime Django\n(python:3.14-slim, Zero CDN, WhiteNoise)"]
+        Stage1 --> Stage2
+    end
+
+    subgraph DeployLifecycle["Lifecycle de Despliegue (entrypoint.sh)"]
+        C1["collectstatic (Brotli/Gzip)"] --> C2["migrate (Postgres 16)"]
+        C2 --> C3["setup_site (fobandor.com)"]
+        C3 --> C4["seeders (Contenido, Planes, RBAC)"]
+        C4 --> C5["reconcile_orders"]
+        C5 --> C6["Gunicorn WSGI (Puerto 8000, 3 Workers)"]
+    end
+
+    EasyPanel --> BuildPipeline
+    BuildPipeline --> DeployLifecycle
+    DeployLifecycle -->|"Rolling Update"| SwarmService["Servicio Docker Swarm\n(fobandor_web)"]
+    
+    Traefik["Traefik 3.6.7 (Edge Proxy / SSL)\n(fobandor.com / www.fobandor.com)"] -->|"Proxy Pass :8000"| SwarmService
+    Users["Clientes y Visitantes Web"] -->|"HTTPS / TLS 1.3"| Traefik
+```
+
+### Flujo de Entrega y Automatización Operativa
+
+1. **Estrategia Trunk-Based en GitHub:**
+   * El repositorio central en GitHub (`https://github.com/javieresquivelt-ux/fobandor-web`) utiliza la rama `main` como rama única de producción.
+   * Todo commit integrado a `main` debe superar previamente en local la suite de pruebas unitarias (`pytest`), validación de linter (`flake8`) y compilación limpia de assets.
+   * Los releases estables se etiquetan formalmente mediante Git Tags (ej. `v1.0.0`).
+
+2. **Pipeline de Construcción Multi-Etapa (`Dockerfile`):**
+   * **Stage 1 (`frontend-builder` con `node:22-alpine`):** Ingesta de `package.json`, instalación determinista vía `npm ci`, compilación y minificación de Tailwind CSS hacia `static/css/output.css`. Los módulos de node y el compilador quedan excluidos del artefacto final.
+   * **Stage 2 (`runner` con `python:3.14-slim`):** Imagen de producción Debian Slim con dependencias mínimas de sistema (`curl`), dependencias Python fijadas (`requirements/base.txt`), copia del CSS compilado y usuario no-root `django:django` (UID 1000) bajo estándares OWASP.
+
+3. **Ciclo de Inicialización Automatizada (`entrypoint.sh`):**
+   En cada nuevo contenedor desplegado, el script de punto de entrada orquesta de forma idempotente:
+   * Compilación de estáticos con hash inmutable y compresión Brotli/Gzip vía WhiteNoise (`collectstatic --noinput`).
+   * Aplicación transaccional de migraciones pendientes en PostgreSQL 16 (`migrate --noinput`).
+   * Configuración del sitio canónico oficial `www.fobandor.com` (`setup_production_site`).
+   * Sembrado de contenido de negocio, categorías, proyectos y planes Stripe (`seed_initial_content`, `seed_subscription_plans`, `create_rbac_groups`).
+   * Auto-reconciliación de órdenes SLA huérfanas (`reconcile_fulfillment_orders`).
+   * Ejecución de **Gunicorn WSGI** en el puerto `8000` con 3 workers y timeout de 120s.
+
+4. **Orquestación en Hostinger VPS (EasyPanel & Docker Swarm):**
+   * **Infraestructura:** Hostinger KVM VPS (`89.117.32.46`, Ubuntu Linux x86_64, 8 GB RAM, 96 GB NVMe SSD) administrado por **EasyPanel v2.31.0** sobre **Docker Swarm**.
+   * **Rolling Updates sin Tiempo de Inactividad:** EasyPanel ejecuta un rolling update en Docker Swarm: levanta el contenedor con la nueva versión, verifica el healthcheck y realiza el cambio de tráfico sin desconexiones para el usuario.
+   * **Persistencia:** Volumen `fobandor_media` montado en `/app/media/` para la retención inmutable de entregables de clientes, y volumen PostgreSQL persistente.
+   * **Edge Proxy y Certificados SSL (Traefik 3.6.7):** Traefik enruta automáticamente las peticiones de los puertos 80 y 443 hacia el puerto interno 8000 del servicio `fobandor_web`, gestionando la renovación automática de certificados SSL Let's Encrypt para `fobandor.com` y `www.fobandor.com`.
+   * **Seguridad 12-Factor:** Variables de entorno y secretos inyectados de manera aislada en EasyPanel (Stripe, Google Workspace OAuth & SMTP, PostgreSQL y Formspree).
+
+---
+
+## 10. Hoja de Ruta Macro (Roadmap)
 
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
 * [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
@@ -388,7 +446,7 @@ flowchart LR
 
 ---
 
-## 10. Autor y Agradecimientos
+## 11. Autor y Agradecimientos
 
 * **Desarrollador Fullstack Líder:** [Javier Esquivel T.](https://github.com/javieresquivelt-ux) (Chile).
 * **Cliente / Emprendedor:** Freddy Obando — Fundador de **FOBANDOR** (Orlando, Florida, EE.UU.).

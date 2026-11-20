@@ -269,3 +269,73 @@ flowchart TD
 * **Etapa 10:** Blindaje de Webhooks Stripe ante API Moderna (Soporte jerárquico de precios `pricing.price_details.price` y compatibilidad con `StripeObject`, inyección SMTP en Docker Swarm VPS y reconciliación E2E). ✅
 * **Etapa 11:** Optimización UX de Notificaciones por Correo (Rediseño minimalista de alerta interna con estilos 100% inline para compatibilidad universal con Gmail, enlace canónico dinámico `reverse("portal:dashboard")` apuntando a `/es/mi-cuenta/` y simplificación sobria de firmas "menos es más"). ✅
 
+---
+
+## 8. Metodología de Integración y Despliegue Continuo (CI/CD: GitHub ➔ Hostinger VPS)
+
+```mermaid
+flowchart LR
+    Dev["Desarrollador / Agente\n(HARNESS TDD + QA)"] -->|"git push origin main"| GitHub["GitHub Repository\n(javieresquivelt-ux/fobandor-web)"]
+    GitHub -->|"Webhook / Pull Event"| EasyPanel["EasyPanel v2.31.0\n(Hostinger KVM VPS: 89.117.32.46)"]
+    
+    subgraph BuildPipeline["Pipeline de Compilación (Multi-Stage Docker)"]
+        Stage1["Etapa 1: Frontend Builder\n(node:22-alpine, Tailwind minificado)"]
+        Stage2["Etapa 2: Runtime Django\n(python:3.14-slim, Zero CDN, WhiteNoise)"]
+        Stage1 --> Stage2
+    end
+
+    subgraph DeployLifecycle["Lifecycle de Despliegue (entrypoint.sh)"]
+        C1["collectstatic (Brotli/Gzip)"] --> C2["migrate (Postgres 16)"]
+        C2 --> C3["setup_site (fobandor.com)"]
+        C3 --> C4["seeders (Contenido, Planes, RBAC)"]
+        C4 --> C5["reconcile_orders"]
+        C5 --> C6["Gunicorn WSGI (Puerto 8000, 3 Workers)"]
+    end
+
+    EasyPanel --> BuildPipeline
+    BuildPipeline --> DeployLifecycle
+    DeployLifecycle -->|"Rolling Update"| SwarmService["Servicio Docker Swarm\n(fobandor_web)"]
+    
+    Traefik["Traefik 3.6.7 (Edge Proxy / SSL)\n(fobandor.com / www.fobandor.com)"] -->|"Proxy Pass :8000"| SwarmService
+    Users["Clientes y Visitantes Web"] -->|"HTTPS / TLS 1.3"| Traefik
+```
+
+### A. Filosofía de Entrega Continua (Trunk-Based)
+* **Rama Principal Única (`main`):** El repositorio en GitHub (`https://github.com/javieresquivelt-ux/fobandor-web`) opera bajo trunk-based development. Todo código integrado en `main` debe superar previamente en local la suite de pruebas unitarias/integración (`pytest`), linter (`flake8`) y compilación CSS libre de errores.
+* **Control de Versiones y Releases:** Las versiones estables mayores se etiquetan mediante Git Tags semánticos (e.g., `v1.0.0`), permitiendo auditoría y trazabilidad del historial de despliegues.
+
+### B. Pipeline de Compilación Multi-Etapa (`Dockerfile`)
+Para optimizar el tamaño de la imagen, maximizar la seguridad OWASP y eliminar dependencias de compilación en el servidor productivo, se implementa un `Dockerfile` en dos etapas:
+1. **Etapa 1 — `frontend-builder` (`node:22-alpine`):**
+   * Descarga determinista de paquetes Node con `npm ci`.
+   * Compilación, purga y minificación de estilos Tailwind CSS hacia `static/css/output.css`.
+   * La totalidad de `node_modules` y herramientas Node son excluidas del runtime final.
+2. **Etapa 2 — `runner` (`python:3.14-slim`):**
+   * Runtime oficial liviano basado en Debian Slim con dependencias mínimas de sistema (`curl`).
+   * Instalación estricta de dependencias Python de producción (`requirements/base.txt`) con `--no-cache-dir`.
+   * Copia del CSS compilado y artefactos estáticos.
+   * Ejecución bajo usuario de sistema sin privilegios `django:django` (UID 1000) bajo el principio de menor privilegio.
+
+### C. Ciclo de Vida de Despliegue y Auto-Provisionamiento (`entrypoint.sh`)
+Cada ciclo de despliegue en el Hostinger VPS ejecuta de forma determinista y transaccional:
+1. `collectstatic --noinput`: WhiteNoise genera el manifiesto de nombres hasheados inmutables (`CompressedManifestStaticFilesStorage`) y pre-comprime estáticos en Brotli y Gzip.
+2. `migrate --noinput`: Ejecución segura de migraciones pendientes en PostgreSQL 16.
+3. `setup_production_site`: Configura de manera idempotente el Site oficial `www.fobandor.com` en `django.contrib.sites`.
+4. `seed_initial_content` & `seed_subscription_plans`: Mantiene sincronizado el catálogo de las 4 líneas de servicio, proyectos, misión/visión y los 3 planes de suscripción con Stripe.
+5. `create_rbac_groups`: Asegura la existencia y permisos de los grupos `Content_Editors` y `Fulfillment_Operators`.
+6. `reconcile_fulfillment_orders`: Reconcilia de manera defensiva órdenes de entrega SLA huérfanas derivadas de compras completadas.
+7. `createsuperuser --noinput`: Auto-creación del superusuario administrativo inicial si se detectan variables de entorno.
+8. `exec gunicorn`: Lanzamiento del servidor WSGI en el puerto `8000` con 3 workers asíncronos y timeout de 120s.
+
+### D. Orquestación en Hostinger VPS (EasyPanel & Docker Swarm)
+* **Infraestructura:** Servidor Hostinger KVM VPS (`89.117.32.46`, Ubuntu Linux x86_64, 8 GB RAM, 96 GB NVMe SSD) gestionado por EasyPanel v2.31.0 sobre Docker Swarm.
+* **Rolling Updates con Cero Downtime:** EasyPanel despliega el nuevo contenedor, aguarda la confirmación de salud operativa (`healthcheck`) y conmuta el tráfico en vivo antes de retirar el contenedor antiguo.
+* **Persistencia de Volúmenes:**
+  * `fobandor_media`: Volumen persistente montado en `/app/media/` para la preservación íntegra de paquetes digitales de entrega y multimedia cargada por administradores.
+  * Base de datos PostgreSQL 16 administrada internamente por EasyPanel en red overlay aislada.
+* **Terminación SSL y Edge Routing (Traefik 3.6.7):**
+  * Traefik escucha en puertos 80 y 443, gestionando automáticamente la emisión y renovación de certificados TLS mediante Let's Encrypt para `fobandor.com` y `www.fobandor.com`.
+  * Redirección forzada HTTP ➔ HTTPS y cabeceras de proxy inverso seguras (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-Port`).
+* **Gobernanza 12-Factor de Secretos:** Configuración inyectada de variables de entorno seguras en tiempo de ejecución (Stripe keys, Google Workspace OAuth & SMTP, PostgreSQL y Formspree).
+
+
