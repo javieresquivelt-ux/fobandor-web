@@ -30,5 +30,8 @@ urlpatterns += i18n_patterns(
     path("", include("fobandor.core.urls")),
 )
 
-if settings.DEBUG:
-    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Servir archivos de medios (uploads) tanto en desarrollo como en producción.
+# En producción Django actúa como servidor de medios directamente (el volumen
+# fobandor_media está montado en /app/media/ por el Swarm).
+# WhiteNoise NO cubre MEDIA_ROOT, por lo que esta ruta es necesaria siempre.
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
