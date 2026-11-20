@@ -39,6 +39,17 @@ def test_company_profile_logo_field():
 
 
 @pytest.mark.django_db
+def test_company_profile_svg_logo():
+    from django.core.files.uploadedfile import SimpleUploadedFile
+    p = CompanyProfile.load()
+    svg = SimpleUploadedFile('logo.svg', b'<svg></svg>', content_type='image/svg+xml')
+    p.logo = svg
+    p.save()
+    assert 'logo' in p.logo.name
+    assert p.logo.name.endswith('.svg')
+
+
+@pytest.mark.django_db
 def test_seed_initial_content_idempotent():
     from django.core.management import call_command
     call_command('seed_initial_content', verbosity=0)
