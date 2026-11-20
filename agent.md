@@ -23,12 +23,28 @@ Aunque dominas múltiples tecnologías y frameworks modernos, **para este proyec
 * **Fase de Ejecución y Verificación (OpenCode / TDD):**
   * Enfoque en escribir código limpio, fuertemente tipado, modular (*Thin Models/Views*, `services.py`, `selectors.py`), probado con `pytest` y validado bajo estándares OWASP.
 
-## 5. Metodología HARNESS
+## 5. Consulta Obligatoria de Skills del Proyecto (`.agents/skills/`)
+> [!IMPORTANT]
+> **REGLA OBLIGATORIA:** Ante cualquier nuevo requerimiento, diseño arquitectónico, planificación de etapas, refactorización o corrección de bugs, el agente **DEBE consultar proactivamente las Skills disponibles en `.agents/skills/`** antes de proponer soluciones o escribir código.
+
+* **Revisión Previa en FASE 1 (ANALIZAR) y FASE 2 (PLANIFICAR):** El agente debe identificar qué skills aplican a la tarea en curso y extraer sus directrices, soluciones canónicas y lecciones aprendidas:
+  * **Arquitectura y Modelado:** `.agents/skills/django-fullstack-architecture/`, `.agents/skills/clean-architecture/`.
+  * **Pasarela de Pago y Facturación:** `.agents/skills/stripe-integration/` (carrera de webhooks, `StripeObject`, `price_` vs `prod_`, `tax_code`).
+  * **Infraestructura, CI/CD y VPS:** `.agents/skills/docker-cicd-deployment/`, `.agents/skills/easypanel/`, `.agents/skills/docker/`, `.agents/skills/hostinger/`, `.agents/skills/gcp/`.
+  * **Email Transaccional y Resiliencia:** `.agents/skills/email-notifications/` (estilos 100% inline, Google SMTP, no-500).
+  * **Frontend, UI/UX y Accesibilidad:** `.agents/skills/frontend-tailwind-alpine/`, `.agents/skills/frontend-core/`, `.agents/skills/sass-7-1-architecture/`.
+  * **Captura de Leads y Formularios:** `.agents/skills/formspree-lead-capture/` (12-Factor, honeypot, AJAX sin abandono).
+  * **Resiliencia, Seguridad y Observabilidad:** `.agents/skills/error-handling/`, `.agents/skills/security/`.
+  * **Ingeniería de Datos y Automatización:** `.agents/skills/data-engineering/`, `.agents/skills/etl-pipelines/`, `.agents/skills/n8n/`, `.agents/skills/python/`.
+  * **Gobernanza de Proceso:** `.agents/skills/harness-governance/`.
+* **Prohibición de Reinventar la Rueda:** Si una skill ya documentó un patrón validado o un antipatrón/error crítico de producción (e.g. incompatibilidades de API de Stripe, colapso de puertos en EasyPanel, estilos en Gmail, contraste en inputs), el plan **debe adherirse estrictamente** a la solución canónica registrada en la skill.
+
+## 6. Metodología HARNESS
 Cada etapa o requerimiento debe seguir rigurosamente el ciclo:
-1. **ANALIZAR:** Revisar el repositorio y actualizar `agent.md` y `spec.md` (con diagramas Mermaid actualizados).
-2. **PLANIFICAR:** Desglosar tareas atómicas en `task.md` con rutas exactas de archivos.
-3. **APROBAR:** **PAUSA OBLIGATORIA.** Presentar el plan al desarrollador y esperar su aprobación explícita antes de escribir código.
+1. **ANALIZAR:** Revisar el repositorio, **consultar las skills relevantes en `.agents/skills/`**, y actualizar `agent.md` y `spec.md` (con diagramas Mermaid actualizados).
+2. **PLANIFICAR:** Desglosar tareas atómicas en `task.md` con rutas exactas de archivos, fundamentadas en las directrices de las skills consultadas.
+3. **APROBAR:** **PAUSA OBLIGATORIA.** Presentar el plan al desarrollador indicando qué skills sustentan el diseño y esperar su aprobación explícita antes de escribir código.
 4. **EJECUTAR:** Implementar el código con precisión bajo patrones de arquitectura limpia y seguridad.
 5. **REGISTRAR:** Registrar decisiones técnicas, soluciones a errores y hallazgos en `memory.md`.
-6. **APRENDER:** Actualizar `README.md` con arquitectura, flujos y documentación viva.
+6. **APRENDER:** Actualizar `README.md`, `spec.md` y retroalimentar las **Skills** correspondientes si surgen nuevos aprendizajes técnicos o patrones reutilizables.
 
