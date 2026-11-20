@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 5: REGISTRAR (Etapa 12 — Modernización del Branding e Identidad Visual Oficial finalizada con 47/47 pruebas pasando).
+> * **Estado Actual:** FASE 5: REGISTRAR (Etapa 13 — Contraste Inteligente de Logotipo en Modo Claro completada con éxito con 48/48 pruebas pasando).
 
 ---
 
@@ -3130,3 +3130,57 @@ fobandor/
   1. En `fobandor/cms/tests/test_models.py`: Añadir test unitario para la presencia y persistencia del campo `logo`.
   2. Ejecutar suite de pruebas con `pytest` (47/47 pasando) y linter con `flake8` (0 infracciones).
   3. Criterio de Aceptación: Suite limpia sin regresiones.
+
+---
+
+## 21. Etapa 13: Contraste Inteligente de Logotipo en Modo Claro mediante Filtro Perimetral CSS (Alternativa 3)
+
+### Tarea 13.1: Definición de la Regla CSS `.brand-logo-adaptive` y Recompilación de Tailwind
+- [x] **Contexto:** El logotipo corporativo cuenta con isotipo en degradé naranja/azul y la palabra "FOBANDOR" en blanco puro (`#FFFFFF`). En Modo Claro (`html:not(.dark)`), el fondo blanco provoca la pérdida total de contraste del texto. Se requiere una solución que no obligue al usuario a mantener ni subir versiones duales (clara/oscura) en el CMS.
+- [x] **Acciones Atómicas:**
+  1. En `static/css/input.css`:
+     - Incorporar en `@layer components` la clase semántica `.brand-logo-adaptive`:
+       ```css
+       @layer components {
+         .brand-logo-adaptive {
+           filter: drop-shadow(0 0 1.5px rgba(15, 23, 42, 0.95))
+                   drop-shadow(0 1px 3px rgba(15, 23, 42, 0.4));
+           transition: filter 0.2s ease-in-out;
+         }
+         .dark .brand-logo-adaptive {
+           filter: none;
+         }
+       }
+       ```
+  2. Compilar Tailwind CSS: `npm run build:css` para actualizar `static/css/output.css`.
+  3. Criterio de Aceptación: La regla procesa el canal alfa tanto en SVG como en PNG transparente, delineando con precisión milimétrica cada glifo de "FOBANDOR" en modo claro y apagándose en modo oscuro.
+
+---
+
+### Tarea 13.2: Aplicación de la Clase Adaptativa en Plantillas de Navbar y Footer
+- [x] **Contexto:** Las áreas expuestas a fondos claros son el Navbar público (`bg-white/70`) y el Footer (`bg-gray-50`). La barra lateral del Backoffice es permanentemente oscura (`bg-fobandor-dark`), por lo que no requiere alteración.
+- [x] **Acciones Atómicas:**
+  1. En `templates/partials/navbar.html`:
+     - Añadir `brand-logo-adaptive` a las etiquetas `<img>` del logo (tanto dinámica `company.logo.url` como fallback estático).
+  2. En `templates/partials/footer.html`:
+     - Añadir `brand-logo-adaptive` a las etiquetas `<img>` del logo en el bloque de marca.
+  3. Criterio de Aceptación: El logotipo mantiene legibilidad absoluta sobre fondo claro sin alterar la apariencia limpia original en modo oscuro.
+
+---
+
+### Tarea 13.3: Batería de Pruebas Automatizadas y Calidad
+- [x] **Contexto:** Asegurar estabilidad y ausencia de regresiones en la suite de pruebas.
+- [x] **Acciones Atómicas:**
+  1. Ejecutar suite de pruebas: `source .venv/bin/activate && pytest`.
+  2. Ejecutar análisis estático: `flake8 config fobandor scripts`.
+  3. Criterio de Aceptación: 48/48 pruebas pasando y 0 infracciones de estilo.
+
+---
+
+### Tarea 13.4: Despliegue en Producción y Verificación Visual con Alternador de Temas
+- [x] **Contexto:** Desplegar en el cluster Hostinger VPS (`fobandor_web`) y verificar el comportamiento reactivo en vivo.
+- [x] **Acciones Atómicas:**
+  1. Generar commit semántico y push a `main`.
+  2. Sincronizar en el VPS, reconstruir la imagen Docker multi-etapa y actualizar el servicio Swarm `fobandor_web`.
+  3. Verificar en vivo en `https://fobandor.com/es/` alternando el switch de sol/luna (Modo Claro vs Modo Oscuro).
+  4. Criterio de Aceptación: Transición suave, texto 100% legible en fondo claro y logo original nítido en fondo oscuro.

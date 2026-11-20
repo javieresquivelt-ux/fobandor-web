@@ -1030,4 +1030,27 @@ Se estructuraron y crearon 7 skills nativas en `.agents/skills/`, extrayendo las
 * **Verificación:** Certificado HTTP/2 200 con `content-type: image/png` sirviendo `https://fobandor.com/media/branding/logo.png`.
 
 
+---
+
+## 21. Bitácora de Decisiones — [ADR-014] Contraste Perimetral CSS Adaptativo para Logotipos con Tipografía Blanca sobre Fondos Claros
+
+* **Estado:** Aprobado para Planificación (Etapa 13).
+* **Contexto:**
+  El logotipo institucional oficial de FOBANDOR (diseñado con isotipo en alas degradé naranja/azul y la palabra "FOBANDOR" en blanco `#FFFFFF`) pierde total legibilidad sobre fondos claros (Navbar en modo claro `bg-white/70` y Footer `bg-gray-50`).
+  Se evaluaron tres enfoques arquitectónicos:
+  1. *Dual Logo en CMS:* Obliga a los administradores a generar, mantener y subir dos archivos gráficos distintos (versión clara y oscura). Se descartó por fricción operativa y sobrecarga para el usuario.
+  2. *Header y Footer Siempre Oscuros:* Modifica la consistencia del modo claro general al forzar marco negro permanente. Se descartó en favor de respetar la selección del tema por parte del usuario.
+  3. *Filtro Perimetral CSS Inteligente (`drop-shadow`):* Utiliza el canal alfa de la imagen para delinear en tiempo real la tipografía únicamente sobre fondos claros.
+* **Decisión:**
+  Adoptar la **Alternativa 3 (Filtro CSS Inteligente de Contorno Perimetral)** mediante la clase semántica `.brand-logo-adaptive`:
+  - **En Modo Claro (`html:not(.dark)`):** Se proyecta una sombra perimetral de dos etapas: `drop-shadow(0 0 1.5px rgba(15, 23, 42, 0.95))` que delinea los bordes de cada glifo y `drop-shadow(0 1px 3px rgba(15, 23, 42, 0.4))` que aporta profundidad sin ensuciar el diseño.
+  - **En Modo Oscuro (`html.dark`):** La regla `.dark .brand-logo-adaptive { filter: none; }` anula cualquier filtro, dejando el logotipo con sus colores nativos sobre el fondo `#0B111E`.
+* **Justificación / Razonamiento:**
+  * **Principio de Fuente Única de Verdad (Single Source of Truth):** El usuario solo gestiona y sube **un único archivo** al CMS (`logo.svg` o `logo.png`).
+  * **Conciencia de Canal Alfa:** A diferencia de `box-shadow` (que actúa sobre la caja rectangular del elemento), `filter: drop-shadow()` opera matemáticamente sobre la silueta transparente del SVG/PNG, delineando únicamente los pixeles visibles de las letras.
+  * **Cero Sobrecarga de Red y Rendimiento Óptimo:** La solución es 100% acelerada por GPU en el cliente vía CSS moderno, sin peticiones HTTP adicionales ni procesamiento en el servidor Django.
+  * **Aislamiento Arquitectónico:** La barra lateral del Backoffice es permanentemente oscura (`bg-fobandor-dark`), por lo que no se ve afectada ni requiere lógica condicional adicional.
+
+
+
 

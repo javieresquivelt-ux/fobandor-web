@@ -8,9 +8,9 @@
       <div>
         <div class="flex items-center gap-2 mb-4">
           {% if company.logo %}
-            <img src="{{ company.logo.url }}" alt="FOBANDOR" class="h-8 w-auto object-contain">
+            <img src="{{ company.logo.url }}" alt="FOBANDOR" class="h-8 w-auto object-contain brand-logo-adaptive">
           {% else %}
-            <img src="{% static 'images/logo-fobandor.png' %}" alt="FOBANDOR" class="h-8 w-auto object-contain">
+            <img src="{% static 'images/logo-fobandor.png' %}" alt="FOBANDOR" class="h-8 w-auto object-contain brand-logo-adaptive">
           {% endif %}
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400">

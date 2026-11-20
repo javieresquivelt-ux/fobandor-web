@@ -20,6 +20,24 @@
 @tailwind components;
 @tailwind utilities;
 
+@layer components {
+  /* -------------------------------------------------------------------------
+   * Etapa 13 — Contraste adaptativo para logotipo institucional (ADR-014)
+   * En modo claro (fondo blanco), aplica una sombra perimetral de alto contraste
+   * alrededor del canal alfa de las letras blancas para garantizar 100% legibilidad.
+   * En modo oscuro (.dark), se desactiva el filtro para mostrar el logo original.
+   * ------------------------------------------------------------------------- */
+  .brand-logo-adaptive {
+    filter: drop-shadow(0 0 1.5px rgba(15, 23, 42, 0.95))
+            drop-shadow(0 1px 3px rgba(15, 23, 42, 0.4));
+    transition: filter 0.2s ease-in-out;
+  }
+
+  .dark .brand-logo-adaptive {
+    filter: none;
+  }
+}
+
 @layer base {
   html {
     font-family: 'Montserrat', sans-serif;
