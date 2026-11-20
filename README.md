@@ -11,11 +11,13 @@
 3. [Estrategia "Zero External CDN"](#3-estrategia-zero-external-cdn)
 4. [Diagrama de Arquitectura de la Solución](#4-diagrama-de-arquitectura-de-la-solución)
 5. [Estructura de Archivos del Proyecto](#5-estructura-de-archivos-del-proyecto)
-6. [Secciones del Sitio y Matriz de Roles (RBAC)](#6-secciones-del-sitio-y-matriz-de-roles-rbac)
-7. [Puesta en Marcha Local (Linux Ubuntu)](#7-puesta-en-marcha-local-linux-ubuntu)
-8. [Metodología HARNESS y Gobernanza Multi-Agente](#8-metodología-harness-y-gobernanza-multi-agente)
-9. [Hoja de Ruta Macro (Roadmap)](#9-hoja-de-ruta-macro-roadmap)
-10. [Autor y Agradecimientos](#10-autor-y-agradecimientos)
+6. [Arquitectura de Base de Datos y Diagrama Entidad-Relación (ERD)](#6-arquitectura-de-base-de-datos-y-diagrama-entidad-relación-erd)
+7. [Secciones del Sitio y Matriz de Roles (RBAC)](#7-secciones-del-sitio-y-matriz-de-roles-rbac)
+8. [Puesta en Marcha Local (Linux Ubuntu)](#8-puesta-en-marcha-local-linux-ubuntu)
+9. [Metodología HARNESS y Gobernanza Multi-Agente](#9-metodología-harness-y-gobernanza-multi-agente)
+10. [Metodología de CI/CD y Despliegue Continuo (GitHub ➔ Hostinger VPS)](#10-metodología-de-cicd-y-despliegue-continuo-github--hostinger-vps)
+11. [Hoja de Ruta Macro (Roadmap)](#11-hoja-de-ruta-macro-roadmap)
+12. [Autor y Agradecimientos](#12-autor-y-agradecimientos)
 
 ---
 
@@ -272,7 +274,194 @@ fobandor/
 
 ---
 
-## 6. Secciones del Sitio y Matriz de Roles (RBAC)
+## 6. Arquitectura de Base de Datos y Diagrama Entidad-Relación (ERD)
+
+La base de datos de FOBANDOR está implementada sobre el motor **PostgreSQL 16+** en contenedor Docker (garantizando paridad 1:1 entre desarrollo y producción en el VPS de Hostinger). El modelo sigue el estándar de **Tercera Forma Normal (3FN)**, desacoplamiento estricto de seguridad PCI-DSS y arquitectura modular orientada a dominios de negocio:
+
+* **Identidad y Facturación AVS (`fobandor.users`):** Cuentas de cliente con verificación previa de correo (`is_email_verified`), datos de facturación para validación de código postal y país (Address Verification System - AVS), y roles administrativos RBAC.
+* **Catálogo de Servicios y CMS Bilingüe (`fobandor.cms`):** 4 líneas de servicio, casos de portafolio, enlaces a redes sociales y configuración singleton global (`CompanyProfile`).
+* **Facturación Recurrente e Inmutable (`fobandor.billing`):** Planes mensuales de acompañamiento con `stripe_price_id` dinámico, suscripciones activas y registro de cobros con URL directa al PDF oficial de Stripe.
+* **Operación y Compromiso de Entrega (`fobandor.fulfillment`):** Motor de órdenes `FulfillmentOrder` con fecha límite estricta de 7 días (`paid_at + 7 días`), semáforo de alerta operativa y trazabilidad de entrega digital.
+
+### Diagrama Entidad-Relación Oficial (Mermaid ERD)
+
+```mermaid
+erDiagram
+    USER ||--o{ CUSTOMER_SUBSCRIPTION : "posee"
+    USER ||--o{ BILLING_INVOICE : "recibe"
+    USER ||--o{ FULFILLMENT_ORDER : "solicita (cliente)"
+    USER ||--o{ FULFILLMENT_ORDER : "atiende (staff asignado)"
+    
+    SUBSCRIPTION_PLAN ||--o{ CUSTOMER_SUBSCRIPTION : "tipifica"
+    SUBSCRIPTION_PLAN ||--o{ FULFILLMENT_ORDER : "define alcance"
+    
+    CUSTOMER_SUBSCRIPTION ||--o{ FULFILLMENT_ORDER : "origina"
+    
+    SERVICE_CATEGORY ||--|{ SERVICE_ITEM : "contiene"
+    SERVICE_CATEGORY ||--o{ PROJECT : "clasifica"
+    SERVICE_CATEGORY ||--o{ CONTACT_INQUIRY : "interesa"
+
+    USER {
+        bigint id PK
+        string email UK
+        string phone
+        string preferred_language
+        boolean is_email_verified
+        string company_name
+        string tax_id
+        string billing_city
+        string billing_country
+        string stripe_customer_id UK
+        datetime terms_accepted_at
+        boolean is_staff
+    }
+
+    SUBSCRIPTION_PLAN {
+        bigint id PK
+        string slug UK
+        string name_es
+        string name_en
+        decimal price_usd
+        string stripe_price_id
+        string order_type
+        int min_commitment_months
+        boolean is_active
+        boolean is_highlighted
+    }
+
+    CUSTOMER_SUBSCRIPTION {
+        bigint id PK
+        bigint user_id FK
+        bigint plan_id FK
+        string stripe_subscription_id UK
+        string status
+        datetime current_period_start
+        datetime current_period_end
+        boolean cancel_at_period_end
+    }
+
+    BILLING_INVOICE {
+        bigint id PK
+        bigint user_id FK
+        string stripe_invoice_id UK
+        decimal amount_paid
+        string currency
+        datetime paid_at
+        string invoice_pdf_url
+    }
+
+    FULFILLMENT_ORDER {
+        bigint id PK
+        bigint user_id FK
+        bigint subscription_id FK
+        bigint plan_id FK
+        bigint assigned_to_id FK
+        string order_type
+        string stripe_invoice_id UK
+        string status
+        datetime paid_at
+        datetime due_date
+        datetime delivered_at
+        string deliverable_file
+    }
+
+    SERVICE_CATEGORY {
+        bigint id PK
+        string slug UK
+        string title_es
+        string title_en
+        string icon
+        int order
+    }
+
+    SERVICE_ITEM {
+        bigint id PK
+        bigint category_id FK
+        string title_es
+        string title_en
+        text desc_es
+        text desc_en
+        int order
+    }
+
+    PROJECT {
+        bigint id PK
+        bigint category_id FK
+        string title_es
+        string title_en
+        string client_name
+        string image
+        boolean is_featured
+    }
+
+    COMPANY_PROFILE {
+        bigint id PK
+        text mission_es
+        text mission_en
+        text vision_es
+        text vision_en
+        text values_es
+        text values_en
+        string location
+        string website_url
+        string diag_form_subject
+        boolean show_services_section
+    }
+
+    OFFICIAL_SOCIAL_LINK {
+        bigint id PK
+        string platform UK
+        string url
+        string handle
+    }
+
+    CONTACT_INQUIRY {
+        bigint id PK
+        bigint service_interest_id FK
+        string name
+        string email
+        text message
+        string status
+    }
+```
+
+### Ciclo de Vida del Dato en Operación Real
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Web as Web (fobandor.com)
+    participant Stripe as Stripe Billing
+    participant Hook as Webhook Handler
+    participant DB as PostgreSQL 16
+    actor Staff as Freddy / Equipo
+
+    Cliente->>Web: Selecciona Plan en /precios/
+    Web->>Stripe: Crea Checkout Session (price_...)
+    Cliente->>Stripe: Ingresa tarjeta y paga
+    Stripe-->>Hook: Evento webhook: invoice.paid
+    Hook->>DB: Registra BillingInvoice (in_...)
+    Hook->>DB: Crea/Actualiza CustomerSubscription (sub_...)
+    Hook->>DB: Genera FulfillmentOrder (SLA due_date = paid_at + 7 días)
+    Hook-->>Cliente: Email con factura oficial en PDF y enlace a /mi-cuenta/
+    Hook-->>Staff: Alerta operativa con datos del cliente y enlace a /backoffice/entregas/
+    Staff->>DB: Transiciona orden a EN_PROCESO y carga entregable
+    Staff->>DB: Marca orden como ENTREGADA (delivered_at)
+    Cliente->>Web: Descarga entregable en /mi-cuenta/
+```
+
+### Potencial Analítico y Futuras Extensiones (Business Intelligence)
+
+La base de datos relacional de FOBANDOR está lista para conectarse directamente a herramientas de visualización y análisis de datos (Metabase, Google Looker Studio, BigQuery) para extraer los KPIs críticos del modelo SaaS:
+* **Ingresos Recurrentes (MRR / ARR):** Cálculo en tiempo real sumando `price_usd` de los planes con suscripción `active` en `CustomerSubscription`.
+* **Retención y Churn:** Análisis de bajas mensuales analizando transiciones hacia `canceled` o `cancel_at_period_end = True`.
+* **Cumplimiento y Velocidad de SLA:** Medición del porcentaje de órdenes entregadas a tiempo (`delivered_at <= due_date`) y lead time medio `(delivered_at - paid_at)` desglosado por operador y línea de servicio.
+* **Valor de Vida del Cliente (LTV):** Suma histórica acumulada de facturas pagadas en `BillingInvoice` por cliente.
+
+---
+
+## 7. Secciones del Sitio y Matriz de Roles (RBAC)
 
 ### Secciones Públicas y Portales
 * **Web Pública (`/es/` / `/en/`):** Inicio (Hero), Servicios (4 líneas), Proyectos, Precios/Planes, Nosotros y Contacto.
@@ -291,7 +480,7 @@ fobandor/
 
 ---
 
-## 7. Puesta en Marcha Local (Linux Ubuntu)
+## 8. Puesta en Marcha Local (Linux Ubuntu)
 
 ### Prerrequisitos
 * Sistema Operativo Ubuntu / Debian con `python3` (3.12+), `node` (v20+), `npm` y `docker` instalados.
@@ -354,7 +543,7 @@ Visita en tu navegador:
 
 ---
 
-## 8. Metodología HARNESS y Gobernanza Multi-Agente
+## 9. Metodología HARNESS y Gobernanza Multi-Agente
 
 El desarrollo de FOBANDOR se ejecuta bajo el ciclo riguroso de **HARNESS Framework** con gobernanza multi-agente:
 
@@ -372,7 +561,7 @@ flowchart LR
 
 ---
 
-## 9. Metodología de CI/CD y Despliegue Continuo (GitHub ➔ Hostinger VPS)
+## 10. Metodología de CI/CD y Despliegue Continuo (GitHub ➔ Hostinger VPS)
 
 ```mermaid
 flowchart LR
@@ -430,7 +619,7 @@ flowchart LR
 
 ---
 
-## 10. Hoja de Ruta Macro (Roadmap)
+## 11. Hoja de Ruta Macro (Roadmap)
 
 * [x] **Etapa 1 — Cimientos, Branding y UI Base en `localhost`:** Django 5.2 LTS, PostgreSQL 16 en Docker, Tailwind CSS con paleta oficial, favicons, fuentes locales Montserrat, i18n ES/EN y Dark/Light Mode.
 * [x] **Etapa 2 — Identidad, RBAC y Backoffice CMS:** Modelos dinámicos del CMS para las 4 líneas (`fobandor.cms`), proyectos, seeder con datos reales de Orlando, FL, grupos de permisos RBAC y panel `/backoffice/` modular con DTL + HTMX + Tailwind.
@@ -446,7 +635,7 @@ flowchart LR
 
 ---
 
-## 11. Autor y Agradecimientos
+## 12. Autor y Agradecimientos
 
 * **Desarrollador Fullstack Líder:** [Javier Esquivel T.](https://github.com/javieresquivelt-ux) (Chile).
 * **Cliente / Emprendedor:** Freddy Obando — Fundador de **FOBANDOR** (Orlando, Florida, EE.UU.).
