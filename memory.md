@@ -933,3 +933,61 @@ Por instrucción del Desarrollador Líder, los 3 hallazgos detectados en QA se d
   3. **Texto `NOT_FOUND` en Firma:** Se certificó mediante inspección RFC 822 que el correo generado por Django no incluye `NOT_FOUND`. El texto proviene de la tarjeta de contacto de Google Workspace (Google People Card) del remitente en Gmail, donde el campo "Job Title / Cargo" de la cuenta fue registrado como `NOT_FOUND`.
      - *Solución:* Simplificación del pie corporativo en el template a una sola línea sobria (`FOBANDOR — Build. Ads. Studio. · Soporte: admin@fobandor.com · www.fobandor.com`) y documentación para actualizar el perfil en Google Admin Console.
 * **Cobertura Automatizada:** 46/46 tests unitarios pasando, con validación explícita de `portal_url` y 0 errores en `flake8`.
+
+---
+
+## 28. Documentación Global del Proyecto, Metodología CI/CD y Creación del Ecosistema de Skills (`.agents/skills/`)
+
+* **Fecha de Registro:** 19 de Noviembre de 2026.
+* **Contexto:**
+  Con la finalización de las Etapas 1 a 11, se requirió consolidar toda la arquitectura, lecciones aprendidas e incidentes resueltos en documentación viva de alto nivel (`spec.md` y `README.md`), empaquetar el conocimiento acumulado en **Skills de IA** reutilizables para el entorno Antigravity-IDE, incorporar las skills maestras del repositorio central del desarrollador (`skills-dev`), y blindar la gobernanza de trabajo del agente en `agent.md`.
+
+### 1. Actualización Exhaustiva de Documentación (`spec.md` y `README.md`)
+* **Integración con Formspree.io:**
+  - Documentada la arquitectura asíncrona serverless de captura de leads en `/es/#contacto` y en el modal de diagnóstico comercial de `/es/precios/`.
+  - Mecanismo `@submit.prevent="submitForm($event)"` con Fetch API y cabecera `Accept: application/json` que elimina la redirección tradicional y muestra confirmación visual in-situ.
+  - Blindaje anti-spam silencioso con campo Honeypot invisible (`_gotcha`), asunto configurable (`_subject`) y despacho directo hacia `for@fobandor.com`.
+  - Extensión del singleton `CompanyProfile` con 5 campos dinámicos (`diag_form_subject`, `diag_modal_title_es/en`, `diag_success_msg_es/en`) y variable de entorno 12-factor `FORMSPREE_ENDPOINT`.
+* **Metodología de CI/CD y Despliegue Continuo (GitHub ➔ Hostinger VPS):**
+  - Diagrama Mermaid de flujo continuo: Desarrollador ➔ GitHub (`main`) ➔ Webhook Pull EasyPanel ➔ Multi-Stage Dockerfile ➔ `entrypoint.sh` ➔ Docker Swarm Service ➔ Traefik SSL ➔ Usuarios HTTPS.
+  - Filosofía Trunk-Based con `main` como rama protegida y releases etiquetados vía Git Tags semánticos (`v1.0.0`).
+  - Pipeline de compilación en 2 etapas: `frontend-builder` (`node:22-alpine` para Tailwind minificado sin inflar la imagen) y `runner` (`python:3.14-slim` con usuario no-root `django:django` UID 1000).
+  - Ciclo de auto-provisionamiento idempotente en `entrypoint.sh`: WhiteNoise `collectstatic` (Brotli/Gzip), `migrate`, `setup_production_site` (`www.fobandor.com`), seeders de contenido y planes, auto-reconciliación de órdenes SLA (`reconcile_fulfillment_orders`) y ejecución de Gunicorn WSGI en puerto `8000` con 3 workers.
+  - Orquestación en Hostinger KVM VPS (`89.117.32.46`): EasyPanel v2.31.0 sobre Docker Swarm con rolling updates sin downtime, volumen persistente `fobandor_media` en `/app/media/`, base de datos PostgreSQL 16 y proxy inverso Traefik 3.6.7 con certificados SSL automáticos Let's Encrypt.
+
+### 2. Creación del Ecosistema de Skills Nativas de FOBANDOR
+Se estructuraron y crearon 7 skills nativas en `.agents/skills/`, extrayendo las soluciones a los incidentes reales documentados en la bitácora:
+1. `django-fullstack-architecture`: Patrón Server-Driven (DTL + HTMX + Alpine.js), CustomUser desde la migración 0001 con `UserManager` personalizado (ADR-011), estrategia Zero External CDN, Singleton `CompanyProfile` con Context Processor global, Clean Architecture y auto-conexión OAuth (`SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT`).
+2. `stripe-integration`: Diferenciación entre `price_` y `prod_`, código de impuestos `tax_code="txcd_10000000"`, mitigación de la condición de carrera `invoice.paid` vs `checkout.session.completed` mediante resolución multi-fuente, soporte jerárquico para la API moderna de Stripe (`pricing.price_details.price`) y manejo defensivo de `StripeObject`.
+3. `docker-cicd-deployment`: Dockerfile multi-etapa, hotfix del puerto 80 inyectado por EasyPanel (forzado a `PORT=8000`), serving de estáticos con WhiteNoise sin Nginx adicional, inyección de variables SMTP directamente en el servicio Swarm, y sincronización de contraseñas de PostgreSQL.
+4. `email-notifications`: Integración con Google Workspace SMTP (`smtp.gmail.com:587`), diseño con estilos 100% inline en cada celda para garantizar legibilidad en Gmail y Outlook ("Menos es más"), generación canónica de URLs mediante `reverse()`, captura defensiva de errores SMTP sin propagar HTTP 500, y formateo de fecha/hora en zona horaria `America/New_York`.
+5. `frontend-tailwind-alpine`: Corrección de contraste en inputs en modo oscuro para Chromium/Edge (`@layer base`), selector interactivo de planes con hover suave y selección reactiva en Alpine.js, toggle de idioma en 1 clic (pastilla ES/EN), blindaje responsive del navbar móvil con `overflow-x-clip`, y script anti-FOUC para tema oscuro.
+6. `formspree-lead-capture`: Configuración 12-factor, directiva de desactivar reCAPTCHA y Formshield en el dashboard para envíos AJAX, honeypot invisible `_gotcha`, y textos dinámicos desde el CMS.
+7. `harness-governance`: Ciclo iterativo de 6 fases (Analizar, Planificar, Aprobar, Ejecutar, Registrar, Aprender), regla inmutable de pausa obligatoria antes de escribir código, estructura de tareas atómicas verificables, formato estándar de ADRs y desacoplamiento de hallazgos QA.
+
+### 3. Integración y Normalización de Skills Maestras desde `skills-dev`
+* **Origen:** Repositorio centralizado del desarrollador [`https://github.com/javieresquivelt-ux/skills-dev`](https://github.com/javieresquivelt-ux/skills-dev).
+* **Ingesta:** Se importaron 15 skills arquitectónicas complementarias:
+  - `clean-architecture`: Principios SOLID, Repository Pattern y Service Layer.
+  - `data-engineering`: Modelado dimensional Kimball (hechos y dimensiones), particionamiento y clustering SQL.
+  - `django`: Patrones de desarrollo backend con DRF, serializers y optimización ORM.
+  - `docker`: Contenedorización, optimización de imágenes y estrategia dual-repo.
+  - `easypanel`: Gestión de infraestructura VPS, Traefik y servicios auxiliares.
+  - `error-handling`: Jerarquía de excepciones, logging estructurado JSON y reintentos con Tenacity.
+  - `etl-pipelines`: Pipelines ETL/ELT con Pydantic V2, DuckDB, Polars y Parquet.
+  - `frontend-core`: Tematización dinámica en runtime, RBAC en SPAs y almacenamiento local-first.
+  - `gcp`: Servicios Cloud Run, BigQuery, Cloud Storage (GCS) y Secret Manager.
+  - `hostinger`: Gestión de zonas DNS (A, CNAME, TXT, MX) y políticas SPF/DKIM/DMARC.
+  - `n8n`: Automatización con webhooks HTTP, sub-workflows y expresiones JavaScript.
+  - `python`: Estándares de proyectos modernos con `pyproject.toml`, ruff, mypy y pytest.
+  - `react`: Componentes avanzados, Custom Hooks, Context API y optimización en SPAs.
+  - `sass-7-1-architecture`: Arquitectura Sass 7-1, tokens semánticos y accesibilidad WCAG.
+  - `security`: OWASP Top 10, JWT, mitigación de CORS y firmas criptográficas HMAC.
+* **Normalización Antigravity (Progressive Disclosure):** Se transformó el frontmatter YAML de las 15 skills importadas para incluir explícitamente los campos obligatorios `name:` y `description: >- ...` reconocidos por el motor de Antigravity, preservando todos los metadatos originales (`domain`, `technologies`, `triggers`, `related_skills`).
+* **Resultado:** El proyecto cuenta con un catálogo activo de **22 Skills** indexadas y descubribles automáticamente en `.agents/skills/`.
+
+### 4. Endurecimiento de Gobernanza en `agent.md`
+* Se agregó la **Sección 5 (Consulta Obligatoria de Skills del Proyecto)** en `agent.md`.
+* Se instruye formalmente al agente que ante cualquier nuevo requerimiento o planificación, debe revisar previamente las skills correspondientes en `.agents/skills/` e incorporar sus directrices en las Fases 1 (ANALIZAR) y 2 (PLANIFICAR) de HARNESS.
+* Se prohíbe de forma explícita reinventar la rueda ante problemas técnicos o antipatrones ya resueltos y documentados en el catálogo.
+
