@@ -1,11 +1,11 @@
 """Configuración de URLs raíz de FOBANDOR."""
 from django.conf import settings
 from django.conf.urls.i18n import i18n_patterns
-from django.conf.urls.static import static
 from django.contrib import admin
 from django.contrib.sitemaps.views import sitemap
-from django.urls import include, path
+from django.urls import include, path, re_path
 from django.views.generic import TemplateView
+from django.views.static import serve
 
 from fobandor.billing.views import StripeWebhookView
 from fobandor.core.sitemaps import StaticViewSitemap
@@ -31,7 +31,13 @@ urlpatterns += i18n_patterns(
 )
 
 # Servir archivos de medios (uploads) tanto en desarrollo como en producción.
-# En producción Django actúa como servidor de medios directamente (el volumen
-# fobandor_media está montado en /app/media/ por el Swarm).
-# WhiteNoise NO cubre MEDIA_ROOT, por lo que esta ruta es necesaria siempre.
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# django.conf.urls.static.static() retorna [] cuando DEBUG=False, por lo que
+# usamos django.views.static.serve directamente para garantizar que el volumen
+# fobandor_media (montado en /app/media/) sea accesible en producción.
+urlpatterns += [
+    re_path(
+        r'^media/(?P<path>.*)$',
+        serve,
+        {'document_root': settings.MEDIA_ROOT, 'show_indexes': False},
+    ),
+]
