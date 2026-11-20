@@ -18,6 +18,7 @@
       </div>
       {% endif %}
       {{ form.logo }}
+      {% if form.logo.errors %}<div class="text-fobandor-orange text-xs mt-1">{{ form.logo.errors }}</div>{% endif %}
       <p class="text-xs text-gray-500 mt-1">{{ form.logo.help_text }}</p>
     </div>
 
