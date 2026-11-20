@@ -1,3 +1,4 @@
+{% load static %}
 {% load i18n %}
 <footer class="border-t border-gray-200 dark:border-white/10 bg-gray-50 dark:bg-fobandor-dark">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -6,8 +7,11 @@
       <!-- Marca -->
       <div>
         <div class="flex items-center gap-2 mb-4">
-          <span class="inline-flex items-center justify-center w-9 h-9 rounded-xl bg-gradient-to-br from-fobandor-orange to-fobandor-blue text-white font-extrabold text-xl">F</span>
-          <span class="font-extrabold tracking-tight text-lg">FOBANDOR</span>
+          {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="FOBANDOR" class="h-8 w-auto object-contain">
+          {% else %}
+            <img src="{% static 'images/logo-fobandor.png' %}" alt="FOBANDOR" class="h-8 w-auto object-contain">
+          {% endif %}
         </div>
         <p class="text-sm text-gray-600 dark:text-gray-400">
           BUILD. ADVERTISE. ENTERTAIN. WITH AI.

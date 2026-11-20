@@ -15,9 +15,14 @@
 
     <!-- Sidebar -->
     <aside class="w-64 shrink-0 bg-fobandor-dark text-white flex flex-col">
-      <div class="h-16 flex items-center gap-2 px-6 border-b border-white/10">
-        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-gradient-to-br from-fobandor-orange to-fobandor-blue font-extrabold">F</span>
-        <span class="font-extrabold tracking-tight">FOBANDOR</span>
+      <div class="h-16 flex items-center px-6 border-b border-white/10">
+        <a href="{% url 'backoffice:dashboard' %}" class="flex items-center">
+          {% if company.logo %}
+            <img src="{{ company.logo.url }}" alt="FOBANDOR" class="h-7 w-auto object-contain">
+          {% else %}
+            <img src="{% static 'images/logo-fobandor.png' %}" alt="FOBANDOR" class="h-7 w-auto object-contain">
+          {% endif %}
+        </a>
       </div>
       <nav class="flex-1 p-4 space-y-1 text-sm">
         <a href="{% url 'backoffice:dashboard' %}" class="block px-3 py-2 rounded-lg hover:bg-white/10">Dashboard</a>

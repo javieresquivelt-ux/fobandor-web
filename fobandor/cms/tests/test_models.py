@@ -26,6 +26,16 @@ def test_company_profile_singleton():
     p1 = CompanyProfile.load()
     p2 = CompanyProfile.load()
     assert p1.pk == p2.pk == 1
+    assert hasattr(p1, 'logo')
+
+
+@pytest.mark.django_db
+def test_company_profile_logo_field():
+    p = CompanyProfile.load()
+    p.website_url = 'https://www.fobandor.com'
+    p.save()
+    reloaded = CompanyProfile.objects.get(pk=1)
+    assert reloaded.logo.name in ('', None)
 
 
 @pytest.mark.django_db

@@ -83,6 +83,13 @@ class CompanyProfile(models.Model):
                                 default='Orlando, Florida, EE.UU.')
     website_url = models.URLField('URL del sitio web', blank=True,
                                   default='https://www.fobandor.com')
+    logo = models.ImageField(
+        'Logotipo principal',
+        upload_to='branding/',
+        blank=True,
+        null=True,
+        help_text='Logotipo oficial de la empresa (formato PNG transparente o SVG, recomendado 800x180 px).'
+    )
     # Formulario de diagnóstico / modal de precios
     diag_form_subject = models.CharField(
         'Asunto del formulario (Formspree)', max_length=200,

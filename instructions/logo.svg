@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 180" width="100%" height="100%">
+  <defs>
+    <!-- Gradiente Naranja para la sección superior -->
+    <linearGradient id="gradOrange" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#FF8C00" />
+      <stop offset="100%" stop-color="#FF4500" />
+    </linearGradient>
+    
+    <!-- Gradiente Azul para la sección inferior -->
+    <linearGradient id="gradBlue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#00CFFF" />
+      <stop offset="100%" stop-color="#0066FF" />
+    </linearGradient>
+
+    <style>
+      /* Importación de la fuente Montserrat (estilo ancho y moderno) */
+      
+      
+      .logo-text {
+        font-family: 'Montserrat', system-ui, -apple-system, sans-serif;
+        font-size: 76px;
+        font-weight: 800;
+        fill: #FFFFFF;
+        letter-spacing: 4px;
+      }
+    </style>
+  </defs>
+
+  <!-- Isotipo (Símbolo F) -->
+  <g transform="translate(30, 0)">
+      <!-- Forma Superior Naranja -->
+      <path d="M 90,80 L 120,20 L 250,20 L 235,50 L 135,50 L 120,80 Z" fill="url(#gradOrange)" stroke="url(#gradOrange)" stroke-width="6" stroke-linejoin="round" />
+            
+      <!-- Forma Inferior Azul -->
+      <path d="M 50,160 L 85,90 L 200,90 L 185,120 L 100,120 L 80,160 Z" fill="url(#gradBlue)" stroke="url(#gradBlue)" stroke-width="6" stroke-linejoin="round" />
+  </g>
+
+  <!-- Tipografía -->
+  <text x="310" y="116" class="logo-text">FOBANDOR</text>
+</svg>

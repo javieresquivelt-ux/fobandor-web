@@ -3,7 +3,7 @@
 > **Gobernanza Multi-Agente:**  
 > * **Diseñado y Validado por:** Antigravity-IDE (Arquitecto de Software Senior)  
 > * **Agente Ejecutor:** OpenCode (DeepSeek V4 Pro / TDD & Clean Architecture)  
-> * **Estado Actual:** FASE 3: APROBAR (Etapa 6 — Depuración de Hallazgos QA: Registro 500, Contraste de Inputs y Selector de Planes). En espera de aprobación explícita del Desarrollador Líder.
+> * **Estado Actual:** FASE 5: REGISTRAR (Etapa 12 — Modernización del Branding e Identidad Visual Oficial finalizada con 47/47 pruebas pasando).
 
 ---
 
@@ -3085,3 +3085,48 @@ fobandor/
   2. Ejecutar `pytest` (46/46 pasando) y `flake8` (0 errores).
   3. Desplegar a producción mediante commit semántico, push y actualización de `fobandor_web` en el host KVM VPS.
   4. Criterio de Aceptación: Servicio convergido en producción y verificación E2E.
+
+---
+
+## 20. Etapa 12: Modernización del Branding e Identidad Visual (Logotipo Oficial Dinámico en CMS y Navbar/Footer)
+
+### Tarea 12.1: Extracción y Generación de Activo Estático Oficial
+- [x] **Contexto:** El isotipo preliminar en el navbar era un badge CSS cuadrado simple con la letra "F". Se suministró la imagen oficial con alas estilizadas en degradé naranja (`#E8560F`) y azul (`#0E67C2`) más el wordmark tipográfico "FOBANDOR".
+- [x] **Acciones Atómicas:**
+  1. Extracción y procesamiento del activo con fondo transparente a `static/images/logo-fobandor.png`.
+  2. Generación vectorial de referencia en `instructions/logo.svg`.
+  3. Criterio de Aceptación: Activo de alta resolución con transparencia alfa y proporciones nativas preservadas.
+
+---
+
+### Tarea 12.2: Extensión de CompanyProfile (Singleton CMS) con Campo de Logotipo
+- [x] **Contexto:** Habilitar al equipo administrativo la capacidad de cambiar o actualizar el logotipo de la empresa en cualquier momento desde el Backoffice sin requerir despliegues de código.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/cms/models.py`:
+     - Añadir campo `logo = models.ImageField('Logotipo principal', upload_to='branding/', blank=True, null=True, help_text=...)` en `CompanyProfile`.
+  2. Generar y aplicar migración `0004_companyprofile_logo`.
+  3. En `fobandor/backoffice/views.py`:
+     - Añadir `'logo'` a los campos editables de `CompanyProfileUpdateView`.
+  4. En `templates/backoffice/cms/company_profile_form.html`:
+     - Habilitar `enctype="multipart/form-data"` en el formulario.
+     - Integrar previsualización en miniatura del logotipo actual sobre fondo oscuro y selector de archivo.
+  5. Criterio de Aceptación: Logotipo editable en `/es/backoffice/empresa/` con persistencia en el volumen persistente de medios (`fobandor_media`).
+
+---
+
+### Tarea 12.3: Integración Frontend en Navbar, Footer y Backoffice con Fallback Robusto
+- [x] **Contexto:** Desplegar el logotipo corporativo oficial tanto en la landing pública como en el portal administrativo, asegurando un fallback elegante al asset estático si no se ha subido uno personalizado en el CMS.
+- [x] **Acciones Atómicas:**
+  1. En `templates/partials/navbar.html`: Cargar `{% load static %}` y renderizar `company.logo.url` si existe, o `static 'images/logo-fobandor.png'`.
+  2. En `templates/partials/footer.html`: Cargar `{% load static %}` y reemplazar el badge CSS por la imagen oficial del logotipo.
+  3. En `templates/backoffice/base_backoffice.html`: Reemplazar el badge del sidebar por el logotipo institucional unificado.
+  4. Criterio de Aceptación: Branding cohesivo y nítido en todas las vistas desktop y móviles.
+
+---
+
+### Tarea 12.4: Pruebas Automatizadas y Verificación de Regresiones
+- [x] **Contexto:** Garantizar cobertura de pruebas y estabilidad del sistema.
+- [x] **Acciones Atómicas:**
+  1. En `fobandor/cms/tests/test_models.py`: Añadir test unitario para la presencia y persistencia del campo `logo`.
+  2. Ejecutar suite de pruebas con `pytest` (47/47 pasando) y linter con `flake8` (0 infracciones).
+  3. Criterio de Aceptación: Suite limpia sin regresiones.

@@ -991,3 +991,36 @@ Se estructuraron y crearon 7 skills nativas en `.agents/skills/`, extrayendo las
 * Se instruye formalmente al agente que ante cualquier nuevo requerimiento o planificación, debe revisar previamente las skills correspondientes en `.agents/skills/` e incorporar sus directrices en las Fases 1 (ANALIZAR) y 2 (PLANIFICAR) de HARNESS.
 * Se prohíbe de forma explícita reinventar la rueda ante problemas técnicos o antipatrones ya resueltos y documentados en el catálogo.
 
+---
+
+## 20. Bitácora de Ejecución — Etapa 12: Modernización del Branding e Identidad Visual (Logotipo Oficial Dinámico en CMS y Navbar/Footer)
+
+* **Fecha de Registro:** 20 de Noviembre de 2026.
+* **Contexto:**
+  El sitio utilizaba un isotipo preliminar en CSS (caja redondeada con degradé naranja-azul y la letra 'F'). Se suministró la imagen oficial con el isotipo estilizado (alas aerodinámicas `#E8560F` y `#0E67C2`) y el wordmark tipográfico moderno "FOBANDOR". Se requirió implementar el nuevo branding de forma nativa en todo el sitio, permitiendo además su administración dinámica desde el Backoffice CMS.
+
+### 1. Activo Estático de Alta Fidelidad y Fallback
+* Se procesó y extrajo la imagen oficial a `static/images/logo-fobandor.png` con fondo transparente (RGBA).
+* Se generó la referencia vectorial en `instructions/logo.svg`.
+* Este asset opera como fallback universal inmediato en caso de que no se haya cargado un logo personalizado en la base de datos.
+
+### 2. Extensión del Singleton `CompanyProfile`
+* Se agregó el campo `logo = models.ImageField('Logotipo principal', upload_to='branding/', blank=True, null=True, help_text=...)` al modelo `CompanyProfile` en `fobandor/cms/models.py`.
+* Se generó y aplicó la migración `0004_companyprofile_logo.py`.
+* En producción, la carpeta `/app/media/branding/` reside sobre el volumen Docker Swarm `fobandor_media`, garantizando persistencia ante despliegues continuos.
+
+### 3. Habilitación en Backoffice CMS
+* En `fobandor/backoffice/views.py`, se expuso `'logo'` dentro de `CompanyProfileUpdateView.fields`.
+* En `templates/backoffice/cms/company_profile_form.html`, se configuró `enctype="multipart/form-data"`, previsualización miniatura del logo actual sobre fondo oscuro, y selector de archivo.
+
+### 4. Actualización en Componentes Frontend
+* `templates/partials/navbar.html`: Carga de `static` y sustitución del badge CSS por `company.logo.url` con fallback a `logo-fobandor.png`.
+* `templates/partials/footer.html`: Carga de `static` y renderizado del nuevo logotipo en la sección de marca.
+* `templates/backoffice/base_backoffice.html`: Reemplazo del badge del encabezado del sidebar por el logotipo corporativo.
+
+### 5. Suite de Pruebas y Certificación de Calidad
+* Se añadió el test unitario `test_company_profile_logo_field` en `fobandor/cms/tests/test_models.py`.
+* Ejecución de `pytest`: 47 pruebas exitosas (100% pasando).
+* Ejecución de `flake8`: 0 advertencias o errores de estilo.
+
+
