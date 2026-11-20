@@ -212,47 +212,319 @@ flowchart TD
 
 ---
 
-## 6. Módulos y Modelos de Datos Proyectados
+## 6. Arquitectura de la Base de Datos Relacional y Diagrama Entidad-Relación (ERD)
 
-### A. Módulo `fobandor.users`
-* `User(AbstractUser)`:
-  * `email` (identificador único / login).
-  * `first_name`, `last_name`, `phone` (E.164).
-  * `company_name`, `social_handle`, `tax_id` (opcionales B2B).
-  * `billing_address_line1`, `billing_address_line2`, `billing_city`, `billing_state`, `billing_postal_code`, `billing_country` (ISO 3166-1 alpha-2 para Stripe AVS).
-  * `is_email_verified` (booleano, gate previo a checkout).
-  * `email_verification_token`, `email_verification_sent_at`.
-  * `stripe_customer_id` (vinculación PCI-DSS segura).
-  * `preferred_language` (`es` / `en`).
-  * `terms_accepted_at`, `marketing_consent`.
-  * Roles RBAC: Superadministrador, Editor de Contenido, Operador de Entregas.
+La base de datos de FOBANDOR está implementada sobre **PostgreSQL 16+**, diseñada bajo principios de normalización (3FN), integridad referencial estricta, desacoplamiento transaccional y preparación nativa para análisis de datos y métricas comerciales (BI / Data Analytics).
 
-### B. Módulo `fobandor.cms`
-* `ServiceCategory` y `ServiceItem`: Catálogo de las 4 líneas de negocio, descripciones bilingües (`title_es`, `title_en`, `desc_es`, `desc_en`), iconos y orden.
-* `Project`: Casos de éxito y portafolio con multimedia, etiquetas y detalles bilingües.
-* `CompanyProfile`: Información de FOBANDOR, fundadores, misión, visión, enlaces oficiales a redes sociales, metadatos y respuestas del formulario de diagnóstico integrado con Formspree (`diag_form_subject`, `diag_modal_title_es`, `diag_modal_title_en`, `diag_success_msg_es`, `diag_success_msg_en`) y switches de visibilidad de secciones de la landing (`show_services_section`, `show_projects_section`, `show_about_section`, `show_contact_section`).
-* `ContactInquiry`: Mensajes recibidos desde el formulario de contacto con trazabilidad.
+### A. Principios Fundamentales del Diseño de Datos
+1. **Separación de Dominios (Clean Architecture):** Los datos se estructuran en 4 dominios funcionales independientes:
+   * **Identidad y Acceso (`fobandor.users`):** Cuentas de usuario, roles RBAC, verificación de identidad y perfil de facturación AVS.
+   * **Gestión de Contenido Bilingüe (`fobandor.cms`):** Catálogo de líneas de servicio, casos de portafolio, redes oficiales y configuración singleton de empresa.
+   * **Facturación Recurrente (`fobandor.billing`):** Planes comerciales, suscripciones activas y facturas inmutables sincronizadas con Stripe.
+   * **Operación y Compromiso de Entrega (`fobandor.fulfillment`):** Motor de órdenes de servicio con semáforo SLA de 7 días, asignaciones y paquetes digitales.
+2. **Seguridad y Cumplimiento PCI-DSS:** Cero almacenamiento de números de tarjeta bancaria, fechas de caducidad o códigos CVC en PostgreSQL. La base de datos local conserva exclusivamente punteros criptográficos opacos emitidos por Stripe (`stripe_customer_id`, `stripe_subscription_id`, `stripe_invoice_id`).
+3. **Auditoría e Inmutabilidad Temporal:** Todas las entidades transaccionales registran marcas temporales `created_at` y `updated_at`. Los registros fiscales (`BillingInvoice`) y eventos de compromiso (`paid_at`, `due_date`, `delivered_at`) son persistidos de forma inmutable.
+4. **Soporte Bilingüe Nativo (ES/EN):** Para el contenido editorial y catálogo de planes, se emplean pares de columnas explícitas (`_es` / `_en`), permitiendo consultas de alto rendimiento en un único `SELECT` sin overhead de librerías externas de traducción.
 
-### C. Módulo `fobandor.billing`
-* `SubscriptionPlan`: 3 planes de acompañamiento mensual con `name_es`, `name_en`, `price_usd`, `stripe_price_id`, `features_es`, `features_en`, `order_type`, `is_active`, `is_highlighted`.
-* `CustomerSubscription`: Estado local sincronizado de la suscripción (`stripe_subscription_id`, `user`, `plan`, `status`, `current_period_start`, `current_period_end`, `cancel_at_period_end`).
-* `BillingInvoice`: Registro inmutable de facturas procesadas (`stripe_invoice_id`, `user`, `amount_paid`, `currency`, `invoice_pdf_url`, `paid_at`).
+---
 
-### D. Módulo `fobandor.fulfillment`
-* `FulfillmentOrder`:
-  * `user` (cliente ForeignKey).
-  * `subscription` (CustomerSubscription ForeignKey, nullable).
-  * `plan` (SubscriptionPlan ForeignKey, nullable).
-  * `service` (ServiceItem ForeignKey, nullable).
-  * `assigned_to` (User ForeignKey, asignado del grupo `Content_Editors` o Administradores, default `for@fobandor.com`).
-  * `order_type` (opciones bilingües con `gettext_lazy`: `WEB_DEV`, `APP_DEV`, `MARKETING`, `STUDIO`).
-  * `stripe_invoice_id` (identificador unívoco de la factura que originó la orden).
-  * `paid_at` (timestamp del pago).
-  * `due_date` (`paid_at + 7 días`).
-  * `status` (`PENDIENTE_PRODUCCION`, `EN_PROCESO`, `EN_REVISION`, `ENTREGADA`, `VENCIDA`, `CANCELADA`).
-  * `delivery_package_url` / `delivery_file` (enlace al paquete digital generado).
-  * `delivered_at` (timestamp de entrega por el staff).
-  * `notes` (notas internas del operador).
+### B. Diagrama Entidad-Relación (ERD)
+
+```mermaid
+erDiagram
+    USER ||--o{ CUSTOMER_SUBSCRIPTION : "posee"
+    USER ||--o{ BILLING_INVOICE : "recibe"
+    USER ||--o{ FULFILLMENT_ORDER : "solicita (cliente)"
+    USER ||--o{ FULFILLMENT_ORDER : "atiende (staff asignado)"
+    
+    SUBSCRIPTION_PLAN ||--o{ CUSTOMER_SUBSCRIPTION : "tipifica"
+    SUBSCRIPTION_PLAN ||--o{ FULFILLMENT_ORDER : "define alcance"
+    
+    CUSTOMER_SUBSCRIPTION ||--o{ FULFILLMENT_ORDER : "origina"
+    
+    SERVICE_CATEGORY ||--|{ SERVICE_ITEM : "contiene"
+    SERVICE_CATEGORY ||--o{ PROJECT : "clasifica"
+    SERVICE_CATEGORY ||--o{ CONTACT_INQUIRY : "interesa"
+
+    USER {
+        bigint id PK
+        string email UK
+        string phone
+        string preferred_language
+        boolean is_email_verified
+        string company_name
+        string social_handle
+        string tax_id
+        string billing_address_line1
+        string billing_address_line2
+        string billing_city
+        string billing_state
+        string billing_postal_code
+        string billing_country
+        string stripe_customer_id UK
+        datetime terms_accepted_at
+        boolean marketing_consent
+        boolean is_staff
+        boolean is_superuser
+        boolean is_active
+        datetime date_joined
+    }
+
+    SUBSCRIPTION_PLAN {
+        bigint id PK
+        string slug UK
+        string name_es
+        string name_en
+        string subtitle_es
+        string subtitle_en
+        decimal price_usd
+        string stripe_price_id
+        json features_es
+        json features_en
+        int min_commitment_months
+        string order_type
+        int order
+        boolean is_active
+        boolean is_highlighted
+        datetime created_at
+        datetime updated_at
+    }
+
+    CUSTOMER_SUBSCRIPTION {
+        bigint id PK
+        bigint user_id FK
+        bigint plan_id FK
+        string stripe_subscription_id UK
+        string status
+        datetime current_period_start
+        datetime current_period_end
+        boolean cancel_at_period_end
+        datetime created_at
+        datetime updated_at
+    }
+
+    BILLING_INVOICE {
+        bigint id PK
+        bigint user_id FK
+        string stripe_invoice_id UK
+        decimal amount_paid
+        string currency
+        datetime paid_at
+        string invoice_pdf_url
+        datetime created_at
+        datetime updated_at
+    }
+
+    FULFILLMENT_ORDER {
+        bigint id PK
+        bigint user_id FK
+        bigint subscription_id FK
+        bigint plan_id FK
+        bigint assigned_to_id FK
+        string order_type
+        string stripe_invoice_id UK
+        string status
+        datetime paid_at
+        datetime due_date
+        datetime delivered_at
+        string deliverable_file
+        string deliverable_url
+        text internal_notes
+        datetime created_at
+        datetime updated_at
+    }
+
+    SERVICE_CATEGORY {
+        bigint id PK
+        string slug UK
+        string title_es
+        string title_en
+        string icon
+        int order
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    SERVICE_ITEM {
+        bigint id PK
+        bigint category_id FK
+        string title_es
+        string title_en
+        text desc_es
+        text desc_en
+        int order
+        boolean is_active
+        datetime created_at
+        datetime updated_at
+    }
+
+    PROJECT {
+        bigint id PK
+        bigint category_id FK
+        string title_es
+        string title_en
+        string client_name
+        string image
+        string url
+        boolean is_featured
+        int order
+        string tags
+        datetime created_at
+        datetime updated_at
+    }
+
+    COMPANY_PROFILE {
+        bigint id PK
+        text mission_es
+        text mission_en
+        text vision_es
+        text vision_en
+        text values_es
+        text values_en
+        int founded_year
+        string location
+        string website_url
+        string diag_form_subject
+        string diag_modal_title_es
+        string diag_modal_title_en
+        text diag_success_msg_es
+        text diag_success_msg_en
+        boolean show_services_section
+        boolean show_projects_section
+        boolean show_about_section
+        boolean show_contact_section
+        datetime created_at
+        datetime updated_at
+    }
+
+    OFFICIAL_SOCIAL_LINK {
+        bigint id PK
+        string platform UK
+        string url
+        string handle
+        boolean is_active
+        int order
+        datetime created_at
+        datetime updated_at
+    }
+
+    CONTACT_INQUIRY {
+        bigint id PK
+        bigint service_interest_id FK
+        string name
+        string email
+        string phone
+        text message
+        string status
+        datetime created_at
+        datetime updated_at
+    }
+```
+
+---
+
+### C. Diccionario de Datos por Dominio
+
+#### 1. Dominio de Identidad y Usuarios (`fobandor.users`)
+* **Tabla `users_user` (Hereda de `AbstractUser` con `username = None`):**
+  * `email` (VARCHAR 254, Unique, Not Null): Identificador primario de autenticación de clientes y staff.
+  * `phone` (VARCHAR 16): Teléfono en formato internacional E.164 (`+14075551234`).
+  * `is_email_verified` (BOOLEAN, Default False): Gate de seguridad; el usuario no puede pagar en Stripe si este campo es falso.
+  * `company_name`, `social_handle`, `tax_id` (VARCHAR): Metadatos corporativos B2B opcionales para facturación de empresas.
+  * `billing_address_line1`, `billing_city`, `billing_state`, `billing_postal_code`, `billing_country` (ISO-2): Datos de dirección para verificación AVS en Stripe.
+  * `stripe_customer_id` (VARCHAR 100, Unique, Nullable): ID del cliente creado en Stripe (`cus_...`).
+  * `terms_accepted_at` (TIMESTAMP WITH TIME ZONE, Nullable): Registro de cumplimiento legal de aceptación de políticas.
+  * `is_staff` / `is_superuser`: Control de acceso por roles (RBAC) para acceso a `/backoffice/` y `/admin/`.
+
+#### 2. Dominio de Facturación y Planes (`fobandor.billing`)
+* **Tabla `billing_subscriptionplan` (Catálogo Comercial):**
+  * `slug` (VARCHAR 60, Unique): Identificador URL (ej. `impulso`, `conversion`, `crecimiento`).
+  * `name_es` / `name_en` (VARCHAR 120): Nombre comercial del plan.
+  * `price_usd` (NUMERIC 8,2): Tarifa mensual oficial en dólares estadounidenses.
+  * `stripe_price_id` (VARCHAR 100): ID del precio recurrente en Stripe (`price_...`). Permite a Freddy modificar tarifas en Stripe sin cambiar código.
+  * `min_commitment_months` (SMALLINT, Default 1): Meses mínimos de compromiso (informativo para el cliente).
+  * `order_type` (VARCHAR 20): Mapeo directo a la línea de entrega operativa (`WEB_DEV`, `APP_DEV`, `ADS_AI`, `STUDIOS`, `MARKETING`).
+  * `is_highlighted` (BOOLEAN): Define cuál tarjeta se destaca con badge "RECOMENDADO" y color naranja en `/precios/`.
+* **Tabla `billing_customersubscription` (Estado de Suscripciones en Stripe):**
+  * `user_id` (FK ➔ `users_user`, CASCADE): Cliente titular de la suscripción.
+  * `plan_id` (FK ➔ `billing_subscriptionplan`, SET_NULL): Plan contratado actualmente.
+  * `stripe_subscription_id` (VARCHAR 100, Unique): ID de suscripción en Stripe (`sub_...`).
+  * `status` (VARCHAR 20): Estado sincronizado por webhooks (`active`, `past_due`, `unpaid`, `trialing`, `canceled`).
+  * `current_period_start` / `current_period_end` (TIMESTAMP): Ventana del ciclo de facturación mensual.
+  * `cancel_at_period_end` (BOOLEAN): Indica si el cliente solicitó no renovar al término del periodo.
+* **Tabla `billing_billinginvoice` (Registro Inmutable de Pagos):**
+  * `user_id` (FK ➔ `users_user`, CASCADE): Cliente que realizó el pago.
+  * `stripe_invoice_id` (VARCHAR 100, Unique): ID oficial de la factura en Stripe (`in_...`).
+  * `amount_paid` (NUMERIC 10,2): Monto total pagado en USD.
+  * `invoice_pdf_url` (URL): Enlace oficial al documento fiscal en PDF generado y firmado criptográficamente por Stripe.
+  * `paid_at` (TIMESTAMP): Fecha y hora del pago exitoso.
+
+#### 3. Dominio de Operaciones y Compromiso de Entrega (`fobandor.fulfillment`)
+* **Tabla `fulfillment_fulfillmentorder` (Motor SLA a 7 Días):**
+  * `user_id` (FK ➔ `users_user`, CASCADE): Cliente que recibe el servicio.
+  * `subscription_id` (FK ➔ `billing_customersubscription`, SET_NULL, Nullable): Suscripción vinculada.
+  * `plan_id` (FK ➔ `billing_subscriptionplan`, SET_NULL, Nullable): Plan contratado.
+  * `assigned_to_id` (FK ➔ `users_user`, SET_NULL, Nullable): Responsable operativo interno (miembro de `Content_Editors`, `Fulfillment_Operators` o Administradores, default `for@fobandor.com`).
+  * `stripe_invoice_id` (VARCHAR 100, Unique): Vinculación unívoca con la factura que disparó la orden.
+  * `order_type` (VARCHAR 20): Tipo de orden (`WEB_DEV`, `APP_DEV`, `ADS_AI`, `STUDIOS`, `MARKETING`).
+  * `status` (VARCHAR 25): Ciclo de vida (`PENDIENTE_PRODUCCION` ➔ `EN_PROCESO` ➔ `ENTREGADA` | `VENCIDA` | `CANCELADA`).
+  * `paid_at` (TIMESTAMP): Inicio del compromiso del servicio.
+  * `due_date` (TIMESTAMP): Fecha límite del SLA calculada automáticamente en BD (`paid_at + 7 días`).
+  * `delivered_at` (TIMESTAMP, Nullable): Momento exacto en que el staff marca la entrega.
+  * `deliverable_file` / `deliverable_url`: Archivo comprimido o enlace digital del resultado entregado al cliente en `/mi-cuenta/`.
+
+#### 4. Dominio de Contenido y Diagnóstico (`fobandor.cms`)
+* **`cms_servicecategory` y `cms_serviceitem`:** Catálogo jerárquico de las 4 líneas de negocio de FOBANDOR con ordenación y títulos bilingües.
+* **`cms_project`:** Casos de éxito y portafolio con enlaces, imágenes, etiquetas y categorización.
+* **`cms_companyprofile` (Singleton PK=1):** Registro único global con misión, visión, valores, metadatos y respuestas del formulario de diagnóstico de Formspree, y switches de visibilidad de secciones de la landing (`show_services_section`, `show_projects_section`, etc.).
+* **`cms_contactinquiry`:** Registro de mensajes de prospectos recibidos desde la web.
+* **`cms_officialsociallink`:** Enlaces y handles oficiales de redes sociales.
+
+---
+
+### D. Funcionamiento Operativo y Flujo del Dato en Producción
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Cliente
+    participant Web as Web (fobandor.com)
+    participant Stripe as Stripe Billing
+    participant Hook as Webhook Handler
+    participant DB as PostgreSQL 16
+    actor Staff as Freddy / Equipo
+
+    Cliente->>Web: Selecciona Plan en /precios/
+    Web->>Stripe: Crea Checkout Session (price_...)
+    Cliente->>Stripe: Ingresa tarjeta y paga
+    Stripe-->>Hook: Evento webhook: invoice.paid
+    Hook->>DB: Registra BillingInvoice (in_...)
+    Hook->>DB: Crea/Actualiza CustomerSubscription (sub_...)
+    Hook->>DB: Genera FulfillmentOrder (SLA due_date = paid_at + 7 días)
+    Hook-->>Cliente: Email con factura oficial en PDF y enlace a /mi-cuenta/
+    Hook-->>Staff: Alerta operativa con datos del cliente y enlace a /backoffice/entregas/
+    Staff->>DB: Transiciona orden a EN_PROCESO y carga entregable
+    Staff->>DB: Marca orden como ENTREGADA (delivered_at)
+    Cliente->>Web: Descarga entregable en /mi-cuenta/
+```
+
+---
+
+### E. Guía para Freddy y su Equipo: Potencial Analítico y Futuras Mejoras
+Esta estructura relacional ha sido diseñada para permitir la incorporación inmediata de capas analíticas y de Business Intelligence (BI) sin requerir migraciones complejas ni rediseño:
+
+1. **Métricas Clave de Negocio (SaaS KPIs) Calculables Directamente en SQL:**
+   * **MRR (Monthly Recurring Revenue):** Suma de `price_usd` de los planes con `status = 'active'` en `CustomerSubscription`.
+   * **ARR (Annual Recurring Revenue):** `MRR * 12`.
+   * **Tasa de Churn (Cancelaciones):** Conteo de registros con `status = 'canceled'` o `cancel_at_period_end = True` agrupados por mes.
+   * **LTV (Lifetime Value):** Suma histórica acumulada en `BillingInvoice.amount_paid` agrupada por `user_id`.
+   * **Tasa de Cumplimiento de SLA:** Porcentaje de `FulfillmentOrder` donde `delivered_at <= due_date`.
+   * **Tiempo Promedio de Entrega (Lead Time):** Promedio de `(delivered_at - paid_at)` por operador (`assigned_to`) y por línea de servicio (`order_type`).
+2. **Conexión a Herramientas de BI y Dashboards:**
+   * PostgreSQL puede conectarse mediante credenciales de solo lectura a herramientas como **Metabase**, **Apache Superset** o **Looker Studio** para generar paneles ejecutivos en tiempo real para Freddy Obando.
+3. **Escalabilidad Analítica Futura (Data Warehouse / BigQuery):**
+   * Gracias a la integridad de claves y timestamps, las tablas `billing_billinginvoice`, `fulfillment_fulfillmentorder` y `users_user` pueden sincronizarse directamente mediante pipelines ELT (conforme a la skill `etl-pipelines` y `data-engineering`) hacia un almacén analítico como Google BigQuery o un Data Mart dimensional con tablas de Hechos (*Fact Sales*, *Fact SLA Delivery*) y Dimensiones (*Dim Client*, *Dim Plan*, *Dim Time*).
+
 
 ---
 
